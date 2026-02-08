@@ -1,13 +1,17 @@
 {
   "name": "ac-framework",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "Agentic Coding Framework - Multi-assistant configuration system with OpenSpec workflows",
   "main": "src/index.js",
+  "exports": {
+    ".": "./src/index.js"
+  },
   "bin": {
     "acfm": "bin/acfm.js"
   },
   "scripts": {
-    "test": "node src/cli.js init"
+    "start": "node bin/acfm.js",
+    "test": "node --test"
   },
   "keywords": [
     "agentic",
@@ -16,10 +20,26 @@
     "ai",
     "assistant",
     "openspec",
-    "cli"
+    "cli",
+    "cursor",
+    "claude",
+    "copilot",
+    "windsurf",
+    "gemini",
+    "codex",
+    "multi-assistant",
+    "spec-driven"
   ],
-  "author": "",
+  "author": "b4san",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/b4san/AC-framework.git"
+  },
+  "bugs": {
+    "url": "https://github.com/b4san/AC-framework/issues"
+  },
+  "homepage": "https://github.com/b4san/AC-framework#readme",
   "dependencies": {
     "chalk": "^5.3.0",
     "commander": "^12.1.0",

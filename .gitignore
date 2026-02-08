@@ -1,1 +1,23 @@
+# Dependencies
 node_modules/
+
+# npm
+*.tgz
+.npm
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Debug
+npm-debug.log*
+
+# Environment
+.env
+.env.local

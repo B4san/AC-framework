@@ -27,7 +27,7 @@ El framework mantiene **conjuntos de skills idénticos** en todos los asistentes
 
 ## Estructura de Carpetas Ocultas
 
-El proyecto contiene **22 carpetas ocultas** organizadas por asistente/IDE, todas las carpetas se encuentran dentro de la carpeta framework:
+El proyecto contiene **22 carpetas ocultas** organizadas por asistente/IDE, todas las carpetas se encuentran dentro de la carpeta framework (`.clinerules` se instala automáticamente junto con `.cline`):
 
 ### Lista Completa de Carpetas
 
@@ -37,25 +37,24 @@ El proyecto contiene **22 carpetas ocultas** organizadas por asistente/IDE, toda
 | 2 | `.amazonq` | AWS Amazon Q | Cloud | `skills/`, `prompts/` |
 | 3 | `.augment` | Augment Code | Asistente | `skills/`, `commands/` |
 | 4 | `.claude` | Anthropic Claude Code | CLI | `skills/`, `commands/opsx/` |
-| 5 | `.cline` | Cline VS Code | Extensión | `skills/` |
-| 6 | `.clinerules` | Reglas compartidas | Configuración | `workflows/` |
-| 7 | `.codebuddy` | CodeBuddy | Asistente | `skills/`, `commands/opsx/` |
-| 8 | `.codex` | OpenAI Codex | CLI | `skills/` |
-| 9 | `.continue` | Continue.dev | Extensión | `skills/`, `prompts/` |
-| 10 | `.cospec` | OpenSpec Nativo | Framework | `skills/`, `openspec/commands/` |
-| 11 | `.crush` | Crush | Asistente | `skills/`, `commands/opsx/` |
-| 12 | `.cursor` | Cursor IDE | IDE | `skills/`, `commands/` |
-| 13 | `.factory` | Factory | Asistente | `skills/`, `commands/` |
-| 14 | `.gemini` | Google Gemini | Cloud | `skills/`, `commands/opsx/` |
-| 15 | `.github` | GitHub Copilot | Extensión | `skills/`, `prompts/` |
-| 16 | `.iflow` | iFlow | Asistente | `skills/`, `commands/` |
-| 17 | `.kilocode` | Kilo Code | Asistente | `skills/`, `workflows/` |
-| 18 | `.opencode` | OpenCode | Framework | `skills/`, `command/` |
-| 19 | `.qoder` | Qoder | Asistente | `skills/`, `commands/opsx/` |
-| 20 | `.qwen` | Qwen (Alibaba) | Cloud | `skills/`, `commands/` |
-| 21 | `.roo` | Roo Code | Extensión | `skills/`, `commands/` |
-| 22 | `.trae` | Trae | IDE | `skills/` |
-| 23 | `.windsurf` | Windsurf | IDE | `skills/`, `workflows/` |
+| 5 | `.cline` | Cline VS Code | Extensión | `skills/`, `workflows/` (incluye `.clinerules`) |
+| 6 | `.codebuddy` | CodeBuddy | Asistente | `skills/`, `commands/opsx/` |
+| 7 | `.codex` | OpenAI Codex | CLI | `skills/` |
+| 8 | `.continue` | Continue.dev | Extensión | `skills/`, `prompts/` |
+| 9 | `.cospec` | OpenSpec Nativo | Framework | `skills/`, `openspec/commands/` |
+| 10 | `.crush` | Crush | Asistente | `skills/`, `commands/opsx/` |
+| 11 | `.cursor` | Cursor IDE | IDE | `skills/`, `commands/` |
+| 12 | `.factory` | Factory | Asistente | `skills/`, `commands/` |
+| 13 | `.gemini` | Google Gemini | Cloud | `skills/`, `commands/opsx/` |
+| 14 | `.github` | GitHub Copilot | Extensión | `skills/`, `prompts/` |
+| 15 | `.iflow` | iFlow | Asistente | `skills/`, `commands/` |
+| 16 | `.kilocode` | Kilo Code | Asistente | `skills/`, `workflows/` |
+| 17 | `.opencode` | OpenCode | Framework | `skills/`, `command/` |
+| 18 | `.qoder` | Qoder | Asistente | `skills/`, `commands/opsx/` |
+| 19 | `.qwen` | Qwen (Alibaba) | Cloud | `skills/`, `commands/` |
+| 20 | `.roo` | Roo Code | Extensión | `skills/`, `commands/` |
+| 21 | `.trae` | Trae | IDE | `skills/` |
+| 22 | `.windsurf` | Windsurf | IDE | `skills/`, `workflows/` |
 
 ### Tipos de Organización
 
@@ -107,7 +106,7 @@ Las carpetas se organizan en tres patrones principales:
     └── ...
 ```
 
-**Asistentes con esta estructura:** `.agent`, `.clinerules`, `.kilocode`, `.windsurf`
+**Asistentes con esta estructura:** `.agent`, `.kilocode`, `.windsurf`, `.clinerules` (incluido con `.cline`)
 
 #### 5. **Solo Skills**
 ```
@@ -278,7 +277,7 @@ Las skills están **espejadas** en múltiples ubicaciones:
 
 #### 🟢 Bajo Impacto - Workflows
 - **Ubicación**: Carpetas `workflows/`
-- **Impacto**: Específico por asistente (.agent, .clinerules, .kilocode, .windsurf)
+- **Impacto**: Específico por asistente (.agent, .kilocode, .windsurf, .clinerules incluido con .cline)
 - **Sincronización requerida**: NO
 
 ### Checklist de Edición Segura
@@ -396,7 +395,7 @@ Contenido similar al markdown pero extensión `.prompt`.
 
 ### 6. Workflows Format
 
-**Asistentes:** `.agent`, `.clinerules`, `.kilocode`, `.windsurf`
+**Asistentes:** `.agent`, `.kilocode`, `.windsurf`, `.clinerules` (incluido con `.cline`)
 
 ```
 .agent/workflows/
