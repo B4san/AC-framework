@@ -273,3 +273,28 @@ MIT © AC-Framework Team
   <strong>🚀 Desarrollo asistido por IA, estandarizado y potenciado</strong><br>
   <em>Trabaja con cualquier asistente, mantén el mismo flujo de trabajo</em>
 </p>
+
+## 🔍 Verificación de paridad
+
+Para evitar drift entre asistentes, ejecuta:
+
+```bash
+acfm verify
+```
+
+Opciones:
+
+```bash
+acfm verify --framework framework --reference .claude
+```
+
+Este comando valida que todas las carpetas tengan el mismo set de skills y que los `ac.md` equivalentes mantengan el mismo contenido.
+
+## 🧩 Nuevas skills de arquitectura
+
+Se añadieron skills para alinear OpenSpec con Speckit y reforzar calidad:
+- `speckit-clarify`, `speckit-specify`, `speckit-plan`
+- `test-planning`, `test-execution`
+- `performance-optimizer`
+- `security-scan`, `code-review`
+- `sync-index`

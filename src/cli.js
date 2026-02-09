@@ -6,6 +6,7 @@ import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { initCommand } from './commands/init.js';
 import { updateCommand } from './commands/update.js';
+import { verifyCommand } from './commands/verify.js';
 import { showBanner } from './ui/banner.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -34,6 +35,16 @@ program
   .option('--branch <branch>', 'GitHub branch to pull from (default: main)')
   .action(async (opts) => {
     await updateCommand(opts);
+  });
+
+
+program
+  .command('verify')
+  .description('Verify framework parity across assistant folders')
+  .option('--framework <path>', 'Framework directory path', 'framework')
+  .option('--reference <assistant>', 'Reference assistant folder', '.claude')
+  .action(async (opts) => {
+    await verifyCommand(opts);
   });
 
 program.parse();

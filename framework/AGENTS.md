@@ -296,3 +296,27 @@ Before considering any task as **completed**, verify:
 ║    └─ □ Delta specs synchronized (if applicable)                                  ║
 ║                                                                                    ║
 ╚═══════════════════════════════════════════════════════════════════════════════════╝
+
+---
+
+## 🔄 AC Workflow Upgrade (OpenSpec + Speckit)
+
+Mandatory orchestration for `ac`:
+1. Preparation (`openspec-onboard`, constitution files)
+2. Foundations (`speckit-clarify`, security, maintainability, error handling, performance)
+3. Exploration (`openspec-explore`, `project-index`)
+4. Specification & Plan (`speckit-specify`, `speckit-plan`, `openspec-new-change`, `openspec-continue-change`, `test-planning`)
+5. Implementation (`openspec-apply-change`, `test-execution`)
+6. Validation (`systematic-debugging`, `openspec-verify-change`, `security-scan`, `code-review`)
+7. Closure (`changelog-generator`, `sync-index`, `openspec-sync-specs`, `openspec-archive-change`)
+
+### New skills available
+- `speckit-clarify`
+- `speckit-specify`
+- `speckit-plan`
+- `test-planning`
+- `test-execution`
+- `performance-optimizer`
+- `security-scan`
+- `code-review`
+- `sync-index`
