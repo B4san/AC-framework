@@ -46,7 +46,8 @@
     "commander": "^12.1.0",
     "gradient-string": "^3.0.0",
     "inquirer": "^12.3.2",
-    "nanospinner": "^1.2.2"
+    "nanospinner": "^1.2.2",
+    "tar": "^7.5.7"
   },
   "type": "module",
   "engines": {

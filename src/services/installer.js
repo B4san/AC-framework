@@ -9,11 +9,13 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 export const FRAMEWORK_PATH = resolve(__dirname, '../../framework');
 
 /**
- * Returns sorted list of selectable assistant folder names from framework/.
+ * Returns sorted list of selectable assistant folder names.
  * Excludes ALWAYS_INSTALL items, HIDDEN_FOLDERS, and non-directories.
+ *
+ * @param {string} [frameworkPath=FRAMEWORK_PATH] - Root directory to scan.
  */
-export async function getSelectableModules() {
-  const entries = await readdir(FRAMEWORK_PATH, { withFileTypes: true });
+export async function getSelectableModules(frameworkPath = FRAMEWORK_PATH) {
+  const entries = await readdir(frameworkPath, { withFileTypes: true });
   return entries
     .filter(
       (e) =>
@@ -52,11 +54,15 @@ export async function existsInTarget(targetDir, name) {
 }
 
 /**
- * Copy a single module folder from framework/ to targetDir.
+ * Copy a single module folder to targetDir.
  * Removes node_modules inside the destination if present.
+ *
+ * @param {string} folder         - Module folder name (e.g. '.cursor').
+ * @param {string} targetDir      - Destination project directory.
+ * @param {string} [frameworkPath=FRAMEWORK_PATH] - Source root to copy from.
  */
-export async function copyModule(folder, targetDir) {
-  const src = join(FRAMEWORK_PATH, folder);
+export async function copyModule(folder, targetDir, frameworkPath = FRAMEWORK_PATH) {
+  const src = join(frameworkPath, folder);
   const dest = join(targetDir, folder);
   await cp(src, dest, { recursive: true, force: true });
 
@@ -68,10 +74,14 @@ export async function copyModule(folder, targetDir) {
 }
 
 /**
- * Copy a single .md instruction file from framework/ to targetDir root.
+ * Copy a single .md instruction file to targetDir root.
+ *
+ * @param {string} mdFileName     - File name (e.g. 'AGENTS.md').
+ * @param {string} targetDir      - Destination project directory.
+ * @param {string} [frameworkPath=FRAMEWORK_PATH] - Source root to copy from.
  */
-export async function copyMdFile(mdFileName, targetDir) {
-  const src = join(FRAMEWORK_PATH, mdFileName);
+export async function copyMdFile(mdFileName, targetDir, frameworkPath = FRAMEWORK_PATH) {
+  const src = join(frameworkPath, mdFileName);
   const dest = join(targetDir, mdFileName);
   await cp(src, dest, { force: true });
 }

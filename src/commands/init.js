@@ -1,3 +1,16 @@
+/**
+ * init.js
+ * ──────────────────────────────────────────────────────────────────
+ * `acfm init` — Interactive wizard that installs AC Framework
+ * modules into the user's project.
+ *
+ * Flags:
+ *   --latest          Download the latest framework from GitHub
+ *                     instead of using the bundled npm version.
+ *   --branch <name>   GitHub branch to pull (implies --latest).
+ * ──────────────────────────────────────────────────────────────────
+ */
+
 import chalk from 'chalk';
 import gradient from 'gradient-string';
 import inquirer from 'inquirer';
@@ -11,7 +24,9 @@ import {
   existsInTarget,
   copyModule,
   copyMdFile,
+  FRAMEWORK_PATH,
 } from '../services/installer.js';
+import { downloadWithSpinner, cleanupTempDir } from '../services/github-sync.js';
 import {
   matrixRain,
   scanAnimation,
@@ -24,6 +39,8 @@ import {
 } from '../ui/animations.js';
 
 const acGradient = gradient(['#6C5CE7', '#00CEC9', '#0984E3']);
+
+// ── Helpers ──────────────────────────────────────────────────────
 
 function buildChoices(folders) {
   const choices = [];
@@ -160,215 +177,264 @@ async function selectMdFiles(selected, targetDir) {
   return requiredMd;
 }
 
-export async function initCommand() {
+// ── Main command ─────────────────────────────────────────────────
+
+export async function initCommand(options = {}) {
   const targetDir = process.cwd();
 
-  // ── Step 1/4: Scan ──────────────────────────────────────────────
-  await stepHeader(1, 4, 'Scanning framework modules');
-  await scanAnimation('Indexing available modules', 1000);
-  console.log();
+  // --branch implies --latest
+  const useLatest = !!(options.latest || options.branch);
 
-  await matrixRain(1800);
+  // Dynamic step counting: +1 step when downloading from GitHub
+  const stepOffset = useLatest ? 1 : 0;
+  const totalSteps = 4 + stepOffset;
 
-  let folders;
+  // Framework source: bundled by default, overridden by --latest
+  let frameworkPath = FRAMEWORK_PATH;
+  let tempDir = null;
+
   try {
-    folders = await getSelectableModules();
-  } catch {
-    console.log(chalk.hex('#D63031')('  ✗ Error: Could not read framework directory.'));
-    console.log(chalk.hex('#636E72')('  Make sure ac-framework is installed correctly.'));
-    process.exit(1);
-  }
+    // ── Download (only with --latest / --branch) ──────────────────
+    if (useLatest) {
+      await stepHeader(1, totalSteps, 'Downloading latest framework');
 
-  if (folders.length === 0) {
-    console.log(chalk.hex('#FDCB6E')('  No modules found in framework directory.'));
-    process.exit(0);
-  }
+      const branchLabel = options.branch || 'main';
+      const branchBadge = chalk.hex('#2D3436').bgHex('#6C5CE7').bold(` ${branchLabel} `);
+      console.log(`  ${chalk.hex('#636E72')('Branch:')} ${branchBadge}`);
+      console.log();
 
-  const countBadge = chalk.hex('#2D3436').bgHex('#00CEC9').bold(` ${folders.length} `);
-  const autoBadge = chalk.hex('#2D3436').bgHex('#6C5CE7').bold(' +openspec ');
-  console.log(`  ${countBadge} ${chalk.hex('#B2BEC3')('assistant modules found')}  ${autoBadge} ${chalk.hex('#636E72')('auto-included')}`);
-  console.log();
-  await animatedSeparator(60);
-  console.log();
+      try {
+        const result = await downloadWithSpinner({
+          branch: options.branch,
+        });
+        tempDir = result.tempDir;
+        frameworkPath = result.tempDir;
 
-  // ── Step 2/4: Select ────────────────────────────────────────────
-  await stepHeader(2, 4, 'Select your assistants');
-
-  const key = (k) => chalk.hex('#2D3436').bgHex('#636E72')(` ${k} `);
-  console.log(
-    `  ${key('↑↓')} ${chalk.hex('#636E72')('navigate')}  ` +
-    `${key('Space')} ${chalk.hex('#636E72')('toggle')}  ` +
-    `${key('Enter')} ${chalk.hex('#636E72')('confirm')}`
-  );
-  console.log();
-
-  const choices = buildChoices(folders);
-
-  const { selected } = await inquirer.prompt([
-    {
-      type: 'checkbox',
-      name: 'selected',
-      message: acGradient('Choose modules to install:'),
-      choices,
-      pageSize: 15,
-      loop: false,
-      validate(answer) {
-        if (answer.length === 0) {
-          return chalk.hex('#D63031')('Select at least one module. Use Space to toggle.');
+        if (result.commitSha) {
+          const shaBadge = chalk.hex('#2D3436').bgHex('#00CEC9').bold(` ${result.commitSha.slice(0, 7)} `);
+          console.log(`  ${shaBadge} ${chalk.hex('#636E72')('latest commit')}`);
         }
-        return true;
-      },
-    },
-  ]);
-
-  console.log();
-
-  // ── Check module conflicts ──────────────────────────────────────
-  const bundledForCheck = [];
-  for (const folder of selected) {
-    if (BUNDLED[folder]) {
-      bundledForCheck.push(...BUNDLED[folder]);
+        console.log();
+      } catch (err) {
+        console.log();
+        console.log(chalk.hex('#FDCB6E')(`  ⚠  ${err.message}`));
+        console.log(chalk.hex('#636E72')('  Falling back to bundled version...\n'));
+        frameworkPath = FRAMEWORK_PATH;
+      }
     }
-  }
-  const allForCheck = [...selected, ...bundledForCheck, ...ALWAYS_INSTALL];
-  const existing = [];
-  for (const folder of allForCheck) {
-    if (await existsInTarget(targetDir, folder)) {
-      existing.push(folder);
-    }
-  }
 
-  if (existing.length > 0) {
-    console.log(
-      chalk.hex('#FDCB6E')('  ⚠  These modules already exist in your project:\n')
-    );
-    for (const folder of existing) {
-      console.log(
-        chalk.hex('#FDCB6E')('     ▸ ') +
-        chalk.hex('#DFE6E9')(formatFolderName(folder)) +
-        chalk.hex('#636E72')(` (${folder})`)
-      );
-    }
+    // ── Step: Scan ────────────────────────────────────────────────
+    await stepHeader(1 + stepOffset, totalSteps, 'Scanning framework modules');
+    await scanAnimation('Indexing available modules', 1000);
     console.log();
 
-    const { overwrite } = await inquirer.prompt([
+    await matrixRain(1800);
+
+    let folders;
+    try {
+      folders = await getSelectableModules(frameworkPath);
+    } catch {
+      console.log(chalk.hex('#D63031')('  ✗ Error: Could not read framework directory.'));
+      console.log(chalk.hex('#636E72')('  Make sure ac-framework is installed correctly.'));
+      process.exit(1);
+    }
+
+    if (folders.length === 0) {
+      console.log(chalk.hex('#FDCB6E')('  No modules found in framework directory.'));
+      process.exit(0);
+    }
+
+    const countBadge = chalk.hex('#2D3436').bgHex('#00CEC9').bold(` ${folders.length} `);
+    const autoBadge = chalk.hex('#2D3436').bgHex('#6C5CE7').bold(' +openspec ');
+    console.log(`  ${countBadge} ${chalk.hex('#B2BEC3')('assistant modules found')}  ${autoBadge} ${chalk.hex('#636E72')('auto-included')}`);
+    console.log();
+    await animatedSeparator(60);
+    console.log();
+
+    // ── Step: Select ──────────────────────────────────────────────
+    await stepHeader(2 + stepOffset, totalSteps, 'Select your assistants');
+
+    const key = (k) => chalk.hex('#2D3436').bgHex('#636E72')(` ${k} `);
+    console.log(
+      `  ${key('↑↓')} ${chalk.hex('#636E72')('navigate')}  ` +
+      `${key('Space')} ${chalk.hex('#636E72')('toggle')}  ` +
+      `${key('Enter')} ${chalk.hex('#636E72')('confirm')}`
+    );
+    console.log();
+
+    const choices = buildChoices(folders);
+
+    const { selected } = await inquirer.prompt([
       {
-        type: 'confirm',
-        name: 'overwrite',
-        message: chalk.hex('#FDCB6E')('Overwrite existing modules?'),
-        default: false,
+        type: 'checkbox',
+        name: 'selected',
+        message: acGradient('Choose modules to install:'),
+        choices,
+        pageSize: 15,
+        loop: false,
+        validate(answer) {
+          if (answer.length === 0) {
+            return chalk.hex('#D63031')('Select at least one module. Use Space to toggle.');
+          }
+          return true;
+        },
       },
     ]);
 
-    if (!overwrite) {
-      const filtered = selected.filter((f) => !existing.includes(f));
-      const autoFiltered = ALWAYS_INSTALL.filter((f) => !existing.includes(f));
-      if (filtered.length === 0 && autoFiltered.length === 0) {
-        console.log(chalk.hex('#636E72')('\n  Nothing new to install. Exiting.\n'));
-        process.exit(0);
+    console.log();
+
+    // ── Check module conflicts ────────────────────────────────────
+    const bundledForCheck = [];
+    for (const folder of selected) {
+      if (BUNDLED[folder]) {
+        bundledForCheck.push(...BUNDLED[folder]);
       }
-      selected.length = 0;
-      selected.push(...filtered);
-      const newCount = chalk.hex('#00CEC9').bold(filtered.length + autoFiltered.length);
-      console.log(
-        '\n  ' + chalk.hex('#B2BEC3')('Continuing with ') + newCount + chalk.hex('#B2BEC3')(' new module(s)...') + '\n'
-      );
     }
-  }
+    const allForCheck = [...selected, ...bundledForCheck, ...ALWAYS_INSTALL];
+    const existing = [];
+    for (const folder of allForCheck) {
+      if (await existsInTarget(targetDir, folder)) {
+        existing.push(folder);
+      }
+    }
 
-  // ── Reveal selection ────────────────────────────────────────────
-  console.log(chalk.hex('#B2BEC3')('  Selected modules:\n'));
+    if (existing.length > 0) {
+      console.log(
+        chalk.hex('#FDCB6E')('  ⚠  These modules already exist in your project:\n')
+      );
+      for (const folder of existing) {
+        console.log(
+          chalk.hex('#FDCB6E')('     ▸ ') +
+          chalk.hex('#DFE6E9')(formatFolderName(folder)) +
+          chalk.hex('#636E72')(` (${folder})`)
+        );
+      }
+      console.log();
 
-  const selectedItems = selected.map((folder) => {
-    const desc = DESCRIPTIONS[folder] || '';
-    return chalk.hex('#DFE6E9').bold(formatFolderName(folder)) +
-      (desc ? chalk.hex('#636E72')(` · ${desc}`) : '');
-  });
-  selectedItems.push(
-    chalk.hex('#DFE6E9').bold('Openspec') +
-    chalk.hex('#636E72')(` · ${DESCRIPTIONS['openspec']}`) +
-    chalk.hex('#6C5CE7').italic(' (auto)')
-  );
+      const { overwrite } = await inquirer.prompt([
+        {
+          type: 'confirm',
+          name: 'overwrite',
+          message: chalk.hex('#FDCB6E')('Overwrite existing modules?'),
+          default: false,
+        },
+      ]);
 
-  await revealList(selectedItems, { prefix: '◆', color: '#00CEC9', delay: 40 });
+      if (!overwrite) {
+        const filtered = selected.filter((f) => !existing.includes(f));
+        const autoFiltered = ALWAYS_INSTALL.filter((f) => !existing.includes(f));
+        if (filtered.length === 0 && autoFiltered.length === 0) {
+          console.log(chalk.hex('#636E72')('\n  Nothing new to install. Exiting.\n'));
+          process.exit(0);
+        }
+        selected.length = 0;
+        selected.push(...filtered);
+        const newCount = chalk.hex('#00CEC9').bold(filtered.length + autoFiltered.length);
+        console.log(
+          '\n  ' + chalk.hex('#B2BEC3')('Continuing with ') + newCount + chalk.hex('#B2BEC3')(' new module(s)...') + '\n'
+        );
+      }
+    }
 
-  console.log();
+    // ── Reveal selection ──────────────────────────────────────────
+    console.log(chalk.hex('#B2BEC3')('  Selected modules:\n'));
 
-  // ── Step 3/4: Instruction Files ─────────────────────────────────
-  await animatedSeparator(60);
-  console.log();
-  await stepHeader(3, 4, 'Instruction files');
-
-  const mdFiles = await selectMdFiles(selected, targetDir);
-
-  // Show combined summary if there are .md files
-  if (mdFiles.length > 0) {
-    console.log(chalk.hex('#B2BEC3')('  Instruction files to install:\n'));
-    const mdItems = mdFiles.map((md) => {
-      const desc = MD_DESCRIPTIONS[md] || '';
-      return chalk.hex('#DFE6E9').bold(md) +
+    const selectedItems = selected.map((folder) => {
+      const desc = DESCRIPTIONS[folder] || '';
+      return chalk.hex('#DFE6E9').bold(formatFolderName(folder)) +
         (desc ? chalk.hex('#636E72')(` · ${desc}`) : '');
     });
-    await revealList(mdItems, { prefix: '◆', color: '#6C5CE7', delay: 40 });
+    selectedItems.push(
+      chalk.hex('#DFE6E9').bold('Openspec') +
+      chalk.hex('#636E72')(` · ${DESCRIPTIONS['openspec']}`) +
+      chalk.hex('#6C5CE7').italic(' (auto)')
+    );
+
+    await revealList(selectedItems, { prefix: '◆', color: '#00CEC9', delay: 40 });
+
     console.log();
-  }
 
-  // ── Final confirmation ──────────────────────────────────────────
-  const { confirm } = await inquirer.prompt([
-    {
-      type: 'confirm',
-      name: 'confirm',
-      message: chalk.hex('#B2BEC3')('Proceed with installation?'),
-      default: true,
-    },
-  ]);
+    // ── Step: Instruction Files ───────────────────────────────────
+    await animatedSeparator(60);
+    console.log();
+    await stepHeader(3 + stepOffset, totalSteps, 'Instruction files');
 
-  if (!confirm) {
-    console.log(chalk.hex('#636E72')('\n  Installation cancelled.\n'));
-    process.exit(0);
-  }
+    const mdFiles = await selectMdFiles(selected, targetDir);
 
-  // ── Step 4/4: Install ───────────────────────────────────────────
-  console.log();
-  await animatedSeparator(60);
-  console.log();
-  await stepHeader(4, 4, 'Installing modules');
-
-  const allToInstall = expandWithBundled(selected);
-  let installed = 0;
-  const errors = [];
-
-  // Install module folders
-  for (const folder of allToInstall) {
-    const displayName = formatFolderName(folder);
-    try {
-      await installWithAnimation(displayName, async () => {
-        await copyModule(folder, targetDir);
+    // Show combined summary if there are .md files
+    if (mdFiles.length > 0) {
+      console.log(chalk.hex('#B2BEC3')('  Instruction files to install:\n'));
+      const mdItems = mdFiles.map((md) => {
+        const desc = MD_DESCRIPTIONS[md] || '';
+        return chalk.hex('#DFE6E9').bold(md) +
+          (desc ? chalk.hex('#636E72')(` · ${desc}`) : '');
       });
-      installed++;
-    } catch (err) {
-      errors.push({ folder, error: err.message });
+      await revealList(mdItems, { prefix: '◆', color: '#6C5CE7', delay: 40 });
+      console.log();
     }
-    await sleep(80);
-  }
 
-  // Install .md instruction files
-  for (const md of mdFiles) {
-    try {
-      await installWithAnimation(md, async () => {
-        await copyMdFile(md, targetDir);
-      });
-      installed++;
-    } catch (err) {
-      errors.push({ folder: md, error: err.message });
+    // ── Final confirmation ────────────────────────────────────────
+    const { confirm } = await inquirer.prompt([
+      {
+        type: 'confirm',
+        name: 'confirm',
+        message: chalk.hex('#B2BEC3')('Proceed with installation?'),
+        default: true,
+      },
+    ]);
+
+    if (!confirm) {
+      console.log(chalk.hex('#636E72')('\n  Installation cancelled.\n'));
+      process.exit(0);
     }
-    await sleep(80);
-  }
 
-  // ── Final result ────────────────────────────────────────────────
-  if (errors.length === 0) {
-    await celebrateSuccess(installed, targetDir);
-  } else {
-    await showFailureSummary(installed, errors);
+    // ── Step: Install ─────────────────────────────────────────────
+    console.log();
+    await animatedSeparator(60);
+    console.log();
+    await stepHeader(4 + stepOffset, totalSteps, 'Installing modules');
+
+    const allToInstall = expandWithBundled(selected);
+    let installed = 0;
+    const errors = [];
+
+    // Install module folders
+    for (const folder of allToInstall) {
+      const displayName = formatFolderName(folder);
+      try {
+        await installWithAnimation(displayName, async () => {
+          await copyModule(folder, targetDir, frameworkPath);
+        });
+        installed++;
+      } catch (err) {
+        errors.push({ folder, error: err.message });
+      }
+      await sleep(80);
+    }
+
+    // Install .md instruction files
+    for (const md of mdFiles) {
+      try {
+        await installWithAnimation(md, async () => {
+          await copyMdFile(md, targetDir, frameworkPath);
+        });
+        installed++;
+      } catch (err) {
+        errors.push({ folder: md, error: err.message });
+      }
+      await sleep(80);
+    }
+
+    // ── Final result ──────────────────────────────────────────────
+    if (errors.length === 0) {
+      await celebrateSuccess(installed, targetDir);
+    } else {
+      await showFailureSummary(installed, errors);
+    }
+  } finally {
+    // Always clean up the temp directory if we downloaded from GitHub
+    if (tempDir) {
+      await cleanupTempDir(tempDir);
+    }
   }
 }

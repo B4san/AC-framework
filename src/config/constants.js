@@ -1,3 +1,13 @@
+// GitHub repository configuration for live sync (acfm update / acfm init --latest).
+// Only the GitHub API tarball endpoint is used — no tokens required for public repos.
+export const GITHUB_CONFIG = {
+  owner: 'b4san',
+  repo: 'AC-framework',
+  branch: 'main',
+  frameworkDir: 'framework',
+  timeout: 30_000, // 30 seconds
+};
+
 // Modules that are always installed regardless of user selection.
 export const ALWAYS_INSTALL = ['openspec'];
 
