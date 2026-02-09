@@ -1,6 +1,6 @@
 {
   "name": "ac-framework",
-  "version": "1.2.0",
+  "version": "1.3.0",
   "description": "Agentic Coding Framework - Multi-assistant configuration system with OpenSpec workflows",
   "main": "src/index.js",
   "exports": {
@@ -11,7 +11,8 @@
   },
   "scripts": {
     "start": "node bin/acfm.js",
-    "test": "node --test"
+    "test": "node --test",
+    "postinstall": "node bin/postinstall.js"
   },
   "keywords": [
     "agentic",

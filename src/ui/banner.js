@@ -64,10 +64,10 @@ export async function showBanner() {
       glowGradient(sepChars.repeat(i)) +
       chalk.hex('#00CEC9')('●') +
       chalk.hex('#2D3436')(sepChars.repeat(Math.max(0, sepWidth - i)));
-    process.stdout.write(`\r${line}`);
+    process.stdout.write(`\x1B[2K\r${line}`);
     await sleep(6);
   }
-  process.stdout.write(`\r  ${glowGradient(sepChars.repeat(sepWidth))}  \n`);
+  process.stdout.write(`\x1B[2K\r  ${glowGradient(sepChars.repeat(sepWidth))}  \n`);
 
   console.log();
 
@@ -76,17 +76,17 @@ export async function showBanner() {
   const cursor = '▌';
   for (let i = 0; i <= tagline.length; i++) {
     const text = tagline.slice(0, i);
-    process.stdout.write(`\r${chalk.hex('#DFE6E9')(text)}${chalk.hex('#00CEC9')(cursor)}`);
+    process.stdout.write(`\x1B[2K\r${chalk.hex('#DFE6E9')(text)}${chalk.hex('#00CEC9')(cursor)}`);
     await sleep(i % 4 === 0 ? 18 : 10);
   }
   // Blink cursor 3 times then remove
   for (let b = 0; b < 3; b++) {
-    process.stdout.write(`\r${chalk.hex('#DFE6E9')(tagline)}${chalk.hex('#00CEC9')(cursor)}`);
+    process.stdout.write(`\x1B[2K\r${chalk.hex('#DFE6E9')(tagline)}${chalk.hex('#00CEC9')(cursor)}`);
     await sleep(120);
-    process.stdout.write(`\r${chalk.hex('#DFE6E9')(tagline)} `);
+    process.stdout.write(`\x1B[2K\r${chalk.hex('#DFE6E9')(tagline)} `);
     await sleep(120);
   }
-  process.stdout.write(`\r${chalk.hex('#DFE6E9')(tagline)}  \n`);
+  process.stdout.write(`\x1B[2K\r${chalk.hex('#DFE6E9')(tagline)}  \n`);
 
   // Phase 4: Info badges
   console.log();

@@ -97,12 +97,12 @@ export async function scanAnimation(text, durationMs = 1000) {
     const frame = frames[i % frames.length];
     const dots = '.'.repeat((i % 3) + 1).padEnd(3);
     process.stdout.write(
-      `\r  ${chalk.hex('#00CEC9')(frame)} ${chalk.hex('#B2BEC3')(text)}${chalk.hex('#636E72')(dots)}`
+      `\x1B[2K\r  ${chalk.hex('#00CEC9')(frame)} ${chalk.hex('#B2BEC3')(text)}${chalk.hex('#636E72')(dots)}`
     );
     await sleep(80);
   }
   process.stdout.write(
-    `\r  ${chalk.hex('#00CEC9')('◉')} ${chalk.hex('#00CEC9')(text)}   \n`
+    `\x1B[2K\r  ${chalk.hex('#00CEC9')('◉')} ${chalk.hex('#00CEC9')(text)}   \n`
   );
 }
 
@@ -115,11 +115,11 @@ export async function animatedSeparator(width = 60) {
     const dot = '●';
     const after = ch.repeat(Math.max(0, width - i));
     process.stdout.write(
-      `\r  ${glowGradient(before)}${chalk.hex('#00CEC9')(dot)}${chalk.hex('#2D3436')(after)}`
+      `\x1B[2K\r  ${glowGradient(before)}${chalk.hex('#00CEC9')(dot)}${chalk.hex('#2D3436')(after)}`
     );
     await sleep(4);
   }
-  process.stdout.write(`\r  ${glowGradient(ch.repeat(width))}  \n`);
+  process.stdout.write(`\x1B[2K\r  ${glowGradient(ch.repeat(width))}  \n`);
 }
 
 // ── Staggered List Reveal ────────────────────────────────────────
@@ -131,7 +131,7 @@ export async function revealList(items, { prefix = '◆', color = '#00CEC9', del
     for (let s = maxSlide; s >= 0; s--) {
       const pad = ' '.repeat(s);
       process.stdout.write(
-        `\r  ${pad}${chalk.hex(color)(prefix)} ${item}`
+        `\x1B[2K\r  ${pad}${chalk.hex(color)(prefix)} ${item}`
       );
       await sleep(15);
     }
@@ -173,7 +173,7 @@ export async function progressBar(label, steps = 30, durationMs = 1000) {
       : chalk.hex('#00CEC9')('✓');
 
     process.stdout.write(
-      `\r  ${spin} ${chalk.hex('#B2BEC3')(label)} ${bar} ${chalk.hex('#00CEC9')(pctStr)}`
+      `\x1B[2K\r  ${spin} ${chalk.hex('#B2BEC3')(label)} ${bar} ${chalk.hex('#00CEC9')(pctStr)}`
     );
     await sleep(durationMs / steps);
   }
@@ -191,7 +191,7 @@ export async function installWithAnimation(name, task) {
     while (running) {
       const frame = chalk.hex('#6C5CE7')(frames[frameIdx % frames.length]);
       process.stdout.write(
-        `\r  ${frame} ${chalk.hex('#B2BEC3')('Installing')} ${chalk.hex('#DFE6E9').bold(name)}${chalk.hex('#636E72')('...')}`
+        `\x1B[2K\r  ${frame} ${chalk.hex('#B2BEC3')('Installing')} ${chalk.hex('#DFE6E9').bold(name)}${chalk.hex('#636E72')('...')}`
       );
       frameIdx++;
       await sleep(60);
@@ -205,13 +205,13 @@ export async function installWithAnimation(name, task) {
     running = false;
     await sleep(70);
     process.stdout.write(
-      `\r  ${chalk.hex('#00CEC9')('✓')} ${chalk.hex('#00CEC9')(name)}${chalk.hex('#636E72')(' installed successfully')}          \n`
+      `\x1B[2K\r  ${chalk.hex('#00CEC9')('✓')} ${chalk.hex('#00CEC9')(name)}${chalk.hex('#636E72')(' installed successfully')}\n`
     );
   } catch (err) {
     running = false;
     await sleep(70);
     process.stdout.write(
-      `\r  ${chalk.hex('#D63031')('✗')} ${chalk.hex('#D63031')(name)}${chalk.hex('#636E72')(` — ${err.message}`)}          \n`
+      `\x1B[2K\r  ${chalk.hex('#D63031')('✗')} ${chalk.hex('#D63031')(name)}${chalk.hex('#636E72')(` — ${err.message}`)}\n`
     );
     throw err;
   }
@@ -251,7 +251,7 @@ export async function celebrateSuccess(moduleCount, targetDir) {
     const s2 = sparkles[Math.floor(Math.random() * sparkles.length)];
     const s3 = sparkles[Math.floor(Math.random() * sparkles.length)];
     process.stdout.write(
-      `\r  ${chalk.hex('#FDCB6E')(s1)} ${successGradient(msg.trim())} ${chalk.hex('#FDCB6E')(s2)} ${chalk.hex('#00CEC9')(s3)}`
+      `\x1B[2K\r  ${chalk.hex('#FDCB6E')(s1)} ${successGradient(msg.trim())} ${chalk.hex('#FDCB6E')(s2)} ${chalk.hex('#00CEC9')(s3)}`
     );
     await sleep(200);
   }
@@ -266,7 +266,7 @@ export async function celebrateSuccess(moduleCount, targetDir) {
   console.log();
 
   // Tips box
-  const boxW = 52;
+  const boxW = 56;
   const topBorder = chalk.hex('#636E72')('  ┌' + '─'.repeat(boxW) + '┐');
   const botBorder = chalk.hex('#636E72')('  └' + '─'.repeat(boxW) + '┘');
   const line = (content, raw) => {
@@ -291,6 +291,31 @@ export async function celebrateSuccess(moduleCount, targetDir) {
     chalk.hex('#B2BEC3')('  Open your project in your preferred IDE.'),
     '  Open your project in your preferred IDE.'
   ));
+  console.log(line(
+    chalk.hex('#636E72')(' '),
+    ' '
+  ));
+
+  // Windows PATH help
+  if (process.platform === 'win32') {
+    console.log(line(
+      chalk.hex('#FDCB6E')(' ⚠  Command not found?'),
+      ' ⚠  Command not found?'
+    ));
+    console.log(line(
+      chalk.hex('#B2BEC3')('  Run this in PowerShell to fix your PATH:'),
+      '  Run this in PowerShell to fix your PATH:'
+    ));
+    console.log(line(
+      chalk.hex('#00CEC9')('  npm config get prefix'),
+      '  npm config get prefix'
+    ));
+    console.log(line(
+      chalk.hex('#B2BEC3')('  Then add that path to your system PATH.'),
+      '  Then add that path to your system PATH.'
+    ));
+  }
+
   console.log(botBorder);
 
   console.log();

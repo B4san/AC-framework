@@ -269,8 +269,9 @@ export async function initCommand() {
       }
       selected.length = 0;
       selected.push(...filtered);
+      const newCount = chalk.hex('#00CEC9').bold(filtered.length + autoFiltered.length);
       console.log(
-        chalk.hex('#B2BEC3')(`\n  Continuing with ${chalk.hex('#00CEC9').bold(filtered.length + autoFiltered.length)} new module(s)...\n`)
+        '\n  ' + chalk.hex('#B2BEC3')('Continuing with ') + newCount + chalk.hex('#B2BEC3')(' new module(s)...') + '\n'
       );
     }
   }
