@@ -1,5 +1,3 @@
-# 🤖 Autonomous Coding Framework
-
 **Fundamental Principle**: *"Quality over speed. Documentation before code. Planning before execution."*
 
 --- YOU SHOULD FOLLOW THIS EXACT WORKFLOW HERE, DONT SKIP STEPS, DONT CHANGE THE ORDER OF THE WORKFLOW, DONT SKIP SKILLS, DONT SKIP PHASES, DONT SKIP ANYTHING, JUST FOLLOW THE WORKFLOW EXACTLY AS IT IS WRITTEN HERE

@@ -1,8 +1,6 @@
-# 🤖 Autonomous Coding Framework
-
 **Fundamental Principle**: *"Quality over speed. Documentation before code. Planning before execution."*
 
---- YOU SHOULD FOLLOW THIS EXACT WORKFLOW HERE, DONT SKIP STEPS, DONT CHANGE THE ORDER OF THE WORKFLOW, DONT SKIP SKILLS, DONT SKIP PHASES, DONT SKIP ANYTHING, JUST FOLLOW THE WORKFLOW EXACTLY AS IT IS WRITTEN HERE
+YOU SHOULD FOLLOW THIS EXACT WORKFLOW HERE, DONT SKIP STEPS, DONT CHANGE THE ORDER OF THE WORKFLOW, DONT SKIP SKILLS, DONT SKIP PHASES, DONT SKIP ANYTHING, JUST FOLLOW THE WORKFLOW EXACTLY AS IT IS WRITTEN HERE
 
 ## 🛠️ Available Skills
 
@@ -192,40 +190,3 @@ When working on an **existing codebase** (adding features, fixing bugs, refactor
     │  16. openspec-archive-change                 │
     │      └─ Archive change                       │
     └──────────────────────────────────────────────┘
-```
-
----
-
-## ✅ Validation Checklist
-
-Before considering any task as **completed**, verify:
-
-```
-╔═══════════════════════════════════════════════════════════════════════════════════╗
-║                              MANDATORY CHECKLIST                                   ║
-╠═══════════════════════════════════════════════════════════════════════════════════╣
-║                                                                                    ║
-║  □ Governance & Quality                                                            ║
-║    └─ □ project-constitution principles followed                                   ║
-║    └─ □ secure-coding-cybersecurity executed (No SQLi, XSS, etc.)                 ║
-║    └─ □ code-maintainability executed (DRY, SOLID, Naming)                        ║
-║                                                                                    ║
-║  □ Specification (OpenSpec)                                                        ║
-║    └─ □ spec-clarification run on requirements                                    ║
-║    └─ □ requirement-checklist passed                                              ║
-║    └─ □ spec-analysis showed no conflicts                                         ║
-║    └─ □ Change created with proposal, specs, design, tasks                        ║
-║                                                                                    ║
-║  □ Implementation & Testing                                                        ║
-║    └─ □ test-generator used (Tests exist for new feature)                         ║
-║    └─ □ All tasks implemented                                                     ║
-║    └─ □ performance-optimizer checked (No regressions)                            ║
-║                                                                                    ║
-║  □ Validation & Docs                                                               ║
-║    └─ □ systematic-debugging executed without critical errors                     ║
-║    └─ □ openspec-verify-change passed                                             ║
-║    └─ □ sync-index executed (Docs updated)                                        ║
-║    └─ □ Change archived                                                           ║
-║                                                                                    ║
-╚═══════════════════════════════════════════════════════════════════════════════════╝
-```

@@ -1,9 +1,3 @@
----
-description: 
----
-
-# 🤖 Autonomous Coding Framework
-
 **Fundamental Principle**: *"Quality over speed. Documentation before code. Planning before execution."*
 
 --- YOU SHOULD FOLLOW THIS EXACT WORKFLOW HERE, DONT SKIP STEPS, DONT CHANGE THE ORDER OF THE WORKFLOW, DONT SKIP SKILLS, DONT SKIP PHASES, DONT SKIP ANYTHING, JUST FOLLOW THE WORKFLOW EXACTLY AS IT IS WRITTEN HERE
@@ -64,6 +58,21 @@ description:
 
 ---
 
+## 📍 IMPORTANT: How to Use Skills
+
+**Skills are loaded as tools, NOT CLI commands.**
+
+The skills listed above are located at `framework/.agent/skills/<skill-name>/SKILL.md`. When you need to use a skill:
+
+1. **The Agent automatically loads the skill file** - No CLI command needed
+2. **Read the SKILL.md file** to understand its instructions
+3. **Follow the skill's guidance** exactly as written
+4. **Skills provide structured workflows** for specific tasks
+
+**Do NOT use CLI commands like `openspec <command>` unless the skill specifically instructs you to.** OpenSpec skills guide you through their workflow via the SKILL.md content, not through CLI invocations.
+
+---
+
 ## 🚀 Workflow: New Project
 
 When starting a project **from scratch**, follow this mandatory workflow:
@@ -90,45 +99,68 @@ When starting a project **from scratch**, follow this mandatory workflow:
                          │
                          ▼
     ┌──────────────────────────────────────────────┐
-    │  PHASE 2: DISCOVERY & PLANNING               │
-    │  4. brainstorming                            │
-    │     └─ Architecture/Idea generation          │
-    │  5. openspec-new-change                      │
+    │  PHASE 2: CONTEXT & DISCOVERY                │
+    │  4. project-index                            │
+    │     └─ Document initial structure            │
+    │  5. openspec-explore                         │
+    │     └─ Explore target architecture           │
+    │  6. brainstorming                            │
+    │     └─ Generate ideas and architecture       │
+    └────────────────────┬─────────────────────────┘
+                         │
+                         ▼
+    ┌──────────────────────────────────────────────┐
+    │  PHASE 3: REQUIREMENTS & DESIGN              │
+    │  7. spec-clarification (CRITICAL)            │
+    │     └─ CLARIFY requirements first            │
+    │  8. openspec-new-change                      │
     │     └─ Create proposal                       │
-    │  6. spec-clarification (CRITICAL)            │
-    │     └─ Refine requirements interactively     │
-    │  7. openspec-continue-change                 │
+    │  9. openspec-continue-change                 │
     │     └─ Draft Specs, Design, Tasks            │
-    │  8. requirement-checklist                    │
+    │  10. spec-analysis                           │
+    │     └─ Verify consistency                    │
+    │  11. requirement-checklist                   │
     │     └─ "Unit test" the specs                 │
-    │  9. spec-analysis                            │
-    │     └─ Verify Spec/Plan consistency          │
+    │  12. api-design-principles [IF APIs]         │
+    │     └─ Design REST/GraphQL APIs              │
+    │  13. interface-design [IF UI]                │
+    │     └─ Design dashboards/apps interface      │
     └────────────────────┬─────────────────────────┘
                          │
                          ▼
     ┌──────────────────────────────────────────────┐
-    │  PHASE 3: IMPLEMENTATION                     │
-    │  10. test-generator                          │
-    │      └─ TDD: Write tests first               │
-    │  11. openspec-apply-change                   │
-    │      └─ Implement code to pass tests         │
-    │  12. performance-optimizer                   │
-    │      └─ Optimize critical paths              │
+    │  PHASE 4: IMPLEMENTATION                     │
+    │  14. test-generator                          │
+    │     └─ TDD: Write tests first                │
+    │  15. openspec-apply-change                   │
+    │     └─ Implement code to pass tests          │
+    │  16. secure-coding-cybersecurity             │
+    │     └─ Audit code for security               │
+    │  17. error-handling-patterns                 │
+    │     └─ Verify robust error handling          │
+    │  18. performance-optimizer                   │
+    │     └─ Optimize critical paths               │
     └────────────────────┬─────────────────────────┘
                          │
                          ▼
     ┌──────────────────────────────────────────────┐
-    │  PHASE 4: VALIDATION & CLOSURE               │
-    │  13. systematic-debugging                    │
-    │      └─ Resolve any issues                   │
-    │  14. openspec-verify-change                  │
-    │      └─ Validate against initial specs       │
-    │  15. sync-index                              │
-    │      └─ Update project docs                  │
-    │  16. openspec-archive-change                 │
-    │      └─ Archive the change                   │
+    │  PHASE 5: VALIDATION & CLOSURE               │
+    │  19. systematic-debugging                    │
+    │     └─ Resolve any issues                    │
+    │  20. openspec-verify-change                  │
+    │     └─ Validate against specs                │
+    │  21. sync-index                              │
+    │     └─ Update project documentation          │
+    │  22. changelog-generator                     │
+    │     └─ Generate release notes                │
+    │  23. openspec-archive-change                 │
+    │     └─ Archive the change                    │
     └──────────────────────────────────────────────┘
 ```
+
+**Conditional Skills Notes:**
+- `[IF APIs]`: Use api-design-principles only if the project involves REST/GraphQL APIs
+- `[IF UI]`: Use interface-design only if the project has dashboards, admin panels, or apps
 
 ---
 
@@ -158,41 +190,72 @@ When working on an **existing codebase** (adding features, fixing bugs, refactor
                          │
                          ▼
     ┌──────────────────────────────────────────────┐
-    │  PHASE 2: REQUIREMENTS & PLANNING            │
-    │  4. openspec-new-change                      │
-    │     └─ Initialize change artifact            │
-    │  5. spec-clarification                       │
+    │  PHASE 2: DISCOVERY & CLARIFICATION          │
+    │  4. spec-clarification (CRITICAL)            │
     │     └─ CLARIFY requirements first            │
-    │  6. requirement-checklist                    │
-    │     └─ Validate requirements                 │
-    │  7. openspec-continue-change                 │
+    │  5. openspec-new-change                      │
+    │     └─ Initialize change artifact            │
+    └────────────────────┬─────────────────────────┘
+                         │
+                         ▼
+    ┌──────────────────────────────────────────────┐
+    │  PHASE 3: DESIGN & PLANNING                  │
+    │  6. openspec-continue-change                 │
     │     └─ Draft Specs, Design, Tasks            │
-    │  8. spec-analysis                            │
+    │  7. spec-analysis                            │
     │     └─ Check consistency with existing       │
+    │  8. requirement-checklist                    │
+    │     └─ Validate requirements                 │
+    │  9. api-design-principles [IF APIs]          │
+    │     └─ Design API changes                    │
+    │  10. interface-design [IF UI]                │
+    │     └─ Design interface changes              │
     └────────────────────┬─────────────────────────┘
                          │
                          ▼
     ┌──────────────────────────────────────────────┐
-    │  PHASE 3: TEST-DRIVEN IMPLEMENTATION         │
-    │  9. test-generator                           │
+    │  PHASE 4: IMPLEMENTATION                     │
+    │  11. test-generator                          │
     │     └─ Generate tests for new feature        │
-    │  10. openspec-apply-change                   │
-    │      └─ Implement code                       │
-    │  11. secure-coding-cybersecurity             │
-    │      └─ Audit new code                       │
+    │  12. openspec-apply-change                   │
+    │     └─ Implement code                        │
+    │  13. secure-coding-cybersecurity             │
+    │     └─ Audit new code                        │
+    │  14. error-handling-patterns                 │
+    │     └─ Verify error handling                 │
+    │  15. performance-optimizer                   │
+    │     └─ Ensure no perf degradation            │
     └────────────────────┬─────────────────────────┘
                          │
                          ▼
     ┌──────────────────────────────────────────────┐
-    │  PHASE 4: OPTIMIZATION & VERIFICATION        │
-    │  12. systematic-debugging                    │
-    │      └─ Fix regressions                      │
-    │  13. performance-optimizer                   │
-    │      └─ Ensure no perf degradation           │
-    │  14. openspec-verify-change                  │
-    │      └─ Final verification                   │
-    │  15. sync-index (IMPORTANT)                  │
-    │      └─ Update docs with new changes         │
-    │  16. openspec-archive-change                 │
-    │      └─ Archive change                       │
-    └──────────────────────────────────────────────
+    │  PHASE 5: OPTIMIZATION & VERIFICATION        │
+    │  16. systematic-debugging                    │
+    │     └─ Fix regressions                       │
+    │  17. openspec-verify-change                  │
+    │     └─ Final verification                    │
+    │  18. sync-index (IMPORTANT)                  │
+    │     └─ Update docs with new changes          │
+    │  19. changelog-generator                     │
+    │     └─ Generate release notes                │
+    │  20. openspec-archive-change                 │
+    │     └─ Archive change                        │
+    └──────────────────────────────────────────────┘
+```
+
+**Conditional Skills Notes:**
+- `[IF APIs]`: Use api-design-principles only if modifying/creating REST/GraphQL APIs
+- `[IF UI]`: Use interface-design only if modifying dashboards, admin panels, or apps
+- `project-index`: Run only if you haven't indexed the project yet or need to refresh context
+
+---
+
+## 📝 Skill Loading Reference
+
+All skills are located in: `framework/.agent/skills/`
+
+To load a skill, read its SKILL.md file:
+- Example: Read `framework/.agent/skills/spec-clarification/SKILL.md` to use the clarification workflow
+- Example: Read `framework/.agent/skills/interface-design/SKILL.md` to use interface design principles
+
+**Remember**: Skills are documentation-based workflows, NOT CLI commands. Load them by reading the SKILL.md files.
