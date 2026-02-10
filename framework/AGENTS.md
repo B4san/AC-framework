@@ -1,5 +1,8 @@
- **Fundamental Principle**: *"Quality over speed. Documentation before code. Planning before execution."*
----
+# 🤖 Autonomous Coding Framework
+
+**Fundamental Principle**: *"Quality over speed. Documentation before code. Planning before execution."*
+
+--- YOU SHOULD FOLLOW THIS EXACT WORKFLOW HERE, DONT SKIP STEPS, DONT CHANGE THE ORDER OF THE WORKFLOW, DONT SKIP SKILLS, DONT SKIP PHASES, DONT SKIP ANYTHING, JUST FOLLOW THE WORKFLOW EXACTLY AS IT IS WRITTEN HERE
 
 ## 🛠️ Available Skills
 
@@ -10,6 +13,17 @@
 | `secure-coding-cybersecurity` | Detects and prevents security vulnerabilities (SQLi, XSS, command injection, hardcoded secrets). Follows OWASP Top 10 standards. | Secure code validation |
 | `code-maintainability` | Analyzes code maintainability: duplication, documentation, error handling, naming conventions, SOLID architecture, performance. | Refactoring and standards |
 | `error-handling-patterns` | Error handling patterns in multiple languages: exceptions, Result types, retry, circuit breaker, graceful degradation. | Application resilience |
+| `performance-optimizer` | Methodologies for measuring, profiling, and optimizing code (caching, algorithm complexity, resource usage). | Performance Engineering |
+| `test-generator` | Generate comprehensive test suites (Unit, Integration, E2E) ensuring requirements are met. | Test Driven Development |
+
+### SpecKit Consistency & Quality Skills
+
+| Skill | Description | Primary Use |
+|-------|-------------|---------------|
+| `project-constitution` | Manage the project's core principles and ensuring alignment. | Project Governance |
+| `requirement-checklist` | Generate quality control checklists for requirements (unit tests for specs). | Requirements Quality |
+| `spec-analysis` | Analyze consistency across Spec, Plan, and Tasks. | Consistency Check |
+| `spec-clarification` | Interactively clarify specific sections of the spec. | Ambiguity Resolution |
 
 ### Planning and Design Skills
 
@@ -39,6 +53,7 @@
 | Skill | Description | Primary Use |
 |-------|-------------|---------------|
 | `project-index` | Generates structured project documentation: structure analysis, domains, agent guides. | Indexing and context |
+| `sync-index` | Keep project documentation (`project-index` and sub-skills) in sync with codebase changes. | Documentation Sync |
 | `systematic-debugging` | Structured debugging in 4 phases: root cause investigation, pattern analysis, hypothesis, implementation. | Problem resolution |
 | `changelog-generator` | Creates automated changelogs from git commits, translating technical to user language. | Version history |
 | `skill-writer` | Guide to create new skills for Claude Code with correct structure and frontmatter. | Create new skills |
@@ -60,184 +75,124 @@ When starting a project **from scratch**, follow this mandatory workflow:
              │
              ▼
     ┌──────────────────────────────────────────────┐
-    │  PHASE 1: FOUNDATIONS (Mandatory)            │
-    │                                              │
-    │  1. secure-coding-cybersecurity              │
+    │  PHASE 1: FOUNDATIONS & GOVERNANCE           │
+    │  1. project-constitution                     │
+    │     └─ Define core principles                │
+    │  2. secure-coding-cybersecurity              │
     │     └─ Establish security guidelines         │
-    │                                              │
-    │  2. code-maintainability                     │
+    │  3. code-maintainability                     │
     │     └─ Define quality standards              │
-    │                                              │
-    │  3. brainstorming                            │
-    │     └─ Architecture and design decisions     │
     └────────────────────┬─────────────────────────┘
                          │
                          ▼
     ┌──────────────────────────────────────────────┐
-    │  PHASE 2: SPECIFICATION (Mandatory)          │
-    │                                              │
-    │  4. openspec-new-change                      │
-    │     └─ Create change with proposal           │
-    │                                              │
-    │  5. openspec-continue-change                 │
-    │     └─ Create specs, design, tasks           │
-    │        (or use openspec-ff-change)           │
+    │  PHASE 2: DISCOVERY & PLANNING               │
+    │  4. brainstorming                            │
+    │     └─ Architecture/Idea generation          │
+    │  5. openspec-new-change                      │
+    │     └─ Create proposal                       │
+    │  6. spec-clarification (CRITICAL)            │
+    │     └─ Refine requirements interactively     │
+    │  7. openspec-continue-change                 │
+    │     └─ Draft Specs, Design, Tasks            │
+    │  8. requirement-checklist                    │
+    │     └─ "Unit test" the specs                 │
+    │  9. spec-analysis                            │
+    │     └─ Verify Spec/Plan consistency          │
     └────────────────────┬─────────────────────────┘
                          │
                          ▼
     ┌──────────────────────────────────────────────┐
     │  PHASE 3: IMPLEMENTATION                     │
-    │                                              │
-    │  6. openspec-apply-change                    │
-    │     └─ Implement the tasks                   │
+    │  10. test-generator                          │
+    │      └─ TDD: Write tests first               │
+    │  11. openspec-apply-change                   │
+    │      └─ Implement code to pass tests         │
+    │  12. performance-optimizer                   │
+    │      └─ Optimize critical paths              │
     └────────────────────┬─────────────────────────┘
                          │
                          ▼
     ┌──────────────────────────────────────────────┐
-    │  PHASE 4: VALIDATION AND CLOSURE             │
-    │                                              │
-    │  7. systematic-debugging                     │
-    │     └─ Verify no errors                      │
-    │                                              │
-    │  8. openspec-verify-change                   │
-    │     └─ Validate against specs                │
-    │                                              │
-    │  9. changelog-generator                      │
-    │     └─ Generate in changelogs/by-ai/         │
-    │                                              │
-    │  10. openspec-archive-change                 │
+    │  PHASE 4: VALIDATION & CLOSURE               │
+    │  13. systematic-debugging                    │
+    │      └─ Resolve any issues                   │
+    │  14. openspec-verify-change                  │
+    │      └─ Validate against initial specs       │
+    │  15. sync-index                              │
+    │      └─ Update project docs                  │
+    │  16. openspec-archive-change                 │
     │      └─ Archive the change                   │
     └──────────────────────────────────────────────┘
 ```
 
-### Phase Descriptions - New Project
-
-| Phase | Skill | Description | Expected Output |
-|------|-------|-------------|-----------------|
-| 1 | `secure-coding-cybersecurity` | Establish security guidelines: input validation, sanitization, injection prevention, secrets handling | `.agents/security-guidelines.md` |
-| 2 | `code-maintainability` | Define conventions: naming, folder structure, design patterns, DRY, testing | `.agents/maintainability-rules.md` |
-| 3 | `brainstorming` | Generate architecture ideas, question approach, explore alternatives | `.agents/architecture-decisions.md` |
-| 4 | `openspec-new-change` | Create change with proposal (why, what changes, capabilities) | `openspec/changes/<name>/proposal.md` |
-| 5 | `openspec-continue-change` | Create specs (WHEN/THEN requirements), design (technical decisions), tasks (checklist) | Complete OpenSpec artifacts |
-| 6 | `openspec-apply-change` | Implement code according to specs and tasks | Functional code |
-| 7 | `systematic-debugging` | Structured debugging: investigate root cause, don't guess | Validation report |
-| 8 | `openspec-verify-change` | Verify completeness, correctness, and coherence | Verification report |
-| 9 | `changelog-generator` | Document changes in user language | `changelogs/by-ai/[date]-[feature].md` |
-| 10 | `openspec-archive-change` | Move change to archive with date | `openspec/changes/archive/YYYY-MM-DD-<name>/` |
-
 ---
 
-## 🔍 Workflow: Existing Project
+## 🔄 Workflow: Existing Project
 
-When working on an **already created** project that does NOT have `.md` documentation files:
+When working on an **existing codebase** (adding features, fixing bugs, refactoring):
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────────┐
-│                        WORKFLOW: EXISTING PROJECT (NO DOCS)                      │
+│                        WORKFLOW: EXISTING PROJECT                                │
 └─────────────────────────────────────────────────────────────────────────────────┘
 
-    ┌─────────────────────────────────────────────────────────────────────────┐
-    │                                                                          │
-    │   ⚠️  CHECK: No documentation .md files exist in                         │
-    │       .agents/ or openspec/                                              │
-    │                                                                          │
-    └────────────────────────────────────────────────────┬─────────────────────┘
-                                                         │
-                                                         ▼
-    ┌─────────────────────────────────────────────────────────────────────────┐
-    │                                                                          │
-    │   🔄 STEP 0: project-index                                               │
-    │   Generate complete documentation for existing project                   │
-    │   ├─ Analyze folder structure                                            │
-    │   ├─ Identify domains (UI, Backend, DB, etc.)                            │
-    │   ├─ Create specific sub-skills per domain                               │
-    │   └─ Generate agent-guidance files                                       │
-    │                                                                          │
-    │   Output:                                                                │
-    │   ├─ .agents/project-index.md                                            │
-    │   ├─ .agents/agent-<domain>.md (in each folder)                          │
-    │   └─ .claude/skills/project-index-<domain>/SKILL.md                      │
-    │                                                                          │
-    └─────────────────────────────────────────────────────────────────────────┘
-```
-
-### Post-Indexing
-
-Once the project is indexed, continue with the [Changes Workflow](#-workflow-changesiterations).
-
----
-
-## 🔄 Workflow: Changes/Iterations
-
-For **each change or new feature** in an already documented project:
-
-```
-┌─────────────────────────────────────────────────────────────────────────────────┐
-│                           WORKFLOW: CHANGES AND ITERATIONS                       │
-└─────────────────────────────────────────────────────────────────────────────────┘
-
-    ┌─────────────────────────┐
-    │   START CHANGE          │
-    └────────┬────────────────┘
+    ┌─────────────────┐
+    │  START CHANGE   │
+    └────────┬────────┘
              │
              ▼
-    ┌─────────────────────────┐     ┌──────────────────────────────────────────┐
-    │  1. openspec-explore    │────▶│  2. brainstorming                        │
-    │  (Explore current       │     │  (Based on exploration:                  │
-    │   code and structure)   │     │   - Generate ideas                       │
-    └─────────────────────────┘     │   - Suggest improvements                 │
-                                    │   - Ask key questions to user)           │
-                                    └─────────────────┬────────────────────────┘
-                                                      │
-                                                      ▼
-    ┌─────────────────────────┐     ┌──────────────────────────────────────────┐
-    │  3. openspec-new        │────▶│  4. openspec-continue / ff               │
-    │  (Create specification  │     │  (Create specs, design, tasks)           │
-    │   for change/feature)   │     └─────────────────┬────────────────────────┘
-    └─────────────────────────┘                       │
-                                                      ▼
-    ┌─────────────────────────┐     ┌──────────────────────────────────────────┐
-    │  5. openspec-apply      │────▶│  6. systematic-debugging                 │
-    │  (Implement changes     │     │  (Verify no errors,                      │
-    │   according to tasks)   │     │   validate patterns)                     │
-    └─────────────────────────┘     └─────────────────┬────────────────────────┘
-                                                      │
-                                                      ▼
-    ┌─────────────────────────┐     ┌──────────────────────────────────────────┐
-    │  7. openspec-verify     │────▶│  8. changelog-generator                  │
-    │  (Verify against        │     │  (Generate change record                 │
-    │   specs and design)     │     │   in changelogs/by-ai/)                  │
-    └─────────────────────────┘     └─────────────────┬────────────────────────┘
-                                                      │
-                                                      ▼
-    ┌─────────────────────────┐     ┌──────────────────────────────────────────┐
-    │  9. openspec-archive    │────▶│  10. openspec-sync-specs (optional)      │
-    │  (Archive completed     │     │  (Sync specs to main)                    │
-    │   change)               │     └──────────────────────────────────────────┘
-    └─────────────────────────┘
-                                                      │
-                                                      ▼
-    ┌─────────────────────────────────────────────────────────────────────────┐
-    │                                                                          │
-    │   ✅ CHANGE COMPLETED AND DOCUMENTED                                    │
-    │                                                                          │
-    └─────────────────────────────────────────────────────────────────────────┘
+    ┌──────────────────────────────────────────────┐
+    │  PHASE 1: CONTEXT & ANALYSIS                 │
+    │  1. project-index (if needed)                │
+    │     └─ Map current system                    │
+    │  2. openspec-explore                         │
+    │     └─ Deep dive into relevant modules       │
+    │  3. brainstorming                            │
+    │     └─ Ideate on feature/fix                 │
+    └────────────────────┬─────────────────────────┘
+                         │
+                         ▼
+    ┌──────────────────────────────────────────────┐
+    │  PHASE 2: REQUIREMENTS & PLANNING            │
+    │  4. openspec-new-change                      │
+    │     └─ Initialize change artifact            │
+    │  5. spec-clarification                       │
+    │     └─ CLARIFY requirements first            │
+    │  6. requirement-checklist                    │
+    │     └─ Validate requirements                 │
+    │  7. openspec-continue-change                 │
+    │     └─ Draft Specs, Design, Tasks            │
+    │  8. spec-analysis                            │
+    │     └─ Check consistency with existing       │
+    └────────────────────┬─────────────────────────┘
+                         │
+                         ▼
+    ┌──────────────────────────────────────────────┐
+    │  PHASE 3: TEST-DRIVEN IMPLEMENTATION         │
+    │  9. test-generator                           │
+    │     └─ Generate tests for new feature        │
+    │  10. openspec-apply-change                   │
+    │      └─ Implement code                       │
+    │  11. secure-coding-cybersecurity             │
+    │      └─ Audit new code                       │
+    └────────────────────┬─────────────────────────┘
+                         │
+                         ▼
+    ┌──────────────────────────────────────────────┐
+    │  PHASE 4: OPTIMIZATION & VERIFICATION        │
+    │  12. systematic-debugging                    │
+    │      └─ Fix regressions                      │
+    │  13. performance-optimizer                   │
+    │      └─ Ensure no perf degradation           │
+    │  14. openspec-verify-change                  │
+    │      └─ Final verification                   │
+    │  15. sync-index (IMPORTANT)                  │
+    │      └─ Update docs with new changes         │
+    │  16. openspec-archive-change                 │
+    │      └─ Archive change                       │
+    └──────────────────────────────────────────────┘
 ```
-
-### Phase Descriptions - Changes/Iterations
-
-| Phase | Skill | Description | Required Input | Expected Output |
-|------|-------|-------------|-----------------|-----------------|
-| 1 | `openspec-explore` | Analyze current code state, identify dependencies and modification points | Change request context | Impact report in `.agents/exploration-report.md` |
-| 2 | `brainstorming` | Generate ideas based on exploration, suggest alternatives, ask user questions | Exploration report | `.agents/brainstorming-session.md` with decisions |
-| 3 | `openspec-new-change` | Create change container with initial proposal | Brainstorming decisions | `openspec/changes/<name>/proposal.md` |
-| 4 | `openspec-continue-change` or `openspec-ff-change` | Create specs, design, and tasks | Approved proposal | Complete OpenSpec artifacts |
-| 5 | `openspec-apply-change` | Implement tasks as described | Tasks ready | Modified code following specs |
-| 6 | `systematic-debugging` | Validate no errors, verify applied patterns | Modified code | Validation report in `.agents/debug-report.md` |
-| 7 | `openspec-verify-change` | Verify implementation matches specs and design | Artifacts + code | Verification report |
-| 8 | `changelog-generator` | Document change in history | Implemented feature | `changelogs/by-ai/[YYYY-MM-DD]-[feature].md` |
-| 9 | `openspec-archive-change` | Archive completed change | Change ready | `openspec/changes/archive/YYYY-MM-DD-<name>/` |
-| 10 | `openspec-sync-specs` (optional) | Synchronize delta specs to main specs | Delta specs | Main specs updated |
 
 ---
 
@@ -250,49 +205,27 @@ Before considering any task as **completed**, verify:
 ║                              MANDATORY CHECKLIST                                   ║
 ╠═══════════════════════════════════════════════════════════════════════════════════╣
 ║                                                                                    ║
-║  □ Security                                                                        ║
-║    └─ □ secure-coding-cybersecurity executed                                     ║
-║    └─ □ No known vulnerabilities (SQL injection, XSS, etc.)                       ║
-║    └─ □ Inputs validated and sanitized                                            ║
-║    └─ □ Secrets/keys not hardcoded                                                ║
-║    └─ □ No eval() or dynamic code execution with user input                       ║
-║                                                                                    ║
-║  □ Maintainability                                                                 ║
-║    └─ □ code-maintainability executed                                            ║
-║    └─ □ Code follows project conventions                                          ║
-║    └─ □ Functions/classes have single responsibility                              ║
-║    └─ □ Descriptive and semantic names                                            ║
-║    └─ □ No duplicate code (DRY principle)                                         ║
-║    └─ □ Documentation explains "why", not "what"                                  ║
-║                                                                                    ║
-║  □ Error Handling                                                                  ║
-║    └─ □ error-handling-patterns applied                                           ║
-║    └─ □ All errors handled gracefully                                             ║
-║    └─ □ Edge cases covered (null, empty, boundaries)                              ║
+║  □ Governance & Quality                                                            ║
+║    └─ □ project-constitution principles followed                                   ║
+║    └─ □ secure-coding-cybersecurity executed (No SQLi, XSS, etc.)                 ║
+║    └─ □ code-maintainability executed (DRY, SOLID, Naming)                        ║
 ║                                                                                    ║
 ║  □ Specification (OpenSpec)                                                        ║
+║    └─ □ spec-clarification run on requirements                                    ║
+║    └─ □ requirement-checklist passed                                              ║
+║    └─ □ spec-analysis showed no conflicts                                         ║
 ║    └─ □ Change created with proposal, specs, design, tasks                        ║
-║    └─ □ Implementation matches specification                                      ║
-║    └─ □ All WHEN/THEN scenarios implemented                                       ║
-║    └─ □ Design decisions documented                                               ║
 ║                                                                                    ║
-║  □ Implementation                                                                  ║
-║    └─ □ All tasks marked complete [- [x]]                                         ║
-║    └─ □ Code tested and functional                                                ║
-║    └─ □ No console.logs or debug code                                             ║
+║  □ Implementation & Testing                                                        ║
+║    └─ □ test-generator used (Tests exist for new feature)                         ║
+║    └─ □ All tasks implemented                                                     ║
+║    └─ □ performance-optimizer checked (No regressions)                            ║
 ║                                                                                    ║
-║  □ Validation                                                                      ║
+║  □ Validation & Docs                                                               ║
 ║    └─ □ systematic-debugging executed without critical errors                     ║
-║    └─ □ openspec-verify-change passed (or reviewed)                               ║
-║    └─ □ Design patterns correctly applied                                         ║
-║                                                                                    ║
-║  □ Documentation                                                                   ║
-║    └─ □ Project index updated if structure changed                                ║
-║    └─ □ Changelog generated in changelogs/by-ai/                                  ║
-║    └─ □ README updated if necessary                                               ║
-║                                                                                    ║
-║  □ Closure                                                                         ║
-║    └─ □ Change archived with openspec-archive-change                              ║
-║    └─ □ Delta specs synchronized (if applicable)                                  ║
+║    └─ □ openspec-verify-change passed                                             ║
+║    └─ □ sync-index executed (Docs updated)                                        ║
+║    └─ □ Change archived                                                           ║
 ║                                                                                    ║
 ╚═══════════════════════════════════════════════════════════════════════════════════╝
+```
