@@ -2,7 +2,7 @@
 name: openspec-onboard
 description: Guided onboarding for OpenSpec - walk through a complete workflow cycle with narration and real codebase work.
 license: MIT
-compatibility: Requires openspec CLI.
+compatibility: Requires acfm CLI (bundled).
 metadata:
   author: openspec
   version: "1.0"
@@ -18,11 +18,11 @@ Guide the user through their first complete OpenSpec workflow cycle. This is a t
 Before starting, check if OpenSpec is initialized:
 
 ```bash
-openspec status --json 2>&1 || echo "NOT_INITIALIZED"
+acfm spec status --json 2>&1 || echo "NOT_INITIALIZED"
 ```
 
 **If not initialized:**
-> OpenSpec isn't set up in this project yet. Run `openspec init` first, then come back to `/opsx:onboard`.
+> OpenSpec isn't set up in this project yet. Run `acfm spec init` first, then come back to `/opsx:onboard`.
 
 Stop here if not initialized.
 
@@ -168,7 +168,7 @@ Let me create one for our task.
 
 **DO:** Create the change with a derived kebab-case name:
 ```bash
-openspec new change "<derived-name>"
+acfm spec new "<derived-name>"
 ```
 
 **SHOW:**
@@ -237,7 +237,7 @@ Does this capture the intent? I can adjust before we save it.
 
 After approval, save the proposal:
 ```bash
-openspec instructions proposal --change "<name>" --json
+acfm spec instructions proposal --change "<name>" --json
 ```
 Then write the content to `openspec/changes/<name>/proposal.md`.
 
@@ -423,7 +423,7 @@ Archived changes become your project's decision history—you can always find th
 
 **DO:**
 ```bash
-openspec archive "<name>"
+acfm spec archive "<name>"
 ```
 
 **SHOW:**

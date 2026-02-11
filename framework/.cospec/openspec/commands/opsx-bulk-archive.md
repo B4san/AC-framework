@@ -13,7 +13,7 @@ This skill allows you to batch-archive changes, handling spec conflicts intellig
 
 1. **Get active changes**
 
-   Run `openspec list --json` to get all active changes.
+   Run `acfm spec list --json` to get all active changes.
 
    If no active changes exist, inform user and stop.
 
@@ -30,7 +30,7 @@ This skill allows you to batch-archive changes, handling spec conflicts intellig
 
    For each selected change, collect:
 
-   a. **Artifact status** - Run `openspec status --change "<name>" --json`
+   a. **Artifact status** - Run `acfm spec status --change "<name>" --json`
       - Parse `schemaName` and `artifacts` list
       - Note which artifacts are `done` vs other states
 

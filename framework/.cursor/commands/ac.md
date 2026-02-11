@@ -69,7 +69,7 @@ The skills listed above are located at `framework/.agent/skills/<skill-name>/SKI
 3. **Follow the skill's guidance** exactly as written
 4. **Skills provide structured workflows** for specific tasks
 
-**Do NOT use CLI commands like `openspec <command>` unless the skill specifically instructs you to.** OpenSpec skills guide you through their workflow via the SKILL.md content, not through CLI invocations.
+**Do NOT use CLI commands like `acfm spec <command>` unless the skill specifically instructs you to.** OpenSpec skills guide you through their workflow via the SKILL.md content, not through CLI invocations.
 
 ---
 

@@ -85,7 +85,7 @@ You have full context of the OpenSpec system. Use it naturally, don't force it.
 
 At the start, quickly check what exists:
 ```bash
-openspec list --json
+acfm spec list --json
 ```
 
 This tells you:

@@ -1,6 +1,5 @@
 import chalk from 'chalk';
 import gradient from 'gradient-string';
-import { createSpinner } from 'nanospinner';
 import { sleep } from '../utils/helpers.js';
 
 const acGradient = gradient(['#6C5CE7', '#00CEC9', '#0984E3']);
@@ -8,88 +7,9 @@ const successGradient = gradient(['#00CEC9', '#00B894', '#55EFC4']);
 const warmGradient = gradient(['#FDCB6E', '#E17055', '#D63031']);
 const glowGradient = gradient(['#0984E3', '#00CEC9', '#55EFC4', '#00CEC9', '#0984E3']);
 
-// ── Matrix Rain ──────────────────────────────────────────────────
-
-export async function matrixRain(durationMs = 1800) {
-  const cols = Math.min(process.stdout.columns || 80, 80);
-  const rows = 8;
-  const drops = Array.from({ length: cols }, () => ({
-    y: Math.floor(Math.random() * rows),
-    speed: 1 + Math.floor(Math.random() * 2),
-    trail: 2 + Math.floor(Math.random() * 3),
-  }));
-  const chars = '01アイウエオカキクケコサシスセソ>>=</>{}[]ACFM';
-  const colors = ['#00CEC9', '#0984E3', '#6C5CE7', '#00FF41', '#55EFC4'];
-  const frameTime = 50;
-  const totalFrames = Math.floor(durationMs / frameTime);
-
-  // Print initial empty rows
-  for (let i = 0; i < rows; i++) console.log();
-
-  for (let frame = 0; frame < totalFrames; frame++) {
-    const grid = Array.from({ length: rows }, () => Array(cols).fill(' '));
-
-    for (let c = 0; c < cols; c++) {
-      const drop = drops[c];
-      // Draw trail
-      for (let t = 0; t < drop.trail; t++) {
-        const ty = drop.y - t;
-        if (ty >= 0 && ty < rows) {
-          const ch = chars[Math.floor(Math.random() * chars.length)];
-          const brightness = t === 0 ? '#FFFFFF' : colors[Math.floor(Math.random() * colors.length)];
-          const opacity = t === 0 ? 1 : Math.max(0.2, 1 - t * 0.3);
-          grid[ty][c] = t === 0
-            ? chalk.hex(brightness).bold(ch)
-            : chalk.hex(brightness)(ch);
-        }
-      }
-      drop.y += drop.speed;
-      if (drop.y - drop.trail > rows) {
-        drop.y = -Math.floor(Math.random() * 6);
-        drop.speed = 1 + Math.floor(Math.random() * 2);
-        drop.trail = 2 + Math.floor(Math.random() * 3);
-      }
-    }
-
-    let output = '';
-    for (const row of grid) {
-      output += '  ' + row.join('') + '\n';
-    }
-
-    process.stdout.write(`\x1B[${rows}A`);
-    process.stdout.write(output);
-    await sleep(frameTime);
-  }
-
-  // Fade out effect
-  for (let fade = 0; fade < 4; fade++) {
-    process.stdout.write(`\x1B[${rows}A`);
-    for (let r = 0; r < rows; r++) {
-      let line = '  ';
-      for (let c = 0; c < cols; c++) {
-        if (Math.random() < 0.3 - fade * 0.07) {
-          const ch = chars[Math.floor(Math.random() * chars.length)];
-          line += chalk.hex('#2D3436')(ch);
-        } else {
-          line += ' ';
-        }
-      }
-      console.log(line);
-    }
-    await sleep(60);
-  }
-
-  // Clear the area
-  process.stdout.write(`\x1B[${rows}A`);
-  for (let i = 0; i < rows; i++) {
-    process.stdout.write('\x1B[2K\n');
-  }
-  process.stdout.write(`\x1B[${rows}A`);
-}
-
 // ── Scanning / Loading ───────────────────────────────────────────
 
-export async function scanAnimation(text, durationMs = 1000) {
+export async function scanAnimation(text, durationMs = 800) {
   const frames = ['◜', '◠', '◝', '◞', '◡', '◟'];
   const totalFrames = Math.floor(durationMs / 80);
 
@@ -110,77 +30,28 @@ export async function scanAnimation(text, durationMs = 1000) {
 
 export async function animatedSeparator(width = 60) {
   const ch = '─';
-  for (let i = 0; i <= width; i++) {
-    const before = ch.repeat(i);
+  for (let i = 0; i <= width; i += 3) {
+    const before = ch.repeat(Math.min(i, width));
     const dot = '●';
     const after = ch.repeat(Math.max(0, width - i));
     process.stdout.write(
       `\x1B[2K\r  ${glowGradient(before)}${chalk.hex('#00CEC9')(dot)}${chalk.hex('#2D3436')(after)}`
     );
-    await sleep(4);
+    await sleep(3);
   }
   process.stdout.write(`\x1B[2K\r  ${glowGradient(ch.repeat(width))}  \n`);
 }
 
 // ── Staggered List Reveal ────────────────────────────────────────
 
-export async function revealList(items, { prefix = '◆', color = '#00CEC9', delay = 60 } = {}) {
+export async function revealList(items, { prefix = '◆', color = '#00CEC9', delay = 30 } = {}) {
   for (const item of items) {
-    // Slide in from left
-    const maxSlide = 6;
-    for (let s = maxSlide; s >= 0; s--) {
-      const pad = ' '.repeat(s);
-      process.stdout.write(
-        `\x1B[2K\r  ${pad}${chalk.hex(color)(prefix)} ${item}`
-      );
-      await sleep(15);
-    }
-    console.log();
+    console.log(`  ${chalk.hex(color)(prefix)} ${item}`);
     await sleep(delay);
   }
 }
 
-// ── Progress Bar (enhanced) ──────────────────────────────────────
-
-export async function progressBar(label, steps = 30, durationMs = 1000) {
-  const barWidth = 35;
-  const blocks = ['░', '▒', '▓', '█'];
-
-  for (let i = 0; i <= steps; i++) {
-    const progress = (i / steps) * barWidth;
-    const full = Math.floor(progress);
-    const partial = progress - full;
-
-    let bar = '';
-    for (let b = 0; b < barWidth; b++) {
-      if (b < full) {
-        bar += chalk.hex('#6C5CE7')('█');
-      } else if (b === full) {
-        const blockIdx = Math.floor(partial * blocks.length);
-        bar += chalk.hex('#A29BFE')(blocks[Math.min(blockIdx, blocks.length - 1)]);
-      } else {
-        bar += chalk.hex('#2D3436')('░');
-      }
-    }
-
-    const pct = Math.round((i / steps) * 100);
-    const pctStr = `${pct}%`.padStart(4);
-
-    // Spinner character
-    const spinChars = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏'];
-    const spin = i < steps
-      ? chalk.hex('#00CEC9')(spinChars[i % spinChars.length])
-      : chalk.hex('#00CEC9')('✓');
-
-    process.stdout.write(
-      `\x1B[2K\r  ${spin} ${chalk.hex('#B2BEC3')(label)} ${bar} ${chalk.hex('#00CEC9')(pctStr)}`
-    );
-    await sleep(durationMs / steps);
-  }
-  process.stdout.write('\n');
-}
-
-// ── Installation Spinner (enhanced) ──────────────────────────────
+// ── Installation Spinner ─────────────────────────────────────────
 
 export async function installWithAnimation(name, task) {
   const frames = ['⣾', '⣽', '⣻', '⢿', '⡿', '⣟', '⣯', '⣷'];
@@ -224,38 +95,8 @@ export async function celebrateSuccess(moduleCount, targetDir) {
   await animatedSeparator(60);
   console.log();
 
-  // Big checkmark animation
-  const check = [
-    '         ██╗',
-    '        ██╔╝',
-    '       ██╔╝ ',
-    '  ██╗ ██╔╝  ',
-    '  ╚████╔╝   ',
-    '   ╚═══╝    ',
-  ];
-
-  for (const line of check) {
-    console.log(successGradient(line));
-    await sleep(50);
-  }
-
-  console.log();
-  await progressBar('Finalizing', 30, 800);
-  console.log();
-
-  // Sparkle animation on the success message
-  const msg = '  Installation complete!';
-  const sparkles = ['✦', '✧', '⊹', '✶', '⋆'];
-  for (let i = 0; i < 3; i++) {
-    const s1 = sparkles[Math.floor(Math.random() * sparkles.length)];
-    const s2 = sparkles[Math.floor(Math.random() * sparkles.length)];
-    const s3 = sparkles[Math.floor(Math.random() * sparkles.length)];
-    process.stdout.write(
-      `\x1B[2K\r  ${chalk.hex('#FDCB6E')(s1)} ${successGradient(msg.trim())} ${chalk.hex('#FDCB6E')(s2)} ${chalk.hex('#00CEC9')(s3)}`
-    );
-    await sleep(200);
-  }
-  console.log();
+  // Success message
+  console.log(`  ${chalk.hex('#00CEC9')('✓')} ${successGradient('Installation complete!')}`);
   console.log();
 
   // Module count badge
@@ -265,61 +106,108 @@ export async function celebrateSuccess(moduleCount, targetDir) {
 
   console.log();
 
-  // Tips box
-  const boxW = 56;
-  const topBorder = chalk.hex('#636E72')('  ┌' + '─'.repeat(boxW) + '┐');
-  const botBorder = chalk.hex('#636E72')('  └' + '─'.repeat(boxW) + '┘');
-  const line = (content, raw) => {
-    const pad = boxW - raw.length;
+  // Commands reference box
+  const boxW = 62;
+  const top = chalk.hex('#636E72')('  ┌' + '─'.repeat(boxW) + '┐');
+  const bot = chalk.hex('#636E72')('  └' + '─'.repeat(boxW) + '┘');
+  const row = (content, rawLen) => {
+    const pad = boxW - rawLen;
     return chalk.hex('#636E72')('  │') + content + ' '.repeat(Math.max(0, pad)) + chalk.hex('#636E72')('│');
   };
+  const empty = row(' ', 1);
 
-  console.log(topBorder);
-  console.log(line(
-    chalk.hex('#FDCB6E')(' ⚡ Quick Start'),
-    ' ⚡ Quick Start'
+  console.log(top);
+  console.log(row(
+    chalk.hex('#FDCB6E')(' ⚡ Available Commands'),
+    ' ⚡ Available Commands'.length
   ));
-  console.log(line(
-    chalk.hex('#636E72')(' '),
-    ' '
+  console.log(empty);
+
+  // Core commands
+  console.log(row(
+    chalk.hex('#6C5CE7')('  Core'),
+    '  Core'.length
   ));
-  console.log(line(
-    chalk.hex('#B2BEC3')('  Your AI assistants are ready to use.'),
-    '  Your AI assistants are ready to use.'
+  console.log(row(
+    `  ${chalk.hex('#00CEC9')('acfm init')}${chalk.hex('#636E72')(' .............. Install modules into your project')}`,
+    '  acfm init .............. Install modules into your project'.length
   ));
-  console.log(line(
-    chalk.hex('#B2BEC3')('  Open your project in your preferred IDE.'),
-    '  Open your project in your preferred IDE.'
+  console.log(row(
+    `  ${chalk.hex('#00CEC9')('acfm init --latest')}${chalk.hex('#636E72')(' ..... Download latest from GitHub')}`,
+    '  acfm init --latest ..... Download latest from GitHub'.length
   ));
-  console.log(line(
-    chalk.hex('#636E72')(' '),
-    ' '
+  console.log(row(
+    `  ${chalk.hex('#00CEC9')('acfm update')}${chalk.hex('#636E72')(' ............ Update installed modules')}`,
+    '  acfm update ............ Update installed modules'.length
+  ));
+  console.log(empty);
+
+  // Spec commands
+  console.log(row(
+    chalk.hex('#6C5CE7')('  Spec-Driven Workflow'),
+    '  Spec-Driven Workflow'.length
+  ));
+  console.log(row(
+    `  ${chalk.hex('#00CEC9')('acfm spec init')}${chalk.hex('#636E72')(' ......... Bootstrap openspec/ directory')}`,
+    '  acfm spec init ......... Bootstrap openspec/ directory'.length
+  ));
+  console.log(row(
+    `  ${chalk.hex('#00CEC9')('acfm spec new <name>')}${chalk.hex('#636E72')(' ... Create a new change')}`,
+    '  acfm spec new <name> ... Create a new change'.length
+  ));
+  console.log(row(
+    `  ${chalk.hex('#00CEC9')('acfm spec status')}${chalk.hex('#636E72')(' ....... View change status')}`,
+    '  acfm spec status ....... View change status'.length
+  ));
+  console.log(row(
+    `  ${chalk.hex('#00CEC9')('acfm spec list')}${chalk.hex('#636E72')(' ......... List active changes')}`,
+    '  acfm spec list ......... List active changes'.length
+  ));
+  console.log(row(
+    `  ${chalk.hex('#00CEC9')('acfm spec instructions')}${chalk.hex('#636E72')(' . Get artifact instructions')}`,
+    '  acfm spec instructions . Get artifact instructions'.length
+  ));
+  console.log(row(
+    `  ${chalk.hex('#00CEC9')('acfm spec validate')}${chalk.hex('#636E72')(' ..... Validate change structure')}`,
+    '  acfm spec validate ..... Validate change structure'.length
+  ));
+  console.log(row(
+    `  ${chalk.hex('#00CEC9')('acfm spec archive')}${chalk.hex('#636E72')(' ...... Archive a completed change')}`,
+    '  acfm spec archive ...... Archive a completed change'.length
+  ));
+  console.log(row(
+    `  ${chalk.hex('#00CEC9')('acfm spec schemas')}${chalk.hex('#636E72')(' ...... List workflow schemas')}`,
+    '  acfm spec schemas ...... List workflow schemas'.length
+  ));
+  console.log(empty);
+
+  // JSON flag hint
+  console.log(row(
+    chalk.hex('#636E72')('  Tip: Add --json to any spec command for machine-readable output'),
+    '  Tip: Add --json to any spec command for machine-readable output'.length
   ));
 
   // Windows PATH help
   if (process.platform === 'win32') {
-    console.log(line(
-      chalk.hex('#FDCB6E')(' ⚠  Command not found?'),
-      ' ⚠  Command not found?'
+    console.log(empty);
+    console.log(row(
+      chalk.hex('#FDCB6E')(' ⚠  Command not found? Run: npm config get prefix'),
+      ' ⚠  Command not found? Run: npm config get prefix'.length
     ));
-    console.log(line(
-      chalk.hex('#B2BEC3')('  Run this in PowerShell to fix your PATH:'),
-      '  Run this in PowerShell to fix your PATH:'
-    ));
-    console.log(line(
-      chalk.hex('#00CEC9')('  npm config get prefix'),
-      '  npm config get prefix'
-    ));
-    console.log(line(
+    console.log(row(
       chalk.hex('#B2BEC3')('  Then add that path to your system PATH.'),
-      '  Then add that path to your system PATH.'
+      '  Then add that path to your system PATH.'.length
     ));
   }
 
-  console.log(botBorder);
+  console.log(bot);
 
   console.log();
-  console.log(chalk.hex('#636E72')('  Happy coding! ') + chalk.hex('#00CEC9')('→') + chalk.hex('#636E72')(' ac-framework'));
+  console.log(
+    chalk.hex('#636E72')('  Happy coding! ') +
+    chalk.hex('#00CEC9')('→') +
+    chalk.hex('#636E72')(' ac-framework')
+  );
   console.log();
 }
 

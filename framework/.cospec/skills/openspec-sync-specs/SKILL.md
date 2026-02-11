@@ -2,7 +2,7 @@
 name: openspec-sync-specs
 description: Sync delta specs from a change to main specs. Use when the user wants to update main specs with changes from a delta spec, without archiving the change.
 license: MIT
-compatibility: Requires openspec CLI.
+compatibility: Requires acfm CLI (bundled).
 metadata:
   author: openspec
   version: "1.0"
@@ -19,7 +19,7 @@ This is an **agent-driven** operation - you will read delta specs and directly e
 
 1. **If no change name provided, prompt for selection**
 
-   Run `openspec list --json` to get available changes. Use the **AskUserQuestion tool** to let the user select.
+   Run `acfm spec list --json` to get available changes. Use the **AskUserQuestion tool** to let the user select.
 
    Show changes that have delta specs (under `specs/` directory).
 

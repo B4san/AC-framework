@@ -6,6 +6,7 @@ import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { initCommand } from './commands/init.js';
 import { updateCommand } from './commands/update.js';
+import { specCommand } from './commands/spec.js';
 import { showBanner } from './ui/banner.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -35,5 +36,7 @@ program
   .action(async (opts) => {
     await updateCommand(opts);
   });
+
+program.addCommand(specCommand());
 
 program.parse();

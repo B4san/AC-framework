@@ -28,7 +28,6 @@ import {
 } from '../services/installer.js';
 import { downloadWithSpinner, cleanupTempDir } from '../services/github-sync.js';
 import {
-  matrixRain,
   scanAnimation,
   animatedSeparator,
   revealList,
@@ -227,8 +226,6 @@ export async function initCommand(options = {}) {
     await stepHeader(1 + stepOffset, totalSteps, 'Scanning framework modules');
     await scanAnimation('Indexing available modules', 1000);
     console.log();
-
-    await matrixRain(1800);
 
     let folders;
     try {

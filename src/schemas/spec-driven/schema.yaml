@@ -1,0 +1,47 @@
+name: spec-driven
+description: Spec-driven development workflow - proposal, specs, design, tasks
+artifacts:
+  - id: proposal
+    outputPath: proposal.md
+    dependencies: []
+    unlocks:
+      - specs
+      - design
+    instruction: >
+      Write a proposal that explains WHY this change is needed and WHAT will change.
+      Focus on motivation, scope, and impact. List new and modified capabilities.
+
+  - id: specs
+    outputPath: specs/
+    dependencies:
+      - proposal
+    unlocks:
+      - tasks
+    instruction: >
+      Write delta specs using ADDED/MODIFIED/REMOVED/RENAMED sections.
+      Each requirement must have testable scenarios with WHEN/THEN/AND format.
+      Create one spec.md per capability under specs/<capability-name>/spec.md.
+
+  - id: design
+    outputPath: design.md
+    dependencies:
+      - proposal
+    unlocks:
+      - tasks
+    instruction: >
+      Document technical decisions, architecture choices, and implementation approach.
+      Include context, goals, non-goals, and key design decisions with rationale.
+
+  - id: tasks
+    outputPath: tasks.md
+    dependencies:
+      - specs
+      - design
+    unlocks: []
+    instruction: >
+      Generate a checkbox task list derived from specs and design.
+      Each task should be atomic and independently implementable.
+      Use markdown checkboxes: - [ ] for pending, - [x] for completed.
+
+applyRequires:
+  - tasks

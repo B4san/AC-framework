@@ -5,8 +5,24 @@ const isWin = process.platform === 'win32';
 console.log();
 console.log('  ✓ ac-framework installed successfully!');
 console.log();
-console.log('  Get started:');
-console.log('    acfm init');
+console.log('  Available commands:');
+console.log();
+console.log('    Core');
+console.log('      acfm init                Install modules into your project');
+console.log('      acfm init --latest       Download latest from GitHub');
+console.log('      acfm update              Update installed modules');
+console.log();
+console.log('    Spec-Driven Workflow');
+console.log('      acfm spec init           Bootstrap openspec/ directory');
+console.log('      acfm spec new <name>     Create a new change');
+console.log('      acfm spec status         View change status');
+console.log('      acfm spec list           List active changes');
+console.log('      acfm spec instructions   Get artifact instructions');
+console.log('      acfm spec validate       Validate change structure');
+console.log('      acfm spec archive        Archive a completed change');
+console.log('      acfm spec schemas        List workflow schemas');
+console.log();
+console.log('    Tip: Add --json to any spec command for machine-readable output.');
 console.log();
 
 if (isWin) {
