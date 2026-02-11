@@ -288,6 +288,8 @@ acfm spec status
 # Create new change in legacy structure
 acfm spec new legacy-feature
 # → Creates in openspec/changes/legacy-feature/
+
+IMPORTANT: Use the /ac on your IDE or CLI for the agent execute the entire workflow you dont need to run this commands, this is for the AI
 ```
 
 ---
@@ -348,11 +350,6 @@ Each change is a folder in `.acfm/changes/` containing structured artifacts that
 
 ---
 
-## 🤝 Contributing
-
-Contributions are welcome! Please read our [Contributing Guide](CONTRIBUTING.md) for details.
-
----
 
 ## 📝 License
 
