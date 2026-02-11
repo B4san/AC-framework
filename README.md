@@ -3,7 +3,6 @@
 <p align="center">
   <img src="https://img.shields.io/npm/v/ac-framework?style=for-the-badge&color=00FF7F&labelColor=1B5E20" alt="npm version">
   <img src="https://img.shields.io/badge/node-%3E%3D18.0.0-brightgreen?style=for-the-badge&logo=node.js&logoColor=white" alt="Node.js">
-  <img src="https://img.shields.io/npm/dm/ac-framework?style=for-the-badge&color=0984E3&labelColor=2D3436" alt="Downloads">
   <img src="https://img.shields.io/badge/license-MIT-yellow?style=for-the-badge" alt="License">
 </p>
 
