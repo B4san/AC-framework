@@ -12,7 +12,41 @@ import yaml from 'js-yaml';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const SCHEMAS_DIR = resolve(__dirname, '../schemas');
-const OPENSPEC_DIR = 'openspec';
+
+// Default directory name for AC Framework spec-driven workflows
+const ACFM_DIR = '.acfm';
+// Legacy directory name for backward compatibility
+const LEGACY_DIR = 'openspec';
+
+/**
+ * Determine which spec directory to use for a project.
+ * Priority: .acfm/ > openspec/ (for backward compatibility)
+ * Returns the directory name (not full path)
+ */
+async function getSpecDir(cwd = process.cwd()) {
+  try {
+    // Check if .acfm exists
+    await access(join(cwd, ACFM_DIR));
+    return ACFM_DIR;
+  } catch {
+    try {
+      // Fall back to legacy openspec directory
+      await access(join(cwd, LEGACY_DIR));
+      return LEGACY_DIR;
+    } catch {
+      // Neither exists, default to new .acfm for new projects
+      return ACFM_DIR;
+    }
+  }
+}
+
+/**
+ * Get the effective spec directory name without async
+ * For use when we already know the project is initialized
+ */
+async function getSpecDirSync(cwd = process.cwd()) {
+  return await getSpecDir(cwd);
+}
 
 // ─── Schema Loading ──────────────────────────────────────────────────────────
 
@@ -72,10 +106,12 @@ export async function loadTemplate(schemaName, artifactId) {
 // ─── Project Config ──────────────────────────────────────────────────────────
 
 /**
- * Read the project's openspec/config.yaml
+ * Read the project's spec config.yaml
+ * Supports both .acfm/ (new) and openspec/ (legacy) directories
  */
 export async function readProjectConfig(cwd = process.cwd()) {
-  const configPath = join(cwd, OPENSPEC_DIR, 'config.yaml');
+  const specDir = await getSpecDir(cwd);
+  const configPath = join(cwd, specDir, 'config.yaml');
   try {
     const content = await readFile(configPath, 'utf-8');
     return yaml.load(content) || {};
@@ -86,11 +122,13 @@ export async function readProjectConfig(cwd = process.cwd()) {
 }
 
 /**
- * Check if openspec is initialized in the current project
+ * Check if spec system is initialized in the current project
+ * Supports both .acfm/ (new) and openspec/ (legacy) directories
  */
 export async function isInitialized(cwd = process.cwd()) {
+  const specDir = await getSpecDir(cwd);
   try {
-    await access(join(cwd, OPENSPEC_DIR, 'config.yaml'));
+    await access(join(cwd, specDir, 'config.yaml'));
     return true;
   } catch {
     return false;
@@ -100,13 +138,23 @@ export async function isInitialized(cwd = process.cwd()) {
 // ─── Init ────────────────────────────────────────────────────────────────────
 
 /**
- * Initialize the openspec/ directory structure
+ * Initialize the spec directory structure (.acfm/ by default)
+ * Creates .acfm/ directory with specs/ and changes/ subdirectories
  */
 export async function initProject(cwd = process.cwd(), schemaName = 'spec-driven') {
   // Validate schema exists
   await loadSchema(schemaName);
 
-  const base = join(cwd, OPENSPEC_DIR);
+  // Check for legacy openspec directory - warn if found
+  try {
+    await access(join(cwd, LEGACY_DIR));
+    // Legacy directory exists, but we'll create new .acfm anyway
+    // This allows migration path
+  } catch {
+    // No legacy directory, proceed normally
+  }
+
+  const base = join(cwd, ACFM_DIR);
   await mkdir(join(base, 'specs'), { recursive: true });
   await mkdir(join(base, 'changes'), { recursive: true });
 
@@ -114,11 +162,35 @@ export async function initProject(cwd = process.cwd(), schemaName = 'spec-driven
   try {
     await access(configPath);
     // Already exists, don't overwrite
-    return { created: false, path: base };
+    return { created: false, path: base, dirName: ACFM_DIR };
   } catch {
-    const configContent = `schema: ${schemaName}\n\n# Project context (optional)\n# This is shown to AI when creating artifacts.\n# Add your tech stack, conventions, style guides, domain knowledge, etc.\n# Example:\n#   context: |\n#     Tech stack: TypeScript, React, Node.js\n#     We use conventional commits\n#     Domain: e-commerce platform\n\n# Per-artifact rules (optional)\n# Add custom rules for specific artifacts.\n# Example:\n#   rules:\n#     proposal:\n#       - Keep proposals under 500 words\n#       - Always include a \"Non-goals\" section\n#     tasks:\n#       - Break tasks into chunks of max 2 hours\n`;
+    const configContent = `schema: ${schemaName}
+
+# Project context (optional)
+# This is shown to AI when creating artifacts.
+# Add your tech stack, conventions, style guides, domain knowledge, etc.
+# Example:
+#   context: |
+#     Tech stack: TypeScript, React, Node.js
+#     We use conventional commits
+#     Domain: e-commerce platform
+
+# Per-artifact rules (optional)
+# Add custom rules for specific artifacts.
+# Example:
+#   rules:
+#     proposal:
+#       - Keep proposals under 500 words
+#       - Always include a "Non-goals" section
+#     tasks:
+#       - Break tasks into chunks of max 2 hours
+
+# Directory Configuration
+# This project uses: .acfm/
+# Legacy openspec/ directories are supported for backward compatibility.
+`;
     await writeFile(configPath, configContent, 'utf-8');
-    return { created: true, path: base };
+    return { created: true, path: base, dirName: ACFM_DIR };
   }
 }
 
@@ -126,9 +198,11 @@ export async function initProject(cwd = process.cwd(), schemaName = 'spec-driven
 
 /**
  * Get the changes directory path
+ * Supports both .acfm/ (new) and openspec/ (legacy) directories
  */
-function changesDir(cwd) {
-  return join(cwd, OPENSPEC_DIR, 'changes');
+async function changesDir(cwd) {
+  const specDir = await getSpecDir(cwd);
+  return join(cwd, specDir, 'changes');
 }
 
 /**
@@ -137,13 +211,13 @@ function changesDir(cwd) {
 export async function createChange(name, cwd = process.cwd(), schemaOverride = null) {
   const config = await readProjectConfig(cwd);
   if (!config) {
-    throw new Error('OpenSpec not initialized. Run `acfm spec init` first.');
+    throw new Error('Spec system not initialized. Run `acfm spec init` first.');
   }
 
   const schemaName = schemaOverride || config.schema || 'spec-driven';
   const schema = await loadSchema(schemaName);
 
-  const changeDir = join(changesDir(cwd), name);
+  const changeDir = join(await changesDir(cwd), name);
 
   // Check if already exists
   try {
@@ -182,7 +256,7 @@ export async function createChange(name, cwd = process.cwd(), schemaOverride = n
  * List all active (non-archived) changes
  */
 export async function listChanges(cwd = process.cwd()) {
-  const dir = changesDir(cwd);
+  const dir = await changesDir(cwd);
   let entries;
   try {
     entries = await readdir(dir, { withFileTypes: true });
@@ -284,7 +358,7 @@ async function isArtifactDone(changePath, artifact) {
  * Get full status for a change, including per-artifact status
  */
 export async function getChangeStatus(name, cwd = process.cwd()) {
-  const changePath = join(changesDir(cwd), name);
+  const changePath = join(await changesDir(cwd), name);
 
   // Read change metadata
   const metaPath = join(changePath, '.openspec.yaml');
@@ -341,10 +415,10 @@ export async function getChangeStatus(name, cwd = process.cwd()) {
  * Get instructions for creating a specific artifact
  */
 export async function getArtifactInstructions(artifactId, changeName, cwd = process.cwd()) {
-  const changePath = join(changesDir(cwd), changeName);
+  const changePath = join(await changesDir(cwd), changeName);
   const config = await readProjectConfig(cwd);
   if (!config) {
-    throw new Error('OpenSpec not initialized. Run `acfm spec init` first.');
+    throw new Error('Spec system not initialized. Run `acfm spec init` first.');
   }
 
   const metaPath = join(changePath, '.openspec.yaml');
@@ -382,17 +456,18 @@ export async function getArtifactInstructions(artifactId, changeName, cwd = proc
   }
 
   // Build dependencies (paths to completed artifact files the agent should read)
+  const specDir = await getSpecDir(cwd);
   const dependencies = [];
   for (const depId of artifact.dependencies) {
     const depArtifact = schema.artifacts.find(a => a.id === depId);
     if (depArtifact) {
-      const depPath = join(OPENSPEC_DIR, 'changes', changeName, depArtifact.outputPath);
+      const depPath = join(specDir, 'changes', changeName, depArtifact.outputPath);
       dependencies.push(depPath);
     }
   }
 
   // Build output path
-  const outputPath = join(OPENSPEC_DIR, 'changes', changeName, artifact.outputPath);
+  const outputPath = join(specDir, 'changes', changeName, artifact.outputPath);
 
   // Build instruction from schema
   const instruction = artifact.instruction || '';
@@ -415,10 +490,10 @@ export async function getArtifactInstructions(artifactId, changeName, cwd = proc
  * Get instructions for the apply phase (implementing tasks)
  */
 export async function getApplyInstructions(changeName, cwd = process.cwd()) {
-  const changePath = join(changesDir(cwd), changeName);
+  const changePath = join(await changesDir(cwd), changeName);
   const config = await readProjectConfig(cwd);
   if (!config) {
-    throw new Error('OpenSpec not initialized. Run `acfm spec init` first.');
+    throw new Error('Spec system not initialized. Run `acfm spec init` first.');
   }
 
   const metaPath = join(changePath, '.openspec.yaml');
@@ -453,10 +528,11 @@ export async function getApplyInstructions(changeName, cwd = process.cwd()) {
   }
 
   // Build context files — all completed artifacts
+  const specDir = await getSpecDir(cwd);
   const contextFiles = [];
   for (const artifact of schema.artifacts) {
     if (doneMap[artifact.id]) {
-      const artifactPath = join(OPENSPEC_DIR, 'changes', changeName, artifact.outputPath);
+      const artifactPath = join(specDir, 'changes', changeName, artifact.outputPath);
       contextFiles.push(artifactPath);
     }
   }
@@ -522,7 +598,7 @@ export async function getApplyInstructions(changeName, cwd = process.cwd()) {
  * Archive a completed change
  */
 export async function archiveChange(name, cwd = process.cwd()) {
-  const changePath = join(changesDir(cwd), name);
+  const changePath = join(await changesDir(cwd), name);
 
   // Verify change exists
   try {
@@ -571,7 +647,7 @@ export async function getGlobalStatus(cwd = process.cwd()) {
  * Validate a change's artifacts for structural correctness
  */
 export async function validateChange(name, cwd = process.cwd()) {
-  const changePath = join(changesDir(cwd), name);
+  const changePath = join(await changesDir(cwd), name);
   const issues = [];
 
   // Check change exists

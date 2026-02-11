@@ -14,7 +14,7 @@
 import chalk from 'chalk';
 import gradient from 'gradient-string';
 import inquirer from 'inquirer';
-import { DESCRIPTIONS, ASSISTANT_ICONS, BUNDLED, ALWAYS_INSTALL } from '../config/constants.js';
+import { DESCRIPTIONS, ASSISTANT_ICONS, BUNDLED } from '../config/constants.js';
 import { IDE_MD_MAP, AVAILABLE_MD_FILES, MD_DESCRIPTIONS } from '../config/ide-mapping.js';
 import { formatFolderName, sleep } from '../utils/helpers.js';
 import { detectIDE } from '../services/detector.js';
@@ -242,8 +242,7 @@ export async function initCommand(options = {}) {
     }
 
     const countBadge = chalk.hex('#2D3436').bgHex('#00CEC9').bold(` ${folders.length} `);
-    const autoBadge = chalk.hex('#2D3436').bgHex('#6C5CE7').bold(' +openspec ');
-    console.log(`  ${countBadge} ${chalk.hex('#B2BEC3')('assistant modules found')}  ${autoBadge} ${chalk.hex('#636E72')('auto-included')}`);
+    console.log(`  ${countBadge} ${chalk.hex('#B2BEC3')('assistant modules found')}`);
     console.log();
     await animatedSeparator(60);
     console.log();
@@ -287,7 +286,7 @@ export async function initCommand(options = {}) {
         bundledForCheck.push(...BUNDLED[folder]);
       }
     }
-    const allForCheck = [...selected, ...bundledForCheck, ...ALWAYS_INSTALL];
+    const allForCheck = [...selected, ...bundledForCheck];
     const existing = [];
     for (const folder of allForCheck) {
       if (await existsInTarget(targetDir, folder)) {
@@ -319,14 +318,13 @@ export async function initCommand(options = {}) {
 
       if (!overwrite) {
         const filtered = selected.filter((f) => !existing.includes(f));
-        const autoFiltered = ALWAYS_INSTALL.filter((f) => !existing.includes(f));
-        if (filtered.length === 0 && autoFiltered.length === 0) {
+        if (filtered.length === 0) {
           console.log(chalk.hex('#636E72')('\n  Nothing new to install. Exiting.\n'));
           process.exit(0);
         }
         selected.length = 0;
         selected.push(...filtered);
-        const newCount = chalk.hex('#00CEC9').bold(filtered.length + autoFiltered.length);
+        const newCount = chalk.hex('#00CEC9').bold(filtered.length);
         console.log(
           '\n  ' + chalk.hex('#B2BEC3')('Continuing with ') + newCount + chalk.hex('#B2BEC3')(' new module(s)...') + '\n'
         );
@@ -341,11 +339,6 @@ export async function initCommand(options = {}) {
       return chalk.hex('#DFE6E9').bold(formatFolderName(folder)) +
         (desc ? chalk.hex('#636E72')(` · ${desc}`) : '');
     });
-    selectedItems.push(
-      chalk.hex('#DFE6E9').bold('Openspec') +
-      chalk.hex('#636E72')(` · ${DESCRIPTIONS['openspec']}`) +
-      chalk.hex('#6C5CE7').italic(' (auto)')
-    );
 
     await revealList(selectedItems, { prefix: '◆', color: '#00CEC9', delay: 40 });
 

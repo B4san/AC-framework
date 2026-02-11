@@ -1,7 +1,8 @@
 /**
  * spec.js — `acfm spec` command group.
  *
- * Replaces the external `openspec` CLI with built-in commands.
+ * AC Framework Spec-Driven Development Workflow
+ * Supports both .acfm/ (new) and openspec/ (legacy) directories for backward compatibility.
  * All commands support --json for machine-readable output (used by skills).
  */
 
@@ -35,26 +36,36 @@ function output(data, json) {
  */
 export function specCommand() {
   const spec = new Command('spec')
-    .description('Spec-driven development workflow (replaces openspec CLI)');
+    .description('AC Framework spec-driven development workflow');
 
   // ─── acfm spec init ──────────────────────────────────────────────────────
 
   spec
     .command('init')
-    .description('Initialize openspec/ directory structure in the current project')
+    .description('Initialize spec directory (.acfm/) in the current project')
     .option('--schema <schema>', 'Default workflow schema', 'spec-driven')
+    .option('--json', 'Output as JSON')
     .action(async (opts) => {
       try {
         const result = await initProject(process.cwd(), opts.schema);
+        if (opts.json) {
+          output(result, true);
+          return;
+        }
         if (result.created) {
-          console.log(chalk.green('Initialized openspec/ directory'));
+          console.log(chalk.green(`Initialized ${result.dirName}/ directory`));
           console.log(chalk.dim(`  Schema: ${opts.schema}`));
           console.log(chalk.dim(`  Path:   ${result.path}`));
+          console.log(chalk.dim(`\n  Legacy openspec/ directories are also supported for backward compatibility.`));
         } else {
-          console.log(chalk.yellow('openspec/ already initialized'));
+          console.log(chalk.yellow(`${result.dirName}/ already initialized`));
           console.log(chalk.dim(`  Path: ${result.path}`));
         }
       } catch (err) {
+        if (opts.json) {
+          output({ error: err.message }, true);
+          process.exit(1);
+        }
         console.error(chalk.red(`Error: ${err.message}`));
         process.exit(1);
       }
@@ -66,14 +77,23 @@ export function specCommand() {
     .command('new <name>')
     .description('Create a new change with scaffolded artifact files')
     .option('--schema <schema>', 'Workflow schema to use (overrides project default)')
+    .option('--json', 'Output as JSON')
     .action(async (name, opts) => {
       try {
         const result = await createChange(name, process.cwd(), opts.schema);
+        if (opts.json) {
+          output(result, true);
+          return;
+        }
         console.log(chalk.green(`Created change "${name}"`));
         console.log(chalk.dim(`  Schema:    ${result.schemaName}`));
         console.log(chalk.dim(`  Path:      ${result.changeDir}`));
         console.log(chalk.dim(`  Artifacts: ${result.artifacts.join(', ')}`));
       } catch (err) {
+        if (opts.json) {
+          output({ error: err.message }, true);
+          process.exit(1);
+        }
         console.error(chalk.red(`Error: ${err.message}`));
         process.exit(1);
       }
@@ -119,11 +139,14 @@ export function specCommand() {
             return;
           }
           if (!status.initialized) {
-            console.log(chalk.yellow('OpenSpec not initialized'));
+            console.log(chalk.yellow('Spec directory not initialized'));
             console.log(chalk.dim('Run: acfm spec init'));
+            console.log(chalk.dim('\nNote: Legacy openspec/ directories are automatically detected.'));
             return;
           }
-          console.log(chalk.bold('OpenSpec Status'));
+          const dirName = status.dirName || '.acfm';
+          console.log(chalk.bold('Spec Status'));
+          console.log(chalk.dim(`Directory: ${dirName}/`));
           console.log(chalk.dim(`Schema: ${status.schema}`));
           console.log(chalk.dim(`Active changes: ${status.activeChanges}`));
           if (status.changes.length > 0) {
@@ -241,12 +264,21 @@ export function specCommand() {
   spec
     .command('archive <name>')
     .description('Archive a completed change')
-    .action(async (name) => {
+    .option('--json', 'Output as JSON')
+    .action(async (name, opts) => {
       try {
         const result = await archiveChange(name, process.cwd());
+        if (opts.json) {
+          output(result, true);
+          return;
+        }
         console.log(chalk.green(`Archived "${name}"`));
         console.log(chalk.dim(`  Moved to: ${result.archivedTo}`));
       } catch (err) {
+        if (opts.json) {
+          output({ error: err.message }, true);
+          process.exit(1);
+        }
         console.error(chalk.red(`Error: ${err.message}`));
         process.exit(1);
       }

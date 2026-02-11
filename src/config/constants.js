@@ -9,20 +9,25 @@ export const GITHUB_CONFIG = {
 };
 
 // Modules that are always installed regardless of user selection.
-export const ALWAYS_INSTALL = ['openspec'];
+// Note: The spec-driven workflow is now built into acfm CLI.
+// Users run `acfm spec init` to create the spec directory (default: .acfm/)
+// Legacy openspec/ directories are still supported for backward compatibility.
+export const ALWAYS_INSTALL = [];
 
 // When a key module is selected, its bundled companions are auto-installed.
 export const BUNDLED = {
   '.cline': ['.clinerules'],
+  '.antigravity': ['.agent'],  // Antigravity uses .agent/skills/ directory
 };
 
 // Folders that should never appear in the selection list because they are
 // installed automatically as part of a bundled assistant.
-export const HIDDEN_FOLDERS = new Set(Object.values(BUNDLED).flat());
+export const HIDDEN_FOLDERS = new Set([...Object.values(BUNDLED).flat(), '.agent']);
 
 // Human-readable descriptions for each module, used in the selection UI.
 export const DESCRIPTIONS = {
   '.agent': 'Generic Agent Framework',
+  '.antigravity': 'Google Antigravity IDE (Agent-First)',
   '.amazonq': 'AWS Amazon Q',
   '.augment': 'Augment Code Assistant',
   '.claude': 'Anthropic Claude Code',
@@ -50,6 +55,7 @@ export const DESCRIPTIONS = {
 // Icons for each assistant, used in the selection UI.
 export const ASSISTANT_ICONS = {
   '.agent': '⊡',
+  '.antigravity': '◉',
   '.amazonq': '◈',
   '.augment': '◇',
   '.claude': '◉',

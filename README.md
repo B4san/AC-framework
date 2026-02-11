@@ -1,275 +1,367 @@
-# AC-Framework 🚀
+# AC Framework 🚀
 
 <p align="center">
-  <img src="https://img.shields.io/badge/OpenSpec-Based-blue?style=for-the-badge&logo=data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAiIGhlaWdodD0iMjAiIHZpZXdCb3g9IjAgMCAyMCAyMCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cGF0aCBkPSJNMTAgMkM1LjU4IDIgMiA1LjU4IDIgMTBzMy41OCA4IDggOCA4LTMuNTggOC04LTMuNTgtOC04LTh6bTMuNSA5LjVhMS41IDEuNSAwIDAxLTIgMEwxMCAxMGwxLjUtMS41YTEuNSAxLjUgMCAwMTIgMEwxNCAxMGwtMS41IDEuNXoiIGZpbGw9IndoaXRlIi8+PC9zdmc+" />
-  <img src="https://img.shields.io/badge/Node.js-18+-green?style=for-the-badge&logo=node.js" />
-  <img src="https://img.shields.io/badge/License-MIT-yellow?style=for-the-badge" />
-  <img src="https://img.shields.io/badge/23+-Assistants-purple?style=for-the-badge" />
+  <img src="https://img.shields.io/npm/v/ac-framework?style=for-the-badge&color=00FF7F&labelColor=1B5E20" alt="npm version">
+  <img src="https://img.shields.io/badge/node-%3E%3D18.0.0-brightgreen?style=for-the-badge&logo=node.js&logoColor=white" alt="Node.js">
+  <img src="https://img.shields.io/npm/dm/ac-framework?style=for-the-badge&color=0984E3&labelColor=2D3436" alt="Downloads">
+  <img src="https://img.shields.io/badge/license-MIT-yellow?style=for-the-badge" alt="License">
 </p>
 
 <p align="center">
   <strong>🤖 Agentic Coding Framework</strong><br>
-  <em>Framework basado en OpenSpec con sistema de Skills mejorado y Skill Routing inteligente para IA</em>
+  <em>Multi-assistant AI configuration system with spec-driven development workflows</em>
+</p>
+
+<p align="center">
+  <a href="#installation">Installation</a> •
+  <a href="#quick-start">Quick Start</a> •
+  <a href="#commands">Commands</a> •
+  <a href="#supported-assistants">24 Assistants</a> •
+  <a href="#documentation">Docs</a>
 </p>
 
 ---
 
-## 📖 ¿Qué es AC-Framework?
+## ✨ What is AC Framework?
 
-**AC-Framework** (Agentic Coding Framework) es un framework de desarrollo avanzado basado en **OpenSpec** que implementa la metodología **Spec-Driven Development** con mejoras significativas para el contexto y enrutamiento de IA.
+AC Framework is a **unified configuration system** for AI coding assistants that brings consistency to your development workflow across 24+ different AI tools.
 
-### 🎯 Filosofía OpenSpec
+Instead of configuring each assistant separately, AC Framework installs compatible configurations for all your favorite AI tools in one command.
 
-AC-Framework adopta y potencia los principios fundamentales de OpenSpec:
+### 🎯 Key Features
 
-- **📋 Todo cambio es un artefacto** - Cada modificación se documenta antes de implementarse
-- **🔄 Desarrollo basado en especificaciones** - El "qué" (specs), "cómo" (design) y "por qué" (proposal) están separados
-- **✅ Trazabilidad total** - Historial completo de decisiones y cambios
-- **🎯 Contexto preservado** - La IA siempre tiene el contexto correcto para cada tarea
-
-
----
-
-## 🚀 Características Principales
-
-### 🎭 10 Skills Especializadas
-
-Cada skill está diseñada para un propósito específico del ciclo de desarrollo:
-
-| Comando | Skill | Descripción |
-|---------|-------|-------------|
-| `/opsx:onboard` | **Onboarding** | Tutorial guiado para nuevos usuarios |
-| `/opsx:new` | **New Change** | Crear cambio completo con proposal, specs, design y tasks |
-| `/opsx:continue` | **Continue Change** | Retomar un cambio existente |
-| `/opsx:ff` | **Fast Forward** | Crear todos los artefactos rápidamente |
-| `/opsx:apply` | **Apply Change** | Implementar tareas del cambio actual |
-| `/opsx:verify` | **Verify Change** | Verificar completitud y calidad |
-| `/opsx:archive` | **Archive Change** | Archivar cambio completado |
-| `/opsx:bulk-archive` | **Bulk Archive** | Archivar múltiples cambios |
-| `/opsx:sync` | **Sync Specs** | Sincronizar specs delta a principales |
-| `/opsx:explore` | **Explore** | Modo exploración (pensar antes de actuar) |
-
-### 🧠 Sistema de Skill Routing
-
-El **Skill Routing** es una innovación clave de AC-Framework que proporciona:
-
-- **🎯 Contexto Contextualizado**: Cada skill recibe solo el contexto relevante para su función
-- **🔄 Enrutamiento Automático**: La IA sabe qué skill usar según el estado del proyecto
-- **📊 Preservación de Estado**: El contexto se mantiene coherente entre skills
-- **⚡ Optimización**: Menor consumo de tokens al enviar solo contexto necesario
-
-### 🌐 Multi-Asistente Sincronizado
-
-**23+ Asistentes de IA soportados** con el mismo conjunto de skills:
-
-#### IDEs y Editores
-- 📝 **Cursor** - IDE con IA integrada
-- 🌊 **Windsurf** - Editor AI-first
-- 🎯 **Trae** - IDE con asistente IA
-- 💎 **Gemini** - Google AI Studio
-
-#### Herramientas CLI
-- 🎩 **Claude Code** - CLI de Anthropic
-- 🤖 **Codex** - OpenAI Codex CLI
-- 👤 **CodeBuddy** - Asistente CLI
-
-#### Extensiones VS Code
-- 🔌 **Continue.dev** - Extensión de código abierto
-- 🦅 **Cline** - Asistente de codificación
-- 🦘 **Roo Code** - Fork de Cline
-- 🐙 **GitHub Copilot** - Asistente de GitHub
-
-#### Cloud y Otros
-- ☁️ **Amazon Q** - AWS AI Assistant
-- 🐉 **Qwen** - Alibaba Cloud
-- ⚡ **Augment** - Augment Code
-- 🔧 **OpenCode** - Framework de código abierto
-- Y **13 asistentes más...**
+- **🔄 Spec-Driven Workflow** - Built-in `acfm spec` commands for structured development
+- **📦 One Install, All Assistants** - Configure 24+ AI assistants with a single command
+- **🌐 Universal Compatibility** - Works with Cursor, Claude, GitHub Copilot, and more
+- **⚡ Backward Compatible** - Full support for legacy `openspec/` directories
+- **🛠️ Built-in CLI** - No external dependencies, everything included
 
 ---
 
-## 📦 Instalación
+## 📦 Installation
 
-### Instalación Global
+### Global Installation (Recommended)
 
 ```bash
-# Instalar el CLI de AC-Framework
 npm install -g ac-framework
-
-# Inicializar en tu proyecto
-acfm init
 ```
 
-### Instalación Local
+### Local Installation
 
 ```bash
-# Instalar como dependencia de desarrollo
 npm install --save-dev ac-framework
-
-# Ejecutar el inicializador
-npx acfm init
-```
-
-### Uso del CLI
-
-```bash
-acfm [opciones] [comando]
-
-Comandos:
-  init [options]  Inicializar AC-Framework en el proyecto
-  help [command]  Mostrar ayuda de un comando
-
-Opciones:
-  -V, --version   Mostrar versión
-  -h, --help      Mostrar ayuda
 ```
 
 ---
 
-## 🏗️ Estructura de Proyecto OpenSpec
+## 🚀 Quick Start
 
-Cuando inicializas AC-Framework, se crea la siguiente estructura:
-
-```
-openspec/
-├── config.yaml                    # Configuración global
-├── changes/                       # Cambios activos
-│   ├── {nombre-cambio}/
-│   │   ├── proposal.md           # 📝 Por QUÉ hacer el cambio
-│   │   ├── design.md             # 🎨 CÓMO se implementará
-│   │   ├── tasks.md              # ✅ Lista de tareas
-│   │   └── specs/
-│   │       └── {capability}/
-│   │           └── spec.md       # 📋 QUÉ cambia
-│   └── archive/                   # 📦 Cambios completados
-│       └── YYYY-MM-DD-{nombre}/
-└── specs/                         # Especificaciones principales
-    └── {capability}/
-        └── spec.md
-```
-
-### Artefactos de un Cambio
-
-Cada cambio OpenSpec incluye 4 artefactos fundamentales:
-
-1. **📄 proposal.md** - Justificación y contexto del cambio
-2. **🎨 design.md** - Arquitectura y enfoque de implementación
-3. **✅ tasks.md** - Checklist de tareas ejecutables
-4. **📋 specs/** - Especificaciones técnicas detalladas
-
----
-
-## 🔄 Flujo de Trabajo
-
-```
-┌─────────────────────────────────────────────────────────────┐
-│                    🧭 EXPLORAR (/opsx:explore)              │
-│           Investigar, entender, planificar                  │
-└─────────────────────────────────────────────────────────────┘
-                              │
-                              ▼
-┌─────────────────────────────────────────────────────────────┐
-│              🆕 NUEVO (/opsx:new) o (/opsx:ff)              │
-│  • proposal.md    ← Justificación                          │
-│  • specs/         ← Requisitos                             │
-│  • design.md      ← Arquitectura                           │
-│  • tasks.md       ← Plan de trabajo                        │
-└─────────────────────────────────────────────────────────────┘
-                              │
-                              ▼
-┌─────────────────────────────────────────────────────────────┐
-│                   🔨 APLICAR (/opsx:apply)                  │
-│           Implementar y marcar tareas completadas           │
-└─────────────────────────────────────────────────────────────┘
-                              │
-                              ▼
-┌─────────────────────────────────────────────────────────────┐
-│                  ✔️ VERIFICAR (/opsx:verify)                │
-│          Revisar calidad y completitud                      │
-└─────────────────────────────────────────────────────────────┘
-                              │
-                              ▼ (opcional)
-┌─────────────────────────────────────────────────────────────┐
-│                   🔄 SINCRONIZAR (/opsx:sync)               │
-│          Actualizar documentación principal                 │
-└─────────────────────────────────────────────────────────────┘
-                              │
-                              ▼
-┌─────────────────────────────────────────────────────────────┐
-│                  📦 ARCHIVAR (/opsx:archive)                │
-│         Mover a archivo con fecha                           │
-└─────────────────────────────────────────────────────────────┘
-```
-
----
-
-## 🛠️ Uso Rápido
-
-### 1. Inicializar Proyecto
+### 1. Initialize AC Framework
 
 ```bash
 acfm init
 ```
 
-Selecciona los asistentes que usarás (puedes elegir múltiples):
+Select your AI assistants from the interactive menu:
 
 ```
-? ¿Qué módulos deseas instalar? (Selecciona con espacio)
- ❯◉ Cursor IDE
-  ◯ Claude Code
-  ◯ Continue.dev
-  ◉ GitHub Copilot
-  ◯ ...
+? Choose modules to install: (Press <space> to select)
+❯◉ ◈ Amazon Q · AWS Amazon Q
+ ◯ ◉ Antigravity · Google Antigravity IDE (Agent-First)
+ ◯ ◇ Augment · Augment Code Assistant
+ ◯ ◉ Claude · Anthropic Claude Code
+ ◯ ◎ Cline · Cline VS Code Extension
+ ◯ ◈ Codebuddy · CodeBuddy Assistant
+ ◯ ⊞ Codex · OpenAI Codex CLI
+ ◯ ▹ Continue · Continue.dev IDE Extension
+ ◯ ⊙ Cospec · OpenSpec Native Framework
+ ◯ ... (24 total assistants)
 ```
 
-### 2. Crear un Cambio
+### 2. Initialize Spec Workflow (Optional)
 
-```
-/opsx:new feature-user-authentication
-```
-
-Esto crea:
-- `openspec/changes/feature-user-authentication/proposal.md`
-- `openspec/changes/feature-user-authentication/design.md`
-- `openspec/changes/feature-user-authentication/tasks.md`
-- `openspec/changes/feature-user-authentication/specs/auth/spec.md`
-
-### 3. Implementar
-
-```
-/opsx:apply
-```
-
-La IA implementará las tareas del archivo `tasks.md`, marcándolas como completadas.
-
-### 4. Verificar y Archivar
-
-```
-/opsx:verify
-/opsx:archive
-```
-
----
+For spec-driven development:
 
 ```bash
-# Las skills están en:
-framework/.{asistente}/skills/openspec-{nombre}/SKILL.md
+acfm spec init
+```
 
-# Ejemplo:
-framework/.cursor/skills/openspec-new-change/SKILL.md
-framework/.claude/skills/openspec-new-change/SKILL.md
-framework/.opencode/skills/openspec-new-change/SKILL.md
+This creates a `.acfm/` directory for managing changes with the spec-driven workflow.
+
+### 3. Create Your First Change
+
+```bash
+acfm spec new my-feature
 ```
 
 ---
 
-## 📝 Licencia
+## 🛠️ Commands
 
-MIT © AC-Framework Team
+### Core Commands
+
+| Command | Description |
+|---------|-------------|
+| `acfm init` | Install AI assistant configurations |
+| `acfm init --latest` | Download latest configurations from GitHub |
+| `acfm update` | Update installed configurations |
+
+### Spec-Driven Workflow Commands
+
+| Command | Description | Flags |
+|---------|-------------|-------|
+| `acfm spec init` | Initialize spec directory (`.acfm/`) | `--schema`, `--json` |
+| `acfm spec new <name>` | Create a new change | `--schema`, `--json` |
+| `acfm spec status` | Check project/change status | `--change`, `--json` |
+| `acfm spec list` | List all active changes | `--json` |
+| `acfm spec instructions <artifact>` | Get artifact instructions | `--change`, `--json` |
+| `acfm spec archive <name>` | Archive a completed change | `--json` |
+| `acfm spec validate <name>` | Validate change structure | `--json` |
+| `acfm spec schemas` | List available workflow schemas | `--json` |
+
+**Tip:** Add `--json` to any command for programmatic output.
+
+---
+
+## 📁 Directory Structure
+
+After installation, your project will have AI assistant configurations:
+
+```
+my-project/
+├── .cursor/              # Cursor IDE rules & commands
+├── .claude/              # Claude Code commands
+├── .github/              # GitHub Copilot prompts
+├── .vscode/              # VS Code settings (Continue, Cline, etc.)
+├── ...                   # Other assistant configs
+│
+└── .acfm/                # Spec-driven workflow (created by acfm spec init)
+    ├── config.yaml       # Project configuration
+    ├── specs/            # Shared specifications
+    └── changes/          # Active changes
+        └── my-feature/
+            ├── proposal.md
+            ├── design.md
+            ├── tasks.md
+            └── .openspec.yaml
+```
+
+---
+
+## 🔄 OpenSpec Compatibility
+
+AC Framework includes a **built-in spec-driven workflow** that replaces the external `openspec` CLI.
+
+### Backward Compatibility
+
+✅ **Legacy `openspec/` directories are fully supported**
+
+The CLI automatically detects and uses existing `openspec/` directories:
+
+```bash
+# If openspec/ exists, it will be detected automatically
+acfm spec status
+# → Detects openspec/ and uses it
+
+# New projects use .acfm/ by default
+acfm spec init
+# → Creates .acfm/
+```
+
+### Directory Priority
+
+1. **`.acfm/`** - New default (checked first)
+2. **`openspec/`** - Legacy support (fallback)
+3. **Create new** - If neither exists
+
+Both directories can coexist. If both exist, `.acfm/` takes priority.
+
+### Migration (Optional)
+
+```bash
+# Initialize new structure
+acfm spec init
+
+# Copy existing changes (manual)
+cp -r openspec/changes/* .acfm/changes/
+
+# Remove old when ready
+rm -rf openspec/
+```
+
+---
+
+## 🤖 Supported Assistants
+
+AC Framework supports **24 AI assistants** with unified configuration:
+
+### IDEs & Editors
+| Assistant | Folder | Description |
+|-----------|--------|-------------|
+| **Cursor** | `.cursor/` | AI-powered IDE |
+| **Windsurf** | `.windsurf/` | AI-first editor |
+| **Trae** | `.trae/` | IDE with AI assistant |
+| **Antigravity** | `.antigravity/` + `.agent/` | Google's agent-first IDE |
+
+### CLI Tools
+| Assistant | Folder | Description |
+|-----------|--------|-------------|
+| **Claude Code** | `.claude/` | Anthropic's CLI assistant |
+| **Codex** | `.codex/` | OpenAI Codex CLI |
+| **CodeBuddy** | `.codebuddy/` | CLI assistant |
+| **Roo** | `.roo/` | Roo Code CLI |
+| **Crush** | `.crush/` | Crush Assistant |
+| **Factory** | `.factory/` | Factory Assistant |
+
+### VS Code Extensions
+| Assistant | Folder | Description |
+|-----------|--------|-------------|
+| **Continue** | `.continue/` | Open-source AI extension |
+| **Cline** | `.cline/` | VS Code assistant |
+| **Roo Code** | `.roo/` | Cline fork |
+| **GitHub Copilot** | `.github/` | GitHub's AI assistant |
+
+### Cloud & Enterprise
+| Assistant | Folder | Description |
+|-----------|--------|-------------|
+| **Amazon Q** | `.amazonq/` | AWS AI assistant |
+| **Gemini** | `.gemini/` | Google AI Studio |
+| **Qwen** | `.qwen/` | Alibaba Cloud |
+| **Augment** | `.augment/` | Augment Code |
+
+### Frameworks & Others
+| Assistant | Folder | Description |
+|-----------|--------|-------------|
+| **OpenCode** | `.opencode/` | Open-source framework |
+| **Kilo Code** | `.kilocode/` | Kilo Code |
+| **iFlow** | `.iflow/` | iFlow Assistant |
+| **Qoder** | `.qoder/` | Qoder Assistant |
+| **Generic Agent** | `.agent/` | Generic framework |
+| **OpenSpec** | `.cospec/` | Native OpenSpec |
+
+---
+
+## 💡 Usage Examples
+
+### Initialize with Multiple Assistants
+
+```bash
+acfm init
+# Select: Cursor + Claude + Continue
+# Installs all three configurations
+```
+
+### Update to Latest
+
+```bash
+acfm update
+# Pulls latest configs from GitHub
+# Updates all installed assistants
+```
+
+### Spec-Driven Development
+
+```bash
+# Initialize spec workflow
+acfm spec init
+
+# Create a new change
+acfm spec new user-auth --json
+# → { "changeDir": "/project/.acfm/changes/user-auth", ... }
+
+# Check status
+acfm spec status --change user-auth --json
+
+# Get instructions for next artifact
+acfm spec instructions proposal --change user-auth --json
+
+# Archive when done
+acfm spec archive user-auth
+```
+
+### Working with Legacy Projects
+
+```bash
+# Project has existing openspec/
+acfm spec status
+# → Automatically detects and uses openspec/
+
+# Create new change in legacy structure
+acfm spec new legacy-feature
+# → Creates in openspec/changes/legacy-feature/
+```
+
+---
+
+## 🎯 The Spec-Driven Workflow
+
+AC Framework implements a structured workflow for AI-assisted development:
+
+```
+┌─────────────────────────────────────────────────────────┐
+│  EXPLORE                                                │
+│  Understand the problem before implementing             │
+└─────────────────┬───────────────────────────────────────┘
+                  │
+                  ▼
+┌─────────────────────────────────────────────────────────┐
+│  CREATE CHANGE                                          │
+│  • proposal.md   - Why are we doing this?               │
+│  • specs/        - What needs to change?                │
+│  • design.md     - How will we implement it?            │
+│  • tasks.md      - Step-by-step implementation plan     │
+└─────────────────┬───────────────────────────────────────┘
+                  │
+                  ▼
+┌─────────────────────────────────────────────────────────┐
+│  IMPLEMENT                                              │
+│  Execute tasks from tasks.md                            │
+└─────────────────┬───────────────────────────────────────┘
+                  │
+                  ▼
+┌─────────────────────────────────────────────────────────┐
+│  VERIFY & ARCHIVE                                       │
+│  Validate and archive completed work                    │
+└─────────────────────────────────────────────────────────┘
+```
+
+Each change is a folder in `.acfm/changes/` containing structured artifacts that guide the AI through implementation.
+
+---
+
+## 📚 Documentation
+
+### For Users
+- **[Installation Guide](#installation)** - Get started with AC Framework
+- **[CLI Reference](#commands)** - All available commands
+- **[Spec Workflow](#the-spec-driven-workflow)** - Understanding spec-driven development
+
+### For AI Agents
+- **[ACFM Spec Workflow Skill](framework/.agent/skills/acfm-spec-workflow/SKILL.md)** - Essential guide for agents
+- **[Workflows](framework/.agent/workflows/ac.md)** - Complete skill catalog and workflows
+
+---
+
+## 🔧 Requirements
+
+- **Node.js** >= 18.0.0
+- **npm** or **yarn**
+
+---
+
+## 🤝 Contributing
+
+Contributions are welcome! Please read our [Contributing Guide](CONTRIBUTING.md) for details.
+
+---
+
+## 📝 License
+
+MIT © [b4san](https://github.com/b4san)
 
 ---
 
 <p align="center">
-  <strong>🚀 Desarrollo asistido por IA, estandarizado y potenciado</strong><br>
-  <em>Trabaja con cualquier asistente, mantén el mismo flujo de trabajo</em>
+  <strong>🚀 Work with any AI assistant, maintain the same workflow</strong><br>
+  <sub>Built with ❤️ for the agentic coding era</sub>
 </p>

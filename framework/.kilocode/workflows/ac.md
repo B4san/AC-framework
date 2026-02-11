@@ -31,6 +31,12 @@
 | `api-design-principles` | REST and GraphQL design principles: resources, endpoints, pagination, versioning, HATEOAS. | API design |
 | `interface-design` | Interface design (dashboards, admin panels, apps). NOT for landing pages/marketing. | UI design |
 
+### AC Framework Core Skills
+
+| Skill | Description | Primary Use |
+|-------|-------------|---------------|
+| `acfm-spec-workflow` | **START HERE** - Understand the spec-driven workflow, directory structure (.acfm/ vs openspec/), and CLI commands. Essential before using any OpenSpec skills. | Foundation |
+
 ### OpenSpec Skills (The heart of the framework)
 
 | Skill | Description | Primary Use |
@@ -87,6 +93,16 @@ When starting a project **from scratch**, follow this mandatory workflow:
     └────────┬────────┘
              │
              ▼
+    ┌──────────────────────────────────────────────┐
+    │  PHASE 0: AC FRAMEWORK SETUP (REQUIRED)      │
+    │  1. acfm-spec-workflow                       │
+    │     └─ **ALWAYS START HERE**                 │
+    │     └─ Understand .acfm/ vs openspec/        │
+    │     └─ Learn CLI commands and workflow       │
+    │     └─ Check project initialization status   │
+    └────────────────────┬─────────────────────────┘
+                         │
+                         ▼
     ┌──────────────────────────────────────────────┐
     │  PHASE 1: FOUNDATIONS & GOVERNANCE           │
     │  1. project-constitution                     │
@@ -178,6 +194,16 @@ When working on an **existing codebase** (adding features, fixing bugs, refactor
     └────────┬────────┘
              │
              ▼
+    ┌──────────────────────────────────────────────┐
+    │  PHASE 0: AC FRAMEWORK SETUP (REQUIRED)      │
+    │  1. acfm-spec-workflow                       │
+    │     └─ **ALWAYS START HERE**                 │
+    │     └─ Understand .acfm/ vs openspec/        │
+    │     └─ Learn CLI commands and workflow       │
+    │     └─ Check project initialization status   │
+    └────────────────────┬─────────────────────────┘
+                         │
+                         ▼
     ┌──────────────────────────────────────────────┐
     │  PHASE 1: CONTEXT & ANALYSIS                 │
     │  1. project-index (if needed)                │
