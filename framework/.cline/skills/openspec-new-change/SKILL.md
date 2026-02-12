@@ -39,7 +39,7 @@ Start a new change using the experimental artifact-driven approach.
    acfm spec new "<name>"
    ```
    Add `--schema <name>` only if the user requested a specific workflow.
-   This creates a scaffolded change at `openspec/changes/<name>/` with the selected schema.
+   This creates a scaffolded change at `{specDir}/changes/<name>/` (where {specDir} is either `.acfm` or `openspec` as detected by CLI) with the selected schema.
 
 4. **Show the artifact status**
    ```bash

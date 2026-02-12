@@ -47,7 +47,7 @@
 | `openspec-continue-change` | Continues an existing change by creating the next artifact in the sequence. | Continue workflow |
 | `openspec-apply-change` | Implements tasks from a change (applies code according to specs and tasks). | Change execution |
 | `openspec-verify-change` | Verifies that implementation matches artifacts (specs, tasks, design). | Validation |
-| `openspec-archive-change` | Archives a completed change by moving it to `openspec/changes/archive/`. | Change closure |
+| `openspec-archive-change` | Archives a completed change by moving it to `{specDir}/changes/archive/`. | Change closure |
 | `openspec-onboard` | Guided tutorial to learn OpenSpec with a complete example workflow. | Learning |
 | `openspec-sync-specs` | Synchronizes delta specs to main specs (intelligent merge). | Update specs |
 | `openspec-bulk-archive-change` | Archives multiple completed changes at once. | Bulk cleanup |
@@ -61,6 +61,19 @@
 | `systematic-debugging` | Structured debugging in 4 phases: root cause investigation, pattern analysis, hypothesis, implementation. | Problem resolution |
 | `changelog-generator` | Creates automated changelogs from git commits, translating technical to user language. | Version history |
 | `skill-writer` | Guide to create new skills for Claude Code with correct structure and frontmatter. | Create new skills |
+| `vercel-react-best-practices` | React and Next.js performance optimization guidelines from Vercel Engineering. | React/Next.js optimization |
+
+### New AC Framework Enhancement Skills
+
+| Skill | Description | Primary Use |
+|-------|-------------|---------------|
+| `task-decomposition` | Divide large changes into manageable subtasks (1-3 files), optimize model/role assignment, enable parallel execution. | Task planning & delegation |
+| `testing-qa` | Automate generation and maintenance of unit, integration, and E2E tests; generate test data and debugging. | Quality assurance |
+| `code-review` | Review generated code for style, security, and architecture issues; suggest refactorings and performance improvements. | Code quality & security |
+| `documentation` | Generate clear documentation for each task: technical descriptions, architecture diagrams, usage guides. | Documentation & communication |
+| `research-retrieval` | Search external documentation (web pages, API docs, papers) and generate useful summaries for development. | Research & context gathering |
+| `context-synthesizer` | Manage memory in long projects and summarize current state to prevent agent context loss. | Memory & context management |
+| `ci-deploy` | Automate continuous integration, deployment, and post-deployment verification of developed solutions. | CI/CD automation |
 
 ---
 
@@ -111,70 +124,87 @@ When starting a project **from scratch**, follow this mandatory workflow:
     │     └─ Establish security guidelines         │
     │  3. code-maintainability                     │
     │     └─ Define quality standards              │
+    │  4. vercel-react-best-practices [IF REACT]   │
+    │     └─ Apply React/Next.js best practices    │
     └────────────────────┬─────────────────────────┘
                          │
                          ▼
     ┌──────────────────────────────────────────────┐
     │  PHASE 2: CONTEXT & DISCOVERY                │
-    │  4. project-index                            │
+    │  4. context-synthesizer                      │
+    │     └─ Initialize memory and context state   │
+    │  5. project-index                            │
     │     └─ Document initial structure            │
-    │  5. openspec-explore                         │
+    │  6. research-retrieval                       │
+    │     └─ Gather external documentation         │
+    │  7. openspec-explore                         │
     │     └─ Explore target architecture           │
-    │  6. brainstorming                            │
+    │  8. brainstorming                            │
     │     └─ Generate ideas and architecture       │
     └────────────────────┬─────────────────────────┘
                          │
                          ▼
     ┌──────────────────────────────────────────────┐
     │  PHASE 3: REQUIREMENTS & DESIGN              │
-    │  7. spec-clarification (CRITICAL)            │
+    │  9. spec-clarification (CRITICAL)            │
     │     └─ CLARIFY requirements first            │
-    │  8. openspec-new-change                      │
+    │  10. openspec-new-change                     │
     │     └─ Create proposal                       │
-    │  9. openspec-continue-change                 │
+    │  11. task-decomposition                      │
+    │     └─ Divide into manageable subtasks       │
+    │  12. openspec-continue-change                │
     │     └─ Draft Specs, Design, Tasks            │
-    │  10. spec-analysis                           │
+    │  13. spec-analysis                           │
     │     └─ Verify consistency                    │
-    │  11. requirement-checklist                   │
+    │  14. requirement-checklist                   │
     │     └─ "Unit test" the specs                 │
-    │  12. api-design-principles [IF APIs]         │
+    │  15. api-design-principles [IF APIs]         │
     │     └─ Design REST/GraphQL APIs              │
-    │  13. interface-design [IF UI]                │
+    │  16. interface-design [IF UI]                │
     │     └─ Design dashboards/apps interface      │
     └────────────────────┬─────────────────────────┘
                          │
                          ▼
     ┌──────────────────────────────────────────────┐
     │  PHASE 4: IMPLEMENTATION                     │
-    │  14. test-generator                          │
+    │  17. test-generator                          │
     │     └─ TDD: Write tests first                │
-    │  15. openspec-apply-change                   │
+    │  18. openspec-apply-change                   │
     │     └─ Implement code to pass tests          │
-    │  16. secure-coding-cybersecurity             │
+    │  19. testing-qa                              │
+    │     └─ Automate test maintenance             │
+    │  20. code-review                             │
+    │     └─ Review for style/security/arch        │
+    │  21. secure-coding-cybersecurity             │
     │     └─ Audit code for security               │
-    │  17. error-handling-patterns                 │
+    │  22. error-handling-patterns                 │
     │     └─ Verify robust error handling          │
-    │  18. performance-optimizer                   │
+    │  23. performance-optimizer                   │
     │     └─ Optimize critical paths               │
     └────────────────────┬─────────────────────────┘
                          │
                          ▼
     ┌──────────────────────────────────────────────┐
     │  PHASE 5: VALIDATION & CLOSURE               │
-    │  19. systematic-debugging                    │
+    │  24. systematic-debugging                    │
     │     └─ Resolve any issues                    │
-    │  20. openspec-verify-change                  │
+    │  25. openspec-verify-change                  │
     │     └─ Validate against specs                │
-    │  21. sync-index                              │
+    │  26. documentation                           │
+    │     └─ Generate technical docs & diagrams    │
+    │  27. sync-index                              │
     │     └─ Update project documentation          │
-    │  22. changelog-generator                     │
+    │  28. changelog-generator                     │
     │     └─ Generate release notes                │
-    │  23. openspec-archive-change                 │
+    │  29. ci-deploy                               │
+    │     └─ Deploy and verify solution            │
+    │  30. openspec-archive-change                 │
     │     └─ Archive the change                    │
     └──────────────────────────────────────────────┘
 ```
 
 **Conditional Skills Notes:**
+- `[IF REACT]`: Use vercel-react-best-practices only if the project uses React or Next.js
 - `[IF APIs]`: Use api-design-principles only if the project involves REST/GraphQL APIs
 - `[IF UI]`: Use interface-design only if the project has dashboards, admin panels, or apps
 
@@ -206,65 +236,79 @@ When working on an **existing codebase** (adding features, fixing bugs, refactor
                          ▼
     ┌──────────────────────────────────────────────┐
     │  PHASE 1: CONTEXT & ANALYSIS                 │
-    │  1. project-index (if needed)                │
+    │  1. context-synthesizer                      │
+    │     └─ Load memory and context state         │
+    │  2. project-index (if needed)                │
     │     └─ Map current system                    │
-    │  2. openspec-explore                         │
+    │  3. research-retrieval                       │
+    │     └─ Gather external documentation         │
+    │  4. openspec-explore                         │
     │     └─ Deep dive into relevant modules       │
-    │  3. brainstorming                            │
+    │  5. brainstorming                            │
     │     └─ Ideate on feature/fix                 │
     └────────────────────┬─────────────────────────┘
                          │
                          ▼
     ┌──────────────────────────────────────────────┐
     │  PHASE 2: DISCOVERY & CLARIFICATION          │
-    │  4. spec-clarification (CRITICAL)            │
+    │  6. spec-clarification (CRITICAL)            │
     │     └─ CLARIFY requirements first            │
-    │  5. openspec-new-change                      │
+    │  7. openspec-new-change                      │
     │     └─ Initialize change artifact            │
+    │  8. task-decomposition                       │
+    │     └─ Divide into manageable subtasks       │
     └────────────────────┬─────────────────────────┘
                          │
                          ▼
     ┌──────────────────────────────────────────────┐
     │  PHASE 3: DESIGN & PLANNING                  │
-    │  6. openspec-continue-change                 │
+    │  9. openspec-continue-change                 │
     │     └─ Draft Specs, Design, Tasks            │
-    │  7. spec-analysis                            │
+    │  10. spec-analysis                           │
     │     └─ Check consistency with existing       │
-    │  8. requirement-checklist                    │
+    │  11. requirement-checklist                   │
     │     └─ Validate requirements                 │
-    │  9. api-design-principles [IF APIs]          │
+    │  12. api-design-principles [IF APIs]         │
     │     └─ Design API changes                    │
-    │  10. interface-design [IF UI]                │
+    │  13. interface-design [IF UI]                │
     │     └─ Design interface changes              │
     └────────────────────┬─────────────────────────┘
                          │
                          ▼
     ┌──────────────────────────────────────────────┐
     │  PHASE 4: IMPLEMENTATION                     │
-    │  11. test-generator                          │
+    │  14. test-generator                          │
     │     └─ Generate tests for new feature        │
-    │  12. openspec-apply-change                   │
+    │  15. openspec-apply-change                   │
     │     └─ Implement code                        │
-    │  13. secure-coding-cybersecurity             │
+    │  16. testing-qa                              │
+    │     └─ Automate test maintenance             │
+    │  17. code-review                             │
+    │     └─ Review for style/security/arch        │
+    │  18. secure-coding-cybersecurity             │
     │     └─ Audit new code                        │
-    │  14. error-handling-patterns                 │
+    │  19. error-handling-patterns                 │
     │     └─ Verify error handling                 │
-    │  15. performance-optimizer                   │
+    │  20. performance-optimizer                   │
     │     └─ Ensure no perf degradation            │
     └────────────────────┬─────────────────────────┘
                          │
                          ▼
     ┌──────────────────────────────────────────────┐
     │  PHASE 5: OPTIMIZATION & VERIFICATION        │
-    │  16. systematic-debugging                    │
+    │  21. systematic-debugging                    │
     │     └─ Fix regressions                       │
-    │  17. openspec-verify-change                  │
+    │  22. openspec-verify-change                  │
     │     └─ Final verification                    │
-    │  18. sync-index (IMPORTANT)                  │
+    │  23. documentation                           │
+    │     └─ Generate technical docs & diagrams    │
+    │  24. sync-index (IMPORTANT)                  │
     │     └─ Update docs with new changes          │
-    │  19. changelog-generator                     │
+    │  25. changelog-generator                     │
     │     └─ Generate release notes                │
-    │  20. openspec-archive-change                 │
+    │  26. ci-deploy                               │
+    │     └─ Deploy and verify solution            │
+    │  27. openspec-archive-change                 │
     │     └─ Archive change                        │
     └──────────────────────────────────────────────┘
 ```
