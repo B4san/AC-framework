@@ -1,3 +1,12 @@
+---
+name: main
+description: The entire workflow structure to follow during development.
+license: MIT
+metadata:
+  author: AC Framework
+  version: "1.0"
+---
+
 **Fundamental Principle**: *"Quality over speed. Documentation before code. Planning before execution."*
 
 --- ⚠️ **CRITICAL: ZERO SKIP POLICY** ⚠️ ---
