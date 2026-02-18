@@ -15,7 +15,23 @@ Continue working on a change by creating the next artifact.
 
 **Steps**
 
-1. **If no change name provided, prompt for selection**
+1. **Verify project initialization**
+
+   Check if the project is initialized:
+   ```bash
+   acfm spec status --json
+   ```
+   
+   **If not initialized** (`"initialized": false`):
+   ```bash
+   acfm spec init
+   ```
+   
+   **If initialized** (`"initialized": true`):
+   - Note the `dirName` field (either `.acfm` or `openspec`)
+   - Continue with the workflow
+
+2. **If no change name provided, prompt for selection**
 
    Run `acfm spec list --json` to get available changes sorted by most recently modified. Then use the **AskUserQuestion tool** to let the user select which change to work on.
 
@@ -29,7 +45,7 @@ Continue working on a change by creating the next artifact.
 
    **IMPORTANT**: Do NOT guess or auto-select a change. Always let the user choose.
 
-2. **Check current status**
+3. **Check current status**
    ```bash
    acfm spec status --change "<name>" --json
    ```
@@ -38,7 +54,7 @@ Continue working on a change by creating the next artifact.
    - `artifacts`: Array of artifacts with their status ("done", "ready", "blocked")
    - `isComplete`: Boolean indicating if all artifacts are complete
 
-3. **Act based on status**:
+4. **Act based on status**:
 
    ---
 
@@ -77,7 +93,7 @@ Continue working on a change by creating the next artifact.
    - This shouldn't happen with a valid schema
    - Show status and suggest checking for issues
 
-4. **After creating an artifact, show progress**
+5. **After creating an artifact, show progress**
    ```bash
    acfm spec status --change "<name>"
    ```

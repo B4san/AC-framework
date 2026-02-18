@@ -15,7 +15,23 @@ Verify that an implementation matches the change artifacts (specs, tasks, design
 
 **Steps**
 
-1. **If no change name provided, prompt for selection**
+1. **Verify project initialization**
+
+   Check if the project is initialized:
+   ```bash
+   acfm spec status --json
+   ```
+   
+   **If not initialized** (`"initialized": false`):
+   ```bash
+   acfm spec init
+   ```
+   
+   **If initialized** (`"initialized": true`):
+   - Note the `dirName` field (either `.acfm` or `openspec`)
+   - Continue with the workflow
+
+2. **If no change name provided, prompt for selection**
 
    Run `acfm spec list --json` to get available changes. Use the **AskUserQuestion tool** to let the user select.
 
@@ -25,7 +41,7 @@ Verify that an implementation matches the change artifacts (specs, tasks, design
 
    **IMPORTANT**: Do NOT guess or auto-select a change. Always let the user choose.
 
-2. **Check status to understand the schema**
+3. **Check status to understand the schema**
    ```bash
    acfm spec status --change "<name>" --json
    ```
@@ -33,7 +49,7 @@ Verify that an implementation matches the change artifacts (specs, tasks, design
    - `schemaName`: The workflow being used (e.g., "spec-driven")
    - Which artifacts exist for this change
 
-3. **Get the change directory and load artifacts**
+4. **Get the change directory and load artifacts**
 
    ```bash
    acfm spec instructions apply --change "<name>" --json
@@ -41,7 +57,7 @@ Verify that an implementation matches the change artifacts (specs, tasks, design
 
    This returns the change directory and context files. Read all available artifacts from `contextFiles`.
 
-4. **Initialize verification report structure**
+5. **Initialize verification report structure**
 
    Create a report structure with three dimensions:
    - **Completeness**: Track tasks and spec coverage
@@ -50,7 +66,7 @@ Verify that an implementation matches the change artifacts (specs, tasks, design
 
    Each dimension can have CRITICAL, WARNING, or SUGGESTION issues.
 
-5. **Verify Completeness**
+6. **Verify Completeness**
 
    **Task Completion**:
    - If tasks.md exists in contextFiles, read it
@@ -70,7 +86,7 @@ Verify that an implementation matches the change artifacts (specs, tasks, design
        - Add CRITICAL issue: "Requirement not found: <requirement name>"
        - Recommendation: "Implement requirement X: <description>"
 
-6. **Verify Correctness**
+7. **Verify Correctness**
 
    **Requirement Implementation Mapping**:
    - For each requirement from delta specs:
@@ -89,7 +105,7 @@ Verify that an implementation matches the change artifacts (specs, tasks, design
        - Add WARNING: "Scenario not covered: <scenario name>"
        - Recommendation: "Add test or implementation for scenario: <description>"
 
-7. **Verify Coherence**
+8. **Verify Coherence**
 
    **Design Adherence**:
    - If design.md exists in contextFiles:
@@ -107,7 +123,7 @@ Verify that an implementation matches the change artifacts (specs, tasks, design
      - Add SUGGESTION: "Code pattern deviation: <details>"
      - Recommendation: "Consider following project pattern: <example>"
 
-8. **Generate Verification Report**
+9. **Generate Verification Report**
 
    **Summary Scorecard**:
    ```

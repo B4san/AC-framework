@@ -15,7 +15,23 @@ Fast-forward through artifact creation - generate everything needed to start imp
 
 **Steps**
 
-1. **If no clear input provided, ask what they want to build**
+1. **Verify project initialization**
+
+   Check if the project is initialized:
+   ```bash
+   acfm spec status --json
+   ```
+   
+   **If not initialized** (`"initialized": false`):
+   ```bash
+   acfm spec init
+   ```
+   
+   **If initialized** (`"initialized": true`):
+   - Note the `dirName` field (either `.acfm` or `openspec`)
+   - Continue with the workflow
+
+2. **If no clear input provided, ask what they want to build**
 
    Use the **AskUserQuestion tool** (open-ended, no preset options) to ask:
    > "What change do you want to work on? Describe what you want to build or fix."
@@ -24,13 +40,13 @@ Fast-forward through artifact creation - generate everything needed to start imp
 
    **IMPORTANT**: Do NOT proceed without understanding what the user wants to build.
 
-2. **Create the change directory**
+3. **Create the change directory**
    ```bash
    acfm spec new "<name>"
    ```
    This creates a scaffolded change at `openspec/changes/<name>/`.
 
-3. **Get the artifact build order**
+4. **Get the artifact build order**
    ```bash
    acfm spec status --change "<name>" --json
    ```
@@ -38,7 +54,7 @@ Fast-forward through artifact creation - generate everything needed to start imp
    - `applyRequires`: array of artifact IDs needed before implementation (e.g., `["tasks"]`)
    - `artifacts`: list of all artifacts with their status and dependencies
 
-4. **Create artifacts in sequence until apply-ready**
+5. **Create artifacts in sequence until apply-ready**
 
    Use the **TodoWrite tool** to track progress through the artifacts.
 
@@ -70,7 +86,7 @@ Fast-forward through artifact creation - generate everything needed to start imp
       - Use **AskUserQuestion tool** to clarify
       - Then continue with creation
 
-5. **Show final status**
+6. **Show final status**
    ```bash
    acfm spec status --change "<name>"
    ```

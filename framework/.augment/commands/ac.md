@@ -79,16 +79,16 @@
 
 ## 📍 IMPORTANT: How to Use Skills
 
-**Skills are loaded as tools, NOT CLI commands.**
+**Skills are loaded as tools that guide your workflow.**
 
-The skills listed above are located at `framework/.agent/skills/<skill-name>/SKILL.md`. When you need to use a skill:
+The skills listed above are located at `skills/<skill-name>/SKILL.md`. When you need to use a skill:
 
-1. **The Agent automatically loads the skill file** - No CLI command needed
-2. **Read the SKILL.md file** to understand its instructions
-3. **Follow the skill's guidance** exactly as written
+1. **Read the SKILL.md file** to understand its instructions
+2. **Follow the skill's guidance** exactly as written
+3. **Use CLI commands when instructed** - The `acfm` CLI commands are tools you SHOULD use when the skill directs you to
 4. **Skills provide structured workflows** for specific tasks
 
-**Do NOT use CLI commands like `acfm spec <command>` unless the skill specifically instructs you to.** OpenSpec skills guide you through their workflow via the SKILL.md content, not through CLI invocations.
+**Use CLI commands `acfm spec <command>` when the skill explicitly instructs you to.** OpenSpec skills will guide you through when and how to use CLI commands for operations like creating changes, checking status, or archiving.
 
 ---
 
@@ -322,10 +322,10 @@ When working on an **existing codebase** (adding features, fixing bugs, refactor
 
 ## 📝 Skill Loading Reference
 
-All skills are located in: `framework/.agent/skills/`
+All skills are located in: `skills/`
 
 To load a skill, read its SKILL.md file:
-- Example: Read `framework/.agent/skills/spec-clarification/SKILL.md` to use the clarification workflow
-- Example: Read `framework/.agent/skills/interface-design/SKILL.md` to use interface design principles
+- Example: Read `skills/spec-clarification/SKILL.md` to use the clarification workflow
+- Example: Read `skills/interface-design/SKILL.md` to use interface design principles
 
-**Remember**: Skills are documentation-based workflows, NOT CLI commands. Load them by reading the SKILL.md files.
+**Remember**: Skills are documentation-based workflows. Load them by reading the SKILL.md files and execute CLI commands when the skill explicitly instructs you to do so.

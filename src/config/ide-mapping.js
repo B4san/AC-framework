@@ -20,6 +20,7 @@ export const IDE_MD_MAP = {
   '.github': 'copilot-instructions.md',
   '.iflow': 'AGENTS.md',
   '.kilocode': 'AGENTS.md',
+  '.kimi': 'AGENTS.md',
   '.opencode': 'AGENTS.md',
   '.qoder': 'AGENTS.md',
   '.qwen': 'QWEN.md',

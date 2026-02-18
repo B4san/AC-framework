@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AC Framework — Agentic Coding Framework</title>
+  <meta name="description" content="Multi-assistant AI configuration system with spec-driven development workflows. Configure 24+ AI assistants with a single command.">
+  
+  <!-- Open Graph -->
+  <meta property="og:title" content="AC Framework — Agentic Coding Framework">
+  <meta property="og:description" content="Multi-assistant AI configuration system with spec-driven development workflows.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://ac-framework.dev">
+  
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  
+  <!-- Styles -->
+  <link rel="stylesheet" href="css/variables.css">
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/animations.css">
+  <link rel="stylesheet" href="css/components.css">
+  <link rel="stylesheet" href="css/responsive.css">
+</head>
+<body>
+  <!-- Navigation -->
+  <nav class="nav" id="nav">
+    <div class="nav__container">
+      <a href="#" class="nav__logo">
+        <span class="nav__logo-icon">◈</span>
+        <span class="nav__logo-text">AC Framework</span>
+      </a>
+      
+      <ul class="nav__links" id="nav-links">
+        <li><a href="#features" class="nav__link">Features</a></li>
+        <li><a href="#workflow" class="nav__link">Workflow</a></li>
+        <li><a href="https://github.com/b4san/AC-framework" class="nav__link" target="_blank" rel="noopener">GitHub</a></li>
+      </ul>
+      
+      <button class="nav__toggle" id="nav-toggle" aria-label="Toggle menu">
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
+    </div>
+  </nav>
+
+  <!-- Hero Section -->
+  <section class="hero" id="hero">
+    <div class="hero__background">
+      <div class="hero__gradient"></div>
+      <div class="hero__grid"></div>
+    </div>
+    
+    <div class="container">
+      <div class="hero__content">
+        <div class="hero__eyebrow fade-in" style="--delay: 0.1s">
+          <span class="badge">v1.6.0</span>
+          <span>Now with 24+ AI assistants</span>
+        </div>
+        
+        <h1 class="hero__title fade-in" style="--delay: 0.2s">
+          One config.<br>
+          <span class="text-gradient">All your AI assistants.</span>
+        </h1>
+        
+        <p class="hero__subtitle fade-in" style="--delay: 0.3s">
+          AC Framework unifies your AI coding workflow across Cursor, Claude, Copilot, 
+          and 21 more assistants. One command to configure them all.
+        </p>
+        
+        <div class="hero__terminal fade-in" style="--delay: 0.4s">
+          <div class="terminal">
+            <div class="terminal__header">
+              <div class="terminal__dots">
+                <span></span>
+                <span></span>
+                <span></span>
+              </div>
+              <span class="terminal__title">terminal</span>
+              <button class="terminal__copy" id="copy-btn" aria-label="Copy command">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                  <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                </svg>
+                <span class="terminal__copy-text">Copy</span>
+              </button>
+            </div>
+            <div class="terminal__body">
+              <code class="terminal__code">
+                <span class="terminal__prompt">$</span>
+                <span class="terminal__command" id="install-command">npm install -g ac-framework</span>
+              </code>
+            </div>
+          </div>
+        </div>
+        
+        <div class="hero__actions fade-in" style="--delay: 0.5s">
+          <a href="#features" class="btn btn--primary">Get Started</a>
+          <a href="https://github.com/b4san/AC-framework" class="btn btn--secondary" target="_blank" rel="noopener">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
+            </svg>
+            View on GitHub
+          </a>
+        </div>
+      </div>
+    </div>
+    
+    <div class="hero__scroll-indicator">
+      <div class="scroll-indicator">
+        <span class="scroll-indicator__text">Scroll</span>
+        <div class="scroll-indicator__line"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Features Section -->
+  <section class="features" id="features">
+    <div class="container">
+      <div class="section-header scroll-reveal">
+        <span class="section-header__eyebrow">Why AC Framework?</span>
+        <h2 class="section-header__title">Develop faster,<br>configure once.</h2>
+        <p class="section-header__subtitle">
+          Stop configuring each AI assistant separately. One framework, consistent workflows, all your tools.
+        </p>
+      </div>
+      
+      <div class="features__grid">
+        <article class="feature-card scroll-reveal" style="--delay: 0.1s">
+          <div class="feature-card__icon">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <circle cx="12" cy="12" r="10"/>
+              <path d="M12 6v6l4 2"/>
+            </svg>
+          </div>
+          <h3 class="feature-card__title">24+ AI Assistants</h3>
+          <p class="feature-card__description">
+            One configuration for Cursor, Claude, GitHub Copilot, Continue, and 20 more assistants. Unified experience across all your tools.
+          </p>
+        </article>
+        
+        <article class="feature-card scroll-reveal" style="--delay: 0.2s">
+          <div class="feature-card__icon">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+              <polyline points="14 2 14 8 20 8"/>
+              <line x1="16" y1="13" x2="8" y2="13"/>
+              <line x1="16" y1="17" x2="8" y2="17"/>
+              <polyline points="10 9 9 9 8 9"/>
+            </svg>
+          </div>
+          <h3 class="feature-card__title">Spec-Driven Workflow</h3>
+          <p class="feature-card__description">
+            Built-in <code>acfm spec</code> commands for structured development. Proposal → Specs → Design → Tasks. Never lose track of what you're building.
+          </p>
+        </article>
+        
+        <article class="feature-card scroll-reveal" style="--delay: 0.3s">
+          <div class="feature-card__icon">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <polyline points="4 17 10 11 4 5"/>
+              <line x1="12" y1="19" x2="20" y2="19"/>
+            </svg>
+          </div>
+          <h3 class="feature-card__title">One Command Install</h3>
+          <p class="feature-card__description">
+            <code>acfm init</code> installs all your selected assistant configurations in one go. No more copy-pasting rules and prompts between projects.
+          </p>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <!-- Workflow Section -->
+  <section class="workflow" id="workflow">
+    <div class="container">
+      <div class="section-header scroll-reveal">
+        <span class="section-header__eyebrow">The Workflow</span>
+        <h2 class="section-header__title">From idea to code,<br>structured.</h2>
+        <p class="section-header__subtitle">
+          AC Framework implements a proven workflow for AI-assisted development.
+        </p>
+      </div>
+      
+      <div class="workflow__steps">
+        <div class="workflow-step scroll-reveal" data-step="1" style="--delay: 0.1s">
+          <div class="workflow-step__number">01</div>
+          <div class="workflow-step__content">
+            <h3 class="workflow-step__title">Explore</h3>
+            <p class="workflow-step__description">
+              Understand the problem before implementing. Research, analyze, and plan.
+            </p>
+          </div>
+          <div class="workflow-step__connector">
+            <svg viewBox="0 0 40 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M20 0V70M20 70L5 55M20 70L35 55" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </div>
+        </div>
+        
+        <div class="workflow-step scroll-reveal" data-step="2" style="--delay: 0.2s">
+          <div class="workflow-step__number">02</div>
+          <div class="workflow-step__content">
+            <h3 class="workflow-step__title">Create Change</h3>
+            <p class="workflow-step__description">
+              Write a proposal, define specs, design the solution, and break into tasks.
+            </p>
+          </div>
+          <div class="workflow-step__connector">
+            <svg viewBox="0 0 40 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M20 0V70M20 70L5 55M20 70L35 55" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </div>
+        </div>
+        
+        <div class="workflow-step scroll-reveal" data-step="3" style="--delay: 0.3s">
+          <div class="workflow-step__number">03</div>
+          <div class="workflow-step__content">
+            <h3 class="workflow-step__title">Implement</h3>
+            <p class="workflow-step__description">
+              Execute tasks from your task list. Mark as complete as you go.
+            </p>
+          </div>
+          <div class="workflow-step__connector">
+            <svg viewBox="0 0 40 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M20 0V70M20 70L5 55M20 70L35 55" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </div>
+        </div>
+        
+        <div class="workflow-step scroll-reveal" data-step="4" style="--delay: 0.4s">
+          <div class="workflow-step__number">04</div>
+          <div class="workflow-step__content">
+            <h3 class="workflow-step__title">Verify & Archive</h3>
+            <p class="workflow-step__description">
+              Validate your implementation against specs. Archive the completed change.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA Section -->
+  <section class="cta">
+    <div class="container">
+      <div class="cta__content scroll-reveal">
+        <h2 class="cta__title">Ready to unify your AI workflow?</h2>
+        <p class="cta__subtitle">
+          Join thousands of developers using AC Framework to streamline their AI-assisted coding.
+        </p>
+        <div class="cta__terminal">
+          <div class="terminal terminal--small">
+            <div class="terminal__header">
+              <div class="terminal__dots">
+                <span></span>
+                <span></span>
+                <span></span>
+              </div>
+              <span class="terminal__title">bash</span>
+            </div>
+            <div class="terminal__body">
+              <code class="terminal__code">
+                <span class="terminal__prompt">$</span>
+                <span>npx ac-framework init</span>
+              </code>
+            </div>
+          </div>
+        </div>
+        <div class="cta__actions">
+          <a href="https://github.com/b4san/AC-framework" class="btn btn--primary btn--large" target="_blank" rel="noopener">
+            Get Started
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M5 12h14M12 5l7 7-7 7"/>
+            </svg>
+          </a>
+          <a href="https://www.npmjs.com/package/ac-framework" class="btn btn--secondary btn--large" target="_blank" rel="noopener">
+            View on NPM
+          </a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="container">
+      <div class="footer__content">
+        <div class="footer__brand">
+          <a href="#" class="footer__logo">
+            <span class="footer__logo-icon">◈</span>
+            <span class="footer__logo-text">AC Framework</span>
+          </a>
+          <p class="footer__tagline">
+            Multi-assistant AI configuration system.<br>
+            Built for the agentic coding era.
+          </p>
+        </div>
+        
+        <div class="footer__links">
+          <div class="footer__column">
+            <h4 class="footer__column-title">Resources</h4>
+            <ul>
+              <li><a href="https://github.com/b4san/AC-framework" target="_blank" rel="noopener">GitHub</a></li>
+              <li><a href="https://www.npmjs.com/package/ac-framework" target="_blank" rel="noopener">NPM</a></li>
+              <li><a href="#features">Features</a></li>
+            </ul>
+          </div>
+          
+          <div class="footer__column">
+            <h4 class="footer__column-title">Community</h4>
+            <ul>
+              <li><a href="https://github.com/b4san/AC-framework/issues" target="_blank" rel="noopener">Issues</a></li>
+              <li><a href="https://github.com/b4san/AC-framework/discussions" target="_blank" rel="noopener">Discussions</a></li>
+              <li><a href="https://github.com/b4san/AC-framework/blob/main/README.md" target="_blank" rel="noopener">Documentation</a></li>
+            </ul>
+          </div>
+        </div>
+      </div>
+      
+      <div class="footer__bottom">
+        <p class="footer__copyright">
+          © 2026 AC Framework. MIT License.
+        </p>
+        <p class="footer__credit">
+          Built with ❤️ for the agentic coding era
+        </p>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Scripts -->
+  <script src="js/copy.js"></script>
+  <script src="js/animations.js"></script>
+  <script src="js/main.js"></script>
+</body>
+</html>

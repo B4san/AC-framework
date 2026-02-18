@@ -15,7 +15,23 @@ Start a new change using the experimental artifact-driven approach.
 
 **Steps**
 
-1. **If no clear input provided, ask what they want to build**
+1. **Verify project initialization**
+
+   Check if the project is initialized:
+   ```bash
+   acfm spec status --json
+   ```
+   
+   **If not initialized** (`"initialized": false`):
+   ```bash
+   acfm spec init
+   ```
+   
+   **If initialized** (`"initialized": true`):
+   - Note the `dirName` field (either `.acfm` or `openspec`)
+   - Continue with the workflow
+
+2. **If no clear input provided, ask what they want to build**
 
    Use the **AskUserQuestion tool** (open-ended, no preset options) to ask:
    > "What change do you want to work on? Describe what you want to build or fix."
@@ -24,7 +40,7 @@ Start a new change using the experimental artifact-driven approach.
 
    **IMPORTANT**: Do NOT proceed without understanding what the user wants to build.
 
-2. **Determine the workflow schema**
+3. **Determine the workflow schema**
 
    Use the default schema (omit `--schema`) unless the user explicitly requests a different workflow.
 
@@ -34,20 +50,20 @@ Start a new change using the experimental artifact-driven approach.
 
    **Otherwise**: Omit `--schema` to use the default.
 
-3. **Create the change directory**
+4. **Create the change directory**
    ```bash
    acfm spec new "<name>"
    ```
    Add `--schema <name>` only if the user requested a specific workflow.
    This creates a scaffolded change at `{specDir}/changes/<name>/` (where {specDir} is either `.acfm` or `openspec` as detected by CLI) with the selected schema.
 
-4. **Show the artifact status**
+5. **Show the artifact status**
    ```bash
    acfm spec status --change "<name>"
    ```
    This shows which artifacts need to be created and which are ready (dependencies satisfied).
 
-5. **Get instructions for the first artifact**
+6. **Get instructions for the first artifact**
    The first artifact depends on the schema (e.g., `proposal` for spec-driven).
    Check the status output to find the first artifact with status "ready".
    ```bash
@@ -55,7 +71,7 @@ Start a new change using the experimental artifact-driven approach.
    ```
    This outputs the template and context for creating the first artifact.
 
-6. **STOP and wait for user direction**
+7. **STOP and wait for user direction**
 
 **Output**
 

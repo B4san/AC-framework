@@ -17,13 +17,29 @@ This skill allows you to batch-archive changes, handling spec conflicts intellig
 
 **Steps**
 
-1. **Get active changes**
+1. **Verify project initialization**
+
+   Check if the project is initialized:
+   ```bash
+   acfm spec status --json
+   ```
+   
+   **If not initialized** (`"initialized": false`):
+   ```bash
+   acfm spec init
+   ```
+   
+   **If initialized** (`"initialized": true`):
+   - Note the `dirName` field (either `.acfm` or `openspec`)
+   - Continue with the workflow
+
+2. **Get active changes**
 
    Run `acfm spec list --json` to get all active changes.
 
    If no active changes exist, inform user and stop.
 
-2. **Prompt for change selection**
+3. **Prompt for change selection**
 
    Use **AskUserQuestion tool** with multi-select to let user choose changes:
    - Show each change with its schema
@@ -32,7 +48,7 @@ This skill allows you to batch-archive changes, handling spec conflicts intellig
 
    **IMPORTANT**: Do NOT auto-select. Always let the user choose.
 
-3. **Batch validation - gather status for all selected changes**
+4. **Batch validation - gather status for all selected changes**
 
    For each selected change, collect:
 
@@ -48,7 +64,7 @@ This skill allows you to batch-archive changes, handling spec conflicts intellig
       - List which capability specs exist
       - For each, extract requirement names (lines matching `### Requirement: <name>`)
 
-4. **Detect spec conflicts**
+5. **Detect spec conflicts**
 
    Build a map of `capability -> [changes that touch it]`:
 
@@ -59,7 +75,7 @@ This skill allows you to batch-archive changes, handling spec conflicts intellig
 
    A conflict exists when 2+ selected changes have delta specs for the same capability.
 
-5. **Resolve conflicts agentically**
+6. **Resolve conflicts agentically**
 
    **For each conflict**, investigate the codebase:
 
@@ -79,7 +95,7 @@ This skill allows you to batch-archive changes, handling spec conflicts intellig
       - In what order (if both)
       - Rationale (what was found in codebase)
 
-6. **Show consolidated status table**
+7. **Show consolidated status table**
 
    Display a table summarizing all changes:
 
@@ -104,7 +120,7 @@ This skill allows you to batch-archive changes, handling spec conflicts intellig
    - add-verify-skill: 1 incomplete artifact, 3 incomplete tasks
    ```
 
-7. **Confirm batch operation**
+8. **Confirm batch operation**
 
    Use **AskUserQuestion tool** with a single confirmation:
 
@@ -116,7 +132,7 @@ This skill allows you to batch-archive changes, handling spec conflicts intellig
 
    If there are incomplete changes, make clear they'll be archived with warnings.
 
-8. **Execute archive for each confirmed change**
+9. **Execute archive for each confirmed change**
 
    Process changes in the determined order (respecting conflict resolution):
 
@@ -136,7 +152,7 @@ This skill allows you to batch-archive changes, handling spec conflicts intellig
       - Failed: error during archive (record error)
       - Skipped: user chose not to archive (if applicable)
 
-9. **Display summary**
+10. **Display summary**
 
    Show final results:
 

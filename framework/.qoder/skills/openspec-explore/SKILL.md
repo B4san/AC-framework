@@ -79,9 +79,25 @@ Depending on what the user brings, you might:
 
 You have full context of the OpenSpec system. Use it naturally, don't force it.
 
+### Verify project initialization
+
+At the start, check if the project is initialized:
+```bash
+acfm spec status --json
+```
+
+**If not initialized** (`"initialized": false`):
+```bash
+acfm spec init
+```
+
+**If initialized** (`"initialized": true`):
+- Note the `dirName` field (either `.acfm` or `openspec`)
+- Continue with the workflow
+
 ### Check for context
 
-At the start, quickly check what exists:
+Next, quickly check what exists:
 ```bash
 acfm spec list --json
 ```
