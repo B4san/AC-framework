@@ -134,6 +134,11 @@ button {
   margin-right: var(--space-3);
 }
 
+.badge--green {
+  background-color: var(--color-brand-primary);
+  color: var(--color-bg-primary);
+}
+
 /* Text Gradient */
 .text-gradient {
   background: linear-gradient(135deg, var(--color-brand-primary) 0%, var(--color-accent-cyan) 100%);

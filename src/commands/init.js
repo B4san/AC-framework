@@ -35,6 +35,7 @@ import {
   celebrateSuccess,
   showFailureSummary,
   stepHeader,
+  pulseDiamondIntro,
 } from '../ui/animations.js';
 
 const acGradient = gradient(['#6C5CE7', '#00CEC9', '#0984E3']);
@@ -193,6 +194,10 @@ export async function initCommand(options = {}) {
   let tempDir = null;
 
   try {
+    // ── Opening Animation ─────────────────────────────────────────
+    console.log();
+    await pulseDiamondIntro(1800);
+    
     // ── Download (only with --latest / --branch) ──────────────────
     if (useLatest) {
       await stepHeader(1, totalSteps, 'Downloading latest framework');

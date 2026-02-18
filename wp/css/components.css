@@ -308,9 +308,9 @@
   background-color: var(--color-bg-secondary);
 }
 
-.features__grid {
+ .features__grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(4, 1fr);
   gap: var(--space-8);
 }
 

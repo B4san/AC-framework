@@ -6,6 +6,7 @@ const acGradient = gradient(['#6C5CE7', '#00CEC9', '#0984E3']);
 const successGradient = gradient(['#00CEC9', '#00B894', '#55EFC4']);
 const warmGradient = gradient(['#FDCB6E', '#E17055', '#D63031']);
 const glowGradient = gradient(['#0984E3', '#00CEC9', '#55EFC4', '#00CEC9', '#0984E3']);
+const diamondGradient = gradient(['#6C5CE7', '#A29BFE', '#00CEC9', '#A29BFE', '#6C5CE7']);
 
 // ── Scanning / Loading ───────────────────────────────────────────
 
@@ -238,5 +239,86 @@ export async function showFailureSummary(installed, errors) {
 export async function stepHeader(stepNum, totalSteps, label) {
   const stepBadge = chalk.hex('#2D3436').bgHex('#6C5CE7').bold(` ${stepNum}/${totalSteps} `);
   console.log(`  ${stepBadge} ${chalk.hex('#DFE6E9')(label)}`);
+  console.log();
+}
+
+// ── Pulse Diamond Intro Animation ─────────────────────────────────
+
+export async function pulseDiamondIntro(durationMs = 1800) {
+  // Simplified but impactful diamond frames
+  const diamondFrames = [
+    // Small
+    ['      ◇      '],
+    // Growing
+    ['     ◇◈◇     '],
+    // Medium
+    ['    ◇◆◈◆◇    '],
+    // Large
+    ['   ◇◆◈◉◈◆◇   ',
+     '    ◇◆◈◆◇    '],
+    // Full with glow
+    ['  ◇◇◆◈◉◈◆◇◇  ',
+     '   ◇◆◈◉◈◆◇   ',
+     '  ◇◇◆◈◉◈◆◇◇  '],
+    // Peak
+    [' ◇◇◆◈◉◈◉◈◆◇◇ ',
+     '◇◇◆◈◉◈◉◈◉◈◆◇◇',
+     ' ◇◇◆◈◉◈◉◈◆◇◇ '],
+    // Hold peak
+    [' ◇◇◆◈◉◈◉◈◆◇◇ ',
+     '◇◇◆◈◉◈◉◈◉◈◆◇◇',
+     ' ◇◇◆◈◉◈◉◈◆◇◇ '],
+    // Back to full
+    ['  ◇◇◆◈◉◈◆◇◇  ',
+     '   ◇◆◈◉◈◆◇   ',
+     '  ◇◇◆◈◉◈◆◇◇  '],
+    // Medium
+    ['   ◇◆◈◉◈◆◇   ',
+     '    ◇◆◈◆◇    '],
+    // Small bright
+    ['     ◆◈◆     '],
+    // Final sparkle
+    ['     ✦◈✦     '],
+  ];
+
+  const frameDelay = Math.floor(durationMs / diamondFrames.length);
+  
+  console.log();
+  console.log();
+  
+  // Animate diamond pulse
+  for (const frame of diamondFrames) {
+    // Clear and redraw
+    if (diamondFrames.indexOf(frame) > 0) {
+      for (let i = 0; i < 5; i++) {
+        process.stdout.write('\x1B[1A\x1B[2K');
+      }
+    }
+    
+    // Top padding
+    console.log();
+    
+    // Diamond lines centered
+    for (const line of frame) {
+      const centered = '  ' + line;
+      console.log(acGradient(centered));
+    }
+    
+    // Bottom padding
+    for (let i = 0; i < 4 - frame.length; i++) {
+      console.log();
+    }
+    
+    await sleep(frameDelay);
+  }
+  
+  // Clear diamond and show final logo
+  for (let i = 0; i < 5; i++) {
+    process.stdout.write('\x1B[1A\x1B[2K');
+  }
+  
+  console.log();
+  console.log(acGradient('  ◢◤◢◤  AC FRAMEWORK  ◥◤◥◤'));
+  console.log(chalk.hex('#636E72')('  ───────────────────────────'));
   console.log();
 }
