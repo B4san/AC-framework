@@ -607,7 +607,7 @@ export async function archiveChange(name, cwd = process.cwd()) {
     throw new Error(`Change "${name}" not found.`);
   }
 
-  const archiveDir = join(changesDir(cwd), 'archive');
+  const archiveDir = join(await changesDir(cwd), 'archive');
   await mkdir(archiveDir, { recursive: true });
 
   const dateStr = new Date().toISOString().slice(0, 10); // YYYY-MM-DD

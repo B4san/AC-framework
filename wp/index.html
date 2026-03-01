@@ -507,6 +507,114 @@
       line-height: 1.6;
       color: var(--color-text-secondary);
     }
+
+    /* Modes Section */
+    .modes {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 120px;
+      background: linear-gradient(180deg, var(--color-bg) 0%, var(--color-surface) 100%);
+      gap: 24px;
+    }
+
+    .modes-subtitle {
+      font-size: 18px;
+      color: var(--color-text-secondary);
+      text-align: center;
+      max-width: 760px;
+    }
+
+    .modes-grid {
+      margin-top: 28px;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 24px;
+      width: 100%;
+      max-width: 1200px;
+    }
+
+    .mode-card {
+      background: rgba(10, 10, 10, 0.8);
+      border: 1px solid var(--color-border-light);
+      border-radius: 16px;
+      padding: 28px;
+      transition: all 0.3s ease;
+    }
+
+    .mode-card:hover {
+      transform: translateY(-6px);
+      border-color: var(--color-primary);
+      box-shadow: 0 16px 40px rgba(16, 185, 129, 0.15);
+    }
+
+    .mode-badge {
+      display: inline-block;
+      padding: 6px 12px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      margin-bottom: 14px;
+      border: 1px solid transparent;
+    }
+
+    .mode-badge.green {
+      color: #34d399;
+      background: rgba(16, 185, 129, 0.12);
+      border-color: rgba(16, 185, 129, 0.35);
+    }
+
+    .mode-badge.blue {
+      color: #60a5fa;
+      background: rgba(59, 130, 246, 0.12);
+      border-color: rgba(59, 130, 246, 0.35);
+    }
+
+    .mode-badge.orange {
+      color: #fbbf24;
+      background: rgba(245, 158, 11, 0.12);
+      border-color: rgba(245, 158, 11, 0.35);
+    }
+
+    .mode-title {
+      font-size: 24px;
+      font-weight: 700;
+      margin-bottom: 10px;
+    }
+
+    .mode-desc {
+      font-size: 15px;
+      color: var(--color-text-secondary);
+      line-height: 1.65;
+      margin-bottom: 16px;
+    }
+
+    .mode-list {
+      list-style: none;
+      display: grid;
+      gap: 8px;
+    }
+
+    .mode-list li {
+      color: #c9c9c9;
+      font-size: 14px;
+      line-height: 1.45;
+      position: relative;
+      padding-left: 16px;
+    }
+
+    .mode-list li::before {
+      content: '';
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--color-primary);
+      position: absolute;
+      left: 0;
+      top: 8px;
+    }
     
     /* Assistants Section with Infinite Carousel */
     .assistants {
@@ -917,6 +1025,14 @@
       .features-grid {
         grid-template-columns: repeat(2, 1fr);
       }
+
+      .modes {
+        padding: 100px 40px;
+      }
+
+      .modes-grid {
+        grid-template-columns: 1fr;
+      }
       
       .section-title, .assistants-title, .cta-title {
         font-size: 40px;
@@ -942,6 +1058,10 @@
       }
       
       .features {
+        padding: 80px 20px;
+      }
+
+      .modes {
         padding: 80px 20px;
       }
       
@@ -1097,6 +1217,55 @@
         <h3 class="feature-title">Quality Assurance</h3>
         <p class="feature-desc">Built-in verification ensures AI-generated code meets specs with testing and validation workflows.</p>
       </div>
+    </div>
+  </section>
+
+  <!-- Modes Section -->
+  <section class="modes">
+    <h2 class="section-title scroll-animate">Optimized Modes for Real Projects</h2>
+    <p class="modes-subtitle scroll-animate">
+      Keep maximum quality with two execution profiles: high-load optimization for complex changes, and lite mode for lower token usage with strict quality gates.
+    </p>
+
+    <div class="modes-grid">
+      <article class="mode-card scroll-animate">
+        <span class="mode-badge green">High Load</span>
+        <h3 class="mode-title">Optimized for Heavy Workloads</h3>
+        <p class="mode-desc">
+          Full-depth execution for large codebases, complex refactors, and high-risk architectural changes.
+        </p>
+        <ul class="mode-list">
+          <li>Expands analysis and validation depth across modules.</li>
+          <li>Activates broader quality and security checks by default.</li>
+          <li>Designed for high-complexity and high-impact implementations.</li>
+        </ul>
+      </article>
+
+      <article class="mode-card scroll-animate">
+        <span class="mode-badge blue">Lite</span>
+        <h3 class="mode-title">Lower Token Cost with Gates</h3>
+        <p class="mode-desc">
+          Loads only essential workflow skills first, then activates additional skills only when risk gates are triggered.
+        </p>
+        <ul class="mode-list">
+          <li>Core flow first: new/continue/apply/verify/archive.</li>
+          <li>Conditional skills for security, testing, API, UI, and performance.</li>
+          <li>Mandatory implementation and archive quality gates remain enforced.</li>
+        </ul>
+      </article>
+
+      <article class="mode-card scroll-animate">
+        <span class="mode-badge orange">OpenSpec</span>
+        <h3 class="mode-title">Full OpenSpec Compatibility</h3>
+        <p class="mode-desc">
+          AC Framework keeps complete compatibility with OpenSpec workflows while using the built-in <code>acfm spec</code> commands.
+        </p>
+        <ul class="mode-list">
+          <li>Supports both <code>.acfm/</code> and legacy <code>openspec/</code> directories.</li>
+          <li>Automatic directory detection with safe fallback behavior.</li>
+          <li>Smooth adoption path without breaking existing projects.</li>
+        </ul>
+      </article>
     </div>
   </section>
 
