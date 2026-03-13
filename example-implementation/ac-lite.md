@@ -81,6 +81,49 @@ Load `project-index` and/or `context-synthesizer` if:
 
 Load `systematic-debugging` when blocked by non-trivial bugs or unstable behavior.
 
+### Architecture Gate
+
+Load `architecture-tradeoff-analysis` and `boundary-enforcement` if the change:
+
+- Introduces new architectural patterns or layers
+- Modifies how components interact (new services, APIs, databases)
+- Requires technology choices or framework decisions
+- Affects system scalability or performance characteristics
+
+### Scope Gate
+
+Load `requirement-negotiation` when:
+
+- Requirements from different stakeholders conflict
+- Scope creep is detected (adding features mid-implementation)
+- Technical constraints conflict with business requirements
+- Timeline requires prioritization of features
+
+### Communication Gate
+
+Load `stakeholder-communication` when:
+
+- Change affects multiple user types or departments
+- Updates need to be communicated to non-technical stakeholders
+- Status reports or decision documentation is required
+
+### Ownership Gate
+
+Load `ownership-checkpoint` when:
+
+- Implementation is complete and ready for review
+- Handoff to another developer or team is needed
+- Code is being prepared for production deployment
+
+### Decision Gate
+
+Load `decision-framework` when:
+
+- Multiple valid options exist without clear winner
+- Requirements are incomplete or ambiguous
+- Estimates are highly uncertain
+- Trade-offs need explicit analysis
+
 ---
 
 ## Mandatory Quality Gates
@@ -108,6 +151,17 @@ Before `openspec-archive-change`, all must be true:
 - Tasks are complete or explicitly accepted by user with warning
 
 If any item fails: stop, fix, re-verify.
+
+### Gate C: Ready for Production
+
+Before deployment, all must be true:
+
+- `ownership-checkpoint` completed (if triggered)
+- All boundary violations resolved (if Architecture Gate triggered)
+- Decision trade-offs documented (if Decision Gate triggered)
+- Stakeholder communication prepared (if Communication Gate triggered)
+
+If any item fails: stop, complete missing items, then deploy.
 
 ---
 

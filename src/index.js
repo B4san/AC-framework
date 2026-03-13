@@ -18,3 +18,49 @@ export {
   readProjectConfig,
   isInitialized,
 } from './services/spec-engine.js';
+
+// Memory System Exports
+export {
+  // Database
+  initDatabase,
+  getDatabase,
+  closeDatabase,
+  isDatabaseInitialized,
+  
+  // Core Engine
+  saveMemory,
+  searchMemories,
+  getContext,
+  getTimeline,
+  getMemory,
+  updateMemory,
+  deleteMemory,
+  startSession,
+  endSession,
+  getStats,
+  findPatterns,
+  getConnections,
+  anticipateNeeds,
+  exportMemories,
+  importMemories,
+  pruneMemories,
+  
+  // Auto-save
+  AutoSaveManager,
+  createAutoSaveHook,
+  WorkflowHooks,
+  
+  // Utils
+  redactPrivateContent,
+  extractKeywords,
+  textSimilarity,
+  truncate,
+  isCodeContent,
+  detectLanguage,
+  generateSummary,
+  sanitizeFTSQuery,
+  
+  // Constants
+  MEMORY_TYPES,
+  IMPORTANCE_LEVELS
+} from './memory/index.js';

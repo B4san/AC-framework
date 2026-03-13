@@ -9,6 +9,7 @@ import { readFile, readdir, stat, mkdir, rename, access, writeFile } from 'node:
 import { resolve, join, dirname, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import yaml from 'js-yaml';
+import { initDatabase, getContext, AutoSaveManager } from '../memory/index.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const SCHEMAS_DIR = resolve(__dirname, '../schemas');
@@ -475,6 +476,21 @@ export async function getArtifactInstructions(artifactId, changeName, cwd = proc
   // Determine what this artifact unlocks
   const unlocks = artifact.unlocks || [];
 
+  // NUEVO: Recuperar contexto de memoria relevante
+  let relevantMemories = [];
+  try {
+    initDatabase(); // Asegurar DB inicializada
+    relevantMemories = getContext({
+      projectPath: cwd,
+      changeName,
+      limit: 5,
+      lookbackDays: 30
+    });
+  } catch {
+    // Si memory no está inicializado, continuar sin contexto
+    relevantMemories = [];
+  }
+
   return {
     context,
     rules,
@@ -483,6 +499,14 @@ export async function getArtifactInstructions(artifactId, changeName, cwd = proc
     outputPath,
     dependencies,
     unlocks,
+    // NUEVO: Memorias relevantes para el contexto del agente
+    relevantMemories: relevantMemories.map(m => ({
+      id: m.id,
+      type: m.type,
+      content: m.content,
+      importance: m.importance,
+      fromChange: m.changeName
+    }))
   };
 }
 
@@ -583,12 +607,56 @@ export async function getApplyInstructions(changeName, cwd = process.cwd()) {
     instruction = `${remaining} of ${total} tasks remaining. Implement each pending task, following the specs and design. Mark tasks as [x] when complete.`;
   }
 
+  // NUEVO: Recuperar contexto de memoria relevante para implementación
+  let relevantMemories = [];
+  let suggestedPatterns = [];
+  try {
+    initDatabase();
+    
+    // Buscar patrones similares en memorias
+    relevantMemories = getContext({
+      projectPath: cwd,
+      changeName,
+      limit: 5,
+      lookbackDays: 30
+    });
+
+    // Buscar patrones de implementación específicos
+    const pendingTasks = tasks.filter(t => !t.done).map(t => t.task).join(' ');
+    if (pendingTasks) {
+      // Buscar memorias relacionadas con las tareas pendientes
+      const keywords = pendingTasks.toLowerCase().split(/\s+/).filter(w => w.length > 4);
+      if (keywords.length > 0) {
+        const { searchMemories } = await import('../memory/index.js');
+        suggestedPatterns = searchMemories(keywords.slice(0, 5).join(' OR '), {
+          type: 'refactor_technique',
+          limit: 3
+        });
+      }
+    }
+  } catch {
+    // Continuar sin contexto si hay error
+  }
+
   return {
     contextFiles,
     progress: { total, complete, remaining },
     state,
     instruction,
     tasks,
+    // NUEVO: Contexto de memoria para ayudar en implementación
+    relevantMemories: relevantMemories.map(m => ({
+      id: m.id,
+      type: m.type,
+      content: m.content,
+      importance: m.importance,
+      codeSnippet: m.codeSnippet
+    })),
+    suggestedPatterns: suggestedPatterns.map(m => ({
+      id: m.id,
+      content: m.content,
+      type: m.type
+    }))
   };
 }
 

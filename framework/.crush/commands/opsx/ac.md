@@ -42,6 +42,46 @@ If you attempt to proceed without completing a required step, you MUST STOP and 
 | Skill | Description | Primary Use | Required Before |
 |-------|-------------|-------------|-----------------|
 | `acfm-spec-workflow` | **START HERE - MANDATORY** - Understand the spec-driven workflow, directory structure (.acfm/ vs openspec/), and CLI commands. Essential before using any OpenSpec skills. | Foundation | **ANYTHING ELSE** |
+| `acfm-memory` | **AUTONOMOUS MEMORY SYSTEM** - Persistent learning system that automatically saves important decisions, patterns, bugfixes. Use to recall context from previous changes and maintain knowledge across sessions. | Knowledge persistence | **AFTER ANY SIGNIFICANT WORK** |
+
+
+### Memory System (Automatic)
+
+The AC Framework includes an **autonomous memory system** that learns from your work:
+
+**What gets saved automatically:**
+- Architectural decisions from proposals/designs
+- Bugfix patterns and solutions
+- Performance optimizations
+- Refactoring techniques
+- Security fixes
+- API patterns and conventions
+
+**How to use memory:**
+```bash
+# Recall relevant context before starting work
+acfm memory recall "implementing authentication"
+
+# Search for specific patterns
+acfm memory search "JWT token refresh"
+
+# Get full context for current project
+acfm memory recall
+
+# View statistics
+acfm memory stats
+```
+
+**When the agent saves memory (automatic):**
+1. After completing proposal.md (saves architectural decisions)
+2. After fixing bugs (solutions are stored)
+3. After refactoring (techniques are recorded)
+4. After optimizations (performance insights)
+5. After any significant decision with confidence > 0.7
+
+**The agent will inform you:** "💾 Memory saved: [brief description]" when auto-saving occurs.
+
+**Privacy:** Content between `<private>...</private>` tags is automatically redacted before saving.
 
 ### OpenSpec Skills (The heart of the framework)
 

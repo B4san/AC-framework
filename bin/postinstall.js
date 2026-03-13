@@ -22,7 +22,14 @@ console.log('      acfm spec validate       Validate change structure');
 console.log('      acfm spec archive        Archive a completed change');
 console.log('      acfm spec schemas        List workflow schemas');
 console.log();
-console.log('    Tip: Add --json to any spec command for machine-readable output.');
+console.log('    Memory System (Persistent Learning)');
+console.log('      acfm memory init         Initialize memory database');
+console.log('      acfm memory recall       Recall relevant context');
+console.log('      acfm memory search       Search memories');
+console.log('      acfm memory save         Save memory manually');
+console.log('      acfm memory stats        View memory statistics');
+console.log();
+console.log('    Tip: Add --json to any command for machine-readable output.');
 console.log();
 
 if (isWin) {

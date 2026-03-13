@@ -118,6 +118,32 @@ acfm spec new my-feature
 | `acfm spec validate <name>` | Validate change structure | `--json` |
 | `acfm spec schemas` | List available workflow schemas | `--json` |
 
+### Memory System Commands (Persistent Learning)
+
+AC Framework includes an **autonomous memory system** that learns from your development work.
+
+| Command | Description | Flags |
+|---------|-------------|-------|
+| `acfm memory init` | Initialize memory database | `--json` |
+| `acfm memory recall [task]` | Recall relevant context | `--project`, `--change`, `--json` |
+| `acfm memory search <query>` | Search saved memories | `--type`, `--limit`, `--json` |
+| `acfm memory save <content>` | Save memory manually | `--type`, `--tags`, `--importance` |
+| `acfm memory get <id>` | View memory details | `--json` |
+| `acfm memory timeline <id>` | Timeline around memory | `--window`, `--json` |
+| `acfm memory patterns` | Analyze patterns | `--type`, `--json` |
+| `acfm memory stats` | Memory statistics | `--project`, `--json` |
+| `acfm memory export [file]` | Export memories | `--shareable-only` |
+| `acfm memory import <file>` | Import memories | `--merge` |
+
+**What gets saved automatically:**
+- Architectural decisions from proposals/designs
+- Bugfix patterns and solutions  
+- Performance optimizations
+- Refactoring techniques
+- Security fixes
+
+**Privacy:** Content between `<private>...</private>` tags is automatically redacted.
+
 **Tip:** Add `--json` to any command for programmatic output.
 
 ---
