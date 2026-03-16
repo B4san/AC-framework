@@ -1,6 +1,6 @@
 **Fundamental Principle**: *"Quality over speed. Documentation before code. Planning before execution."*
 
---- ⚠️ **CRITICAL: ZERO SKIP POLICY** ⚠️ ---
+--- **CRITICAL: ZERO SKIP POLICY** ---
 
 **YOU CANNOT SKIP ANY STEP. YOU CANNOT SKIP ANY SKILL. YOU CANNOT SKIP ANY PHASE.**
 
@@ -8,7 +8,7 @@ If you attempt to proceed without completing a required step, you MUST STOP and 
 
 ---
 
-## 🛠️ Available Skills
+## Available Skills
 
 ### Quality and Security Skills
 
@@ -53,6 +53,62 @@ If you attempt to proceed without completing a required step, you MUST STOP and 
 | Skill | Description | Primary Use | Required Before |
 |-------|-------------|-------------|-----------------|
 | `acfm-spec-workflow` | **START HERE - MANDATORY** - Understand the spec-driven workflow, directory structure (.acfm/ vs openspec/), and CLI commands. Essential before using any OpenSpec skills. | Foundation | **ANYTHING ELSE** |
+| `acfm-memory` | **PERSISTENT MEMORY PROTOCOL** - Consult memory at the start of every new chat/session, recall relevant project context, and automatically save reusable decisions and patterns after significant work. Prefer the available memory tool/MCP and use CLI fallback when needed. | Knowledge persistence | Session start and after significant work |
+
+### Persistent Memory Protocol (Mandatory)
+
+The AC Framework includes a persistent memory system that agents must use proactively.
+
+**Session-start requirement (always):**
+1. At the start of every new chat/session, consult the available persistent memory tool or MCP before planning, implementing, or giving project-specific guidance.
+2. Recall project-level context first, then search for task-specific decisions, conventions, bugfixes, and architecture notes.
+3. Treat recalled memory as active project context unless the current repository state or an explicit user instruction supersedes it.
+4. If memory tooling is unavailable, continue with repository inspection and use the AC Framework CLI fallback when possible.
+
+**What gets saved automatically:**
+- Architectural decisions from proposals/designs
+- Bugfix patterns and solutions
+- Performance optimizations
+- Refactoring techniques
+- Security fixes
+- API patterns and conventions
+- Reusable workflow conventions and project constraints
+
+**How to use memory:**
+```text
+Preferred: use the available persistent memory tool or MCP for recall, search, save, and project-scoped context.
+Fallback: use the AC Framework memory CLI commands when direct tool access is not available.
+```
+```bash
+# Recall relevant context before starting work
+acfm memory recall "implementing authentication"
+
+# Search for specific patterns
+acfm memory search "JWT token refresh"
+
+# Get full context for current project
+acfm memory recall
+
+# View statistics
+acfm memory stats
+```
+
+**When the agent saves memory (automatic):**
+1. After completing proposal.md (saves architectural decisions)
+2. After fixing bugs (solutions are stored)
+3. After refactoring (techniques are recorded)
+4. After optimizations (performance insights)
+5. After any significant decision with confidence > 0.7
+6. After identifying conventions, constraints, or reusable operating rules worth preserving
+
+**Memory hygiene rules:**
+- Save only reusable information likely to matter in future chats.
+- Do not save secrets, credentials, tokens, or one-off sensitive data.
+- Redact content inside `<private>...</private>` before saving.
+- Prefer concise titles, the correct memory type, clear tags, and realistic confidence scores.
+
+**User communication:** "Memory saved: [brief description]" when auto-saving occurs.
+
 
 ### OpenSpec Skills (The heart of the framework)
 
@@ -94,15 +150,15 @@ If you attempt to proceed without completing a required step, you MUST STOP and 
 
 ---
 
-## 📍 CRITICAL: How to Use Skills - ZERO SKIP POLICY
+## CRITICAL: How to Use Skills - ZERO SKIP POLICY
 
-### ⛔ BLOCKING RULES - YOU CANNOT PROCEED WITHOUT THESE:
+### BLOCKING RULES - YOU CANNOT PROCEED WITHOUT THESE:
 
 **Rule 1: Phase Completion Checkpoint**
 After EACH phase, you MUST confirm completion:
 ```
 ╔══════════════════════════════════════════════════════════╗
-║  ⚠️  PHASE [X] COMPLETION CHECKPOINT                      ║
+║    PHASE [X] COMPLETION CHECKPOINT                      ║
 ╠══════════════════════════════════════════════════════════╣
 ║  Have you COMPLETED ALL skills in Phase [X]?              ║
 ║  [ ] Yes - I have read and executed every skill           ║
@@ -119,7 +175,7 @@ Before proceeding to next phase, verify you have these outputs:
 
 | Phase | Required Outputs | Check |
 |-------|-----------------|-------|
-| Phase 0 | `acfm spec status` shows initialized | [ ] |
+| Phase 0 | `acfm spec status` shows initialized and session memory recall completed | [ ] |
 | Phase 1 | project-constitution.md defined | [ ] |
 | Phase 2 | project-index.md exists, exploration notes | [ ] |
 | Phase 3 | proposal.md, specs/, design.md, tasks.md | [ ] |
@@ -137,13 +193,13 @@ Before `openspec-apply-change`, ALL must be TRUE:
 
 ---
 
-## 🚀 Workflow: New Project
+## Workflow: New Project
 
 When starting a project **from scratch**, follow this **MANDATORY** workflow:
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────────┐
-│                    ⚠️  WORKFLOW: NEW PROJECT - ZERO SKIP  ⚠️                    │
+│                      WORKFLOW: NEW PROJECT - ZERO SKIP                      │
 └─────────────────────────────────────────────────────────────────────────────────┘
 
     ┌─────────────────┐
@@ -152,7 +208,7 @@ When starting a project **from scratch**, follow this **MANDATORY** workflow:
              │
              ▼
     ╔══════════════════════════════════════════════╗
-    ║  ☠️  PHASE 0: AC FRAMEWORK SETUP (REQUIRED)  ║
+    ║    PHASE 0: AC FRAMEWORK SETUP (REQUIRED)  ║
     ║  BLOCKING: Cannot proceed without this       ║
     ╠══════════════════════════════════════════════╣
     ║  1. acfm-spec-workflow                       ║
@@ -161,9 +217,12 @@ When starting a project **from scratch**, follow this **MANDATORY** workflow:
     ║     └─ Learn CLI commands and workflow       ║
     ║     └─ Check project initialization status   ║
     ║     └─ RUN: acfm spec init (if needed)       ║
+    ║  2. acfm-memory                              ║
+    ║     └─ Recall memory at chat start           ║
+    ║     └─ Load prior decisions and conventions  ║
     ╚════════════════════╬═════════════════════════╝
                          ║
-                         ║ ⛔ CHECKPOINT: Phase 0 Complete?
+                         ║  CHECKPOINT: Phase 0 Complete?
                          ║    [ ] acfm spec status shows "initialized": true
                          ║
                          ║ YES ▼
@@ -181,7 +240,7 @@ When starting a project **from scratch**, follow this **MANDATORY** workflow:
     ║     └─ Apply React/Next.js best practices    ║
     ╚════════════════════╬═════════════════════════╝
                          ║
-                         ║ ⛔ CHECKPOINT: Phase 1 Complete?
+                         ║  CHECKPOINT: Phase 1 Complete?
                          ║    [ ] project-constitution defined
                          ║    [ ] Security guidelines established
                          ║    [ ] Quality standards set
@@ -205,7 +264,7 @@ When starting a project **from scratch**, follow this **MANDATORY** workflow:
     ║     └─ Challenge constraints                 ║
     ╚════════════════════╬═════════════════════════╝
                          ║
-                         ║ ⛔ CHECKPOINT: Phase 2 Complete?
+                         ║  CHECKPOINT: Phase 2 Complete?
                          ║    [ ] project-index.md exists
                          ║    [ ] Exploration notes documented
                          ║    [ ] Brainstorming questions answered
@@ -238,7 +297,7 @@ When starting a project **from scratch**, follow this **MANDATORY** workflow:
     ║      └─ Design dashboards/apps interface     ║
     ╚════════════════════╬═════════════════════════╝
                          ║
-                         ║ ⛔ CHECKPOINT: Phase 3 Complete?
+                         ║  CHECKPOINT: Phase 3 Complete?
                          ║    [ ] proposal.md created
                          ║    [ ] specs/ directory with specs
                          ║    [ ] design.md written
@@ -250,7 +309,7 @@ When starting a project **from scratch**, follow this **MANDATORY** workflow:
     ╔══════════════════════════════════════════════╗
     ║  PHASE 4: IMPLEMENTATION                     ║
     ╠══════════════════════════════════════════════╣
-    ║  ☠️  SAFETY CHECK - ALL MUST BE TRUE:        ║
+    ║    SAFETY CHECK - ALL MUST BE TRUE:        ║
     ║  [ ] tasks.md exists                         ║
     ║  [ ] Tests from test-generator written       ║
     ║  [ ] design.md reviewed                      ║
@@ -278,7 +337,7 @@ When starting a project **from scratch**, follow this **MANDATORY** workflow:
     ║      └─ Optimize critical paths              ║
     ╚════════════════════╬═════════════════════════╝
                          ║
-                         ║ ⛔ CHECKPOINT: Phase 4 Complete?
+                         ║  CHECKPOINT: Phase 4 Complete?
                          ║    [ ] All tasks in tasks.md marked [x]
                          ║    [ ] Tests passing
                          ║    [ ] Code reviewed
@@ -318,13 +377,13 @@ When starting a project **from scratch**, follow this **MANDATORY** workflow:
 
 ---
 
-## 🔄 Workflow: Existing Project
+## Workflow: Existing Project
 
 When working on an **existing codebase** (adding features, fixing bugs, refactoring):
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────────┐
-│                  ⚠️  WORKFLOW: EXISTING PROJECT - ZERO SKIP  ⚠️                │
+│                    WORKFLOW: EXISTING PROJECT - ZERO SKIP                  │
 └─────────────────────────────────────────────────────────────────────────────────┘
 
     ┌─────────────────┐
@@ -333,16 +392,19 @@ When working on an **existing codebase** (adding features, fixing bugs, refactor
              │
              ▼
     ╔══════════════════════════════════════════════╗
-    ║  ☠️  PHASE 0: AC FRAMEWORK SETUP (REQUIRED)  ║
+    ║    PHASE 0: AC FRAMEWORK SETUP (REQUIRED)  ║
     ║  BLOCKING: Cannot proceed without this       ║
     ╠══════════════════════════════════════════════╣
     ║  1. acfm-spec-workflow                       ║
     ║     └─ **ALWAYS START HERE**                 ║
     ║     └─ Verify project initialization         ║
     ║     └─ Check existing changes                ║
+    ║  2. acfm-memory                              ║
+    ║     └─ Recall memory at chat start           ║
+    ║     └─ Load prior decisions and conventions  ║
     ╚════════════════════╬═════════════════════════╝
                          ║
-                         ║ ⛔ CHECKPOINT: Phase 0 Complete?
+                         ║  CHECKPOINT: Phase 0 Complete?
                          ║
                          ║ YES ▼
                          ▼
@@ -361,7 +423,7 @@ When working on an **existing codebase** (adding features, fixing bugs, refactor
     ║     └─ ALL questions in ONE prompt           ║
     ║     └─ Ideate on feature/fix                 ║
     ╚════════════════════╬═════════════════════════╝
-                         ║ ⛔ CHECKPOINT
+                         ║  CHECKPOINT
                          ▼
     ╔══════════════════════════════════════════════╗
     ║  PHASE 2: DISCOVERY & CLARIFICATION          ║
@@ -377,7 +439,7 @@ When working on an **existing codebase** (adding features, fixing bugs, refactor
     ║  11. microtask-decomposition                 ║
     ║      └─ If task too complex                  ║
     ╚════════════════════╬═════════════════════════╝
-                         ║ ⛔ CHECKPOINT
+                         ║  CHECKPOINT
                          ▼
     ╔══════════════════════════════════════════════╗
     ║  PHASE 3: DESIGN & PLANNING                  ║
@@ -393,12 +455,12 @@ When working on an **existing codebase** (adding features, fixing bugs, refactor
     ║  16. interface-design [IF UI]                ║
     ║      └─ Design interface changes             ║
     ╚════════════════════╬═════════════════════════╝
-                         ║ ⛔ CHECKPOINT
+                         ║  CHECKPOINT
                          ▼
     ╔══════════════════════════════════════════════╗
     ║  PHASE 4: IMPLEMENTATION                     ║
     ╠══════════════════════════════════════════════╣
-    ║  ☠️  SAFETY CHECK REQUIRED                   ║
+    ║    SAFETY CHECK REQUIRED                   ║
     ╠══════════════════════════════════════════════╣
     ║  17. test-generator                          ║
     ║      └─ Generate tests for new feature       ║
@@ -419,7 +481,7 @@ When working on an **existing codebase** (adding features, fixing bugs, refactor
     ║  25. performance-optimizer                   ║
     ║      └─ Ensure no perf degradation           ║
     ╚════════════════════╬═════════════════════════╝
-                         ║ ⛔ CHECKPOINT
+                         ║  CHECKPOINT
                          ▼
     ╔══════════════════════════════════════════════╗
     ║  PHASE 5: OPTIMIZATION & VERIFICATION        ║
@@ -452,7 +514,7 @@ When working on an **existing codebase** (adding features, fixing bugs, refactor
 
 ---
 
-## 📝 Skill Loading Reference
+## Skill Loading Reference
 
 All skills are located in: `skills/`
 
@@ -460,7 +522,7 @@ To load a skill, read its SKILL.md file:
 - Example: Read `skills/spec-clarification/SKILL.md` to use the clarification workflow
 - Example: Read `skills/interface-design/SKILL.md` to use interface design principles
 
-### ⛔ MANDATORY SKILL EXECUTION CHECKLIST
+### MANDATORY SKILL EXECUTION CHECKLIST
 
 Before claiming a skill is "done", verify:
 - [ ] I have read the entire SKILL.md file
@@ -472,7 +534,7 @@ Before claiming a skill is "done", verify:
 
 ---
 
-## ⚠️ VIOLATION CONSEQUENCES
+## VIOLATION CONSEQUENCES
 
 If you SKIP a skill or phase:
 1. The framework integrity is compromised

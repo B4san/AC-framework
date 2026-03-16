@@ -17,11 +17,47 @@
 These are the only mandatory skills for every change:
 
 1. `acfm-spec-workflow`
-2. `openspec-new-change` OR `openspec-ff-change`
-3. `openspec-continue-change`
-4. `openspec-apply-change`
-5. `openspec-verify-change`
-6. `openspec-archive-change`
+2. `acfm-memory`
+3. `openspec-new-change` OR `openspec-ff-change`
+4. `openspec-continue-change`
+5. `openspec-apply-change`
+6. `openspec-verify-change`
+7. `openspec-archive-change`
+
+---
+
+## Persistent Memory Protocol (Always Active)
+
+Agents must use the available persistent memory system proactively on every chat/session.
+
+**Session-start requirement (always):**
+1. Consult the available persistent memory tool or MCP before planning, implementing, or giving project-specific guidance.
+2. Recall project-level context first, then search for task-specific decisions, conventions, bugfixes, and architecture notes.
+3. Treat recalled memory as active context unless the current repository state or an explicit user instruction supersedes it.
+4. If memory tooling is unavailable, continue with repository inspection and use the AC Framework CLI fallback when possible.
+
+**Save automatically when information is reusable:**
+- Architectural decisions from proposals/designs
+- Bugfix patterns and solutions
+- Performance optimizations
+- Refactoring techniques
+- Security fixes
+- API patterns and conventions
+- Reusable workflow conventions and project constraints
+
+**Memory hygiene rules:**
+- Save only reusable information likely to matter in future chats.
+- Do not save secrets, credentials, tokens, or one-off sensitive data.
+- Redact content inside `<private>...</private>` before saving.
+- Prefer concise titles, the correct memory type, clear tags, and realistic confidence scores.
+
+**Fallback examples:**
+```bash
+acfm memory recall "implementing authentication"
+acfm memory search "JWT token refresh"
+acfm memory recall
+acfm memory stats
+```
 
 ---
 
@@ -138,6 +174,7 @@ Before `openspec-apply-change`, all must be true:
 - `tasks.md` exists with actionable checkboxes
 - Acceptance criteria are clear in artifacts
 - Required conditional skills (if triggered) were executed
+- Session-start memory recall completed for this chat/session
 
 If any item fails: stop, resolve, then continue.
 
@@ -149,6 +186,7 @@ Before `openspec-archive-change`, all must be true:
 - No CRITICAL findings remain
 - Relevant tests pass for changed behavior
 - Tasks are complete or explicitly accepted by user with warning
+- Relevant reusable context from the completed work was saved to memory
 
 If any item fails: stop, fix, re-verify.
 
@@ -170,36 +208,40 @@ If any item fails: stop, complete missing items, then deploy.
 ### New Change (Default Path)
 
 1. Run `acfm-spec-workflow` checks (`acfm spec status --json`, init if needed).
-2. Create change with `openspec-new-change` (or `openspec-ff-change` if user requests speed).
-3. Build artifacts with `openspec-continue-change` until apply-ready.
-4. Evaluate conditional gates and load only triggered skills.
-5. Pass Gate A.
-6. Implement with `openspec-apply-change`.
-7. Verify with `openspec-verify-change`.
-8. Pass Gate B.
-9. Archive with `openspec-archive-change`.
+2. Run a session-start memory recall using the available memory tool/MCP or the AC Framework CLI fallback.
+3. Create change with `openspec-new-change` (or `openspec-ff-change` if user requests speed).
+4. Build artifacts with `openspec-continue-change` until apply-ready.
+5. Evaluate conditional gates and load only triggered skills.
+6. Pass Gate A.
+7. Implement with `openspec-apply-change`.
+8. Verify with `openspec-verify-change`.
+9. Pass Gate B.
+10. Archive with `openspec-archive-change`.
 
 ### Existing Change (Default Path)
 
 1. Confirm initialization and active changes.
-2. Select target change.
-3. Refresh artifact status.
-4. Evaluate conditional gates (only load what triggers).
-5. Pass Gate A.
-6. Implement.
-7. Verify.
-8. Pass Gate B.
-9. Archive.
+2. Run a session-start memory recall using the available memory tool/MCP or the AC Framework CLI fallback.
+3. Select target change.
+4. Refresh artifact status.
+5. Evaluate conditional gates (only load what triggers).
+6. Pass Gate A.
+7. Implement.
+8. Verify.
+9. Pass Gate B.
+10. Archive.
 
 ---
 
 ## Operational Rules
 
-1. Do not load broad quality/documentation skills by default.
-2. Do not run optional skills "just in case".
-3. If risk increases during implementation, activate the matching conditional skill immediately.
-4. Prefer deterministic CLI checks over narrative assumptions.
-5. Keep outputs concise but auditable (show which gates passed/failed and why).
+1. Run memory recall at the start of every new chat/session before planning or implementation.
+2. Save important reusable context automatically after significant decisions, fixes, or conventions emerge.
+3. Do not load broad quality/documentation skills by default.
+4. Do not run optional skills "just in case".
+5. If risk increases during implementation, activate the matching conditional skill immediately.
+6. Prefer deterministic CLI checks over narrative assumptions.
+7. Keep outputs concise but auditable (show which gates passed/failed and why).
 
 ---
 
@@ -211,26 +253,31 @@ Use this structure in each run:
    - Change name
    - Current artifact progress
 
-2. **Triggered Gates**
+2. **Memory Status**
+   - Session recall completed: yes/no
+   - Relevant prior decisions/patterns found
+   - Memory save needed at close: yes/no
+
+3. **Triggered Gates**
    - Security: pass/fail + reason
    - Testing: pass/fail + reason
    - Consistency/API/UI/Performance/Context/Debug: pass/fail + reason
 
-3. **Skills Loaded**
+4. **Skills Loaded**
    - Core: always list
    - Conditional: list only triggered ones
 
-4. **Gate A Status**
+5. **Gate A Status**
    - Ready to implement: yes/no
 
-5. **Implementation + Verify**
+6. **Implementation + Verify**
    - What was implemented
    - Verify findings summary
 
-6. **Gate B Status**
+7. **Gate B Status**
    - Ready to archive: yes/no
 
-7. **Archive Result**
+8. **Archive Result**
    - Archive path and timestamp
 
 ---
