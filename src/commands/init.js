@@ -54,9 +54,7 @@ const acGradient = gradient(['#6C5CE7', '#00CEC9', '#0984E3']);
  */
 async function setupPersistentMemory() {
   const memoryDbPath = join(homedir(), '.acfm', 'memory.db');
-
-  // Only ask on first run
-  if (existsSync(memoryDbPath)) return;
+  const alreadyExists = existsSync(memoryDbPath);
 
   console.log();
   await animatedSeparator(60);
@@ -93,16 +91,20 @@ async function setupPersistentMemory() {
   }
 
   console.log();
-  console.log(chalk.hex('#B2BEC3')('  Initializing NexusVault...'));
+  console.log(chalk.hex('#B2BEC3')(alreadyExists ? '  Reconnecting NexusVault...' : '  Initializing NexusVault...'));
 
-  // Init the SQLite database
+  // Init the SQLite database (idempotent — skips if already exists)
   const { initDatabase, isDatabaseInitialized } = await import('../memory/database.js');
   if (!isDatabaseInitialized()) {
     initDatabase();
   }
   console.log(
     chalk.hex('#00CEC9')('  ◆ ') +
-    chalk.hex('#DFE6E9')('NexusVault database created at ~/.acfm/memory.db')
+    chalk.hex('#DFE6E9')(
+      alreadyExists
+        ? 'NexusVault database found at ~/.acfm/memory.db'
+        : 'NexusVault database created at ~/.acfm/memory.db'
+    )
   );
 
   // Install MCP server into detected assistants
@@ -284,7 +286,7 @@ export async function initCommand(options = {}) {
 
   // Dynamic step counting: +1 step when downloading from GitHub
   const stepOffset = useLatest ? 1 : 0;
-  const totalSteps = 4 + stepOffset;
+  const totalSteps = 5 + stepOffset;
 
   // Framework source: bundled by default, overridden by --latest
   let frameworkPath = FRAMEWORK_PATH;
