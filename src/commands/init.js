@@ -14,6 +14,9 @@
 import chalk from 'chalk';
 import gradient from 'gradient-string';
 import inquirer from 'inquirer';
+import { existsSync } from 'node:fs';
+import { homedir } from 'node:os';
+import { join } from 'node:path';
 import { DESCRIPTIONS, ASSISTANT_ICONS, BUNDLED } from '../config/constants.js';
 import { IDE_MD_MAP, AVAILABLE_MD_FILES, MD_DESCRIPTIONS } from '../config/ide-mapping.js';
 import { formatFolderName, sleep } from '../utils/helpers.js';
@@ -39,6 +42,100 @@ import {
 } from '../ui/animations.js';
 
 const acGradient = gradient(['#6C5CE7', '#00CEC9', '#0984E3']);
+
+// ── Persistent Memory Setup ───────────────────────────────────────
+
+/**
+ * First-time persistent memory setup.
+ * Only shown when ~/.acfm/memory.db does not yet exist.
+ *
+ * The memory store is named "NexusVault" — a unique, memorable name
+ * for the embedded knowledge base that persists context across sessions.
+ */
+async function setupPersistentMemory() {
+  const memoryDbPath = join(homedir(), '.acfm', 'memory.db');
+
+  // Only ask on first run
+  if (existsSync(memoryDbPath)) return;
+
+  console.log();
+  await animatedSeparator(60);
+  console.log();
+
+  const vaultBadge = chalk.hex('#2D3436').bgHex('#6C5CE7').bold(' NexusVault ');
+  console.log(`  ${vaultBadge} ${chalk.hex('#B2BEC3').bold('Persistent Memory System')}`);
+  console.log();
+  console.log(
+    chalk.hex('#636E72')(
+      '  NexusVault is an embedded SQLite knowledge base that lives at\n' +
+      `  ${chalk.hex('#DFE6E9')('~/.acfm/memory.db')} on your machine.\n\n` +
+      '  When enabled, your AI assistants will automatically:\n' +
+      `    ${chalk.hex('#00CEC9')('◆')} Remember architectural decisions, bugfixes & patterns\n` +
+      `    ${chalk.hex('#00CEC9')('◆')} Recall relevant context when you start a new task\n` +
+      `    ${chalk.hex('#00CEC9')('◆')} Connect to assistants via MCP (Model Context Protocol)\n\n` +
+      '  Your data never leaves your machine — fully offline & private.'
+    )
+  );
+  console.log();
+
+  const { enableMemory } = await inquirer.prompt([{
+    type: 'confirm',
+    name: 'enableMemory',
+    message: chalk.hex('#B2BEC3')('Enable NexusVault persistent memory?'),
+    default: true,
+  }]);
+
+  if (!enableMemory) {
+    console.log();
+    console.log(chalk.hex('#636E72')('  Skipped. You can enable it later with: acfm memory init'));
+    console.log();
+    return;
+  }
+
+  console.log();
+  console.log(chalk.hex('#B2BEC3')('  Initializing NexusVault...'));
+
+  // Init the SQLite database
+  const { initDatabase, isDatabaseInitialized } = await import('../memory/database.js');
+  if (!isDatabaseInitialized()) {
+    initDatabase();
+  }
+  console.log(
+    chalk.hex('#00CEC9')('  ◆ ') +
+    chalk.hex('#DFE6E9')('NexusVault database created at ~/.acfm/memory.db')
+  );
+
+  // Install MCP server into detected assistants
+  console.log();
+  console.log(chalk.hex('#B2BEC3')('  Connecting NexusVault to your AI assistants via MCP...'));
+  console.log();
+
+  const { detectAndInstallMCPs, ASSISTANTS, isAssistantInstalled } = await import('../services/mcp-installer.js');
+  const { installed, success } = detectAndInstallMCPs();
+
+  if (installed === 0) {
+    console.log(chalk.hex('#636E72')('  No AI assistants detected yet.'));
+    console.log(chalk.hex('#636E72')('  Run ' + chalk.hex('#DFE6E9')('acfm memory install-mcps') + ' after installing an assistant.'));
+  } else {
+    for (const assistant of ASSISTANTS) {
+      if (isAssistantInstalled(assistant)) {
+        console.log(
+          chalk.hex('#00CEC9')('  ◆ ') +
+          chalk.hex('#DFE6E9').bold(assistant.name) +
+          chalk.hex('#636E72')(` · MCP config → ${assistant.configPath}`)
+        );
+      }
+    }
+    console.log();
+    const successBadge = chalk.hex('#2D3436').bgHex('#00CEC9').bold(` ${success}/${installed} `);
+    console.log(`  ${successBadge} ${chalk.hex('#B2BEC3')('assistants connected to NexusVault')}`);
+  }
+
+  console.log();
+  console.log(chalk.hex('#6C5CE7').bold('  NexusVault is active.'));
+  console.log(chalk.hex('#636E72')('  Use acfm memory --help to manage your knowledge base.'));
+  console.log();
+}
 
 // ── Helpers ──────────────────────────────────────────────────────
 
@@ -423,6 +520,7 @@ export async function initCommand(options = {}) {
     // ── Final result ──────────────────────────────────────────────
     if (errors.length === 0) {
       await celebrateSuccess(installed, targetDir);
+      await setupPersistentMemory();
     } else {
       await showFailureSummary(installed, errors);
     }

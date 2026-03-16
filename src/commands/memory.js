@@ -706,61 +706,122 @@ export function memoryCommand() {
 
   // ─── acfm memory session ───────────────────────────────────────────────────
   const sessionCmd = new Command('session')
-    .description('Gestión de sesiones de memoria');
+  .description('Gestión de sesiones de memoria');
   
   sessionCmd
-    .command('start')
-    .description('Inicia nueva sesión')
-    .option('-p, --project <path>', 'Proyecto', process.cwd())
-    .option('-c, --change <name>', 'Change')
-    .option('--json', 'Output as JSON')
-    .action((opts) => {
-      try {
-        ensureInitialized();
-        
-        const sessionId = startSession(opts.project, opts.change);
-        
-        output({ sessionId, project: opts.project, change: opts.change }, opts.json);
-        
-        if (!opts.json) {
-          console.log(chalk.green('✓ Session started'));
-          console.log(chalk.dim(`  ID: ${sessionId}`));
-        }
-      } catch (err) {
-        output({ error: err.message }, opts.json);
-        if (!opts.json) console.error(chalk.red(`Error: ${err.message}`));
-        process.exit(1);
+  .command('start')
+  .description('Inicia nueva sesión')
+  .option('-p, --project <path>', 'Proyecto', process.cwd())
+  .option('-c, --change <name>', 'Change')
+  .option('--json', 'Output as JSON')
+  .action((opts) => {
+    try {
+      ensureInitialized();
+      
+      const sessionId = startSession(opts.project, opts.change);
+      
+      output({ sessionId, project: opts.project, change: opts.change }, opts.json);
+      
+      if (!opts.json) {
+        console.log(chalk.green('✓ Session started'));
+        console.log(chalk.dim(`  ID: ${sessionId}`));
       }
-    });
+    } catch (err) {
+      output({ error: err.message }, opts.json);
+      if (!opts.json) console.error(chalk.red(`Error: ${err.message}`));
+      process.exit(1);
+    }
+  });
   
   sessionCmd
-    .command('end <sessionId>')
-    .description('Finaliza sesión')
-    .option('-s, --summary <text>', 'Resumen de la sesión')
-    .option('--json', 'Output as JSON')
-    .action((sessionId, opts) => {
-      try {
-        ensureInitialized();
-        
-        endSession(sessionId, opts.summary);
-        
-        output({ ended: true, sessionId }, opts.json);
-        
-        if (!opts.json) {
-          console.log(chalk.green('✓ Session ended'));
-          if (opts.summary) {
-            console.log(chalk.dim('Summary saved as memory'));
-          }
+  .command('end <sessionId>')
+  .description('Finaliza sesión')
+  .option('-s, --summary <text>', 'Resumen de la sesión')
+  .option('--json', 'Output as JSON')
+  .action((sessionId, opts) => {
+    try {
+      ensureInitialized();
+      
+      endSession(sessionId, opts.summary);
+      
+      output({ ended: true, sessionId }, opts.json);
+      
+      if (!opts.json) {
+        console.log(chalk.green('✓ Session ended'));
+        if (opts.summary) {
+          console.log(chalk.dim('Summary saved as memory'));
         }
-      } catch (err) {
-        output({ error: err.message }, opts.json);
-        if (!opts.json) console.error(chalk.red(`Error: ${err.message}`));
-        process.exit(1);
       }
-    });
+    } catch (err) {
+      output({ error: err.message }, opts.json);
+      if (!opts.json) console.error(chalk.red(`Error: ${err.message}`));
+      process.exit(1);
+    }
+  });
   
   memory.addCommand(sessionCmd);
-
+  
+  // ─── acfm memory install-mcps ───────────────────────────────────────────────
+  memory
+  .command('install-mcps')
+  .description('Instala servidores MCP para asistentes de IA detectados')
+  .option('--all', 'Instalar para todos (sin requerir detección)', false)
+  .option('--json', 'Output as JSON')
+  .action(async (opts) => {
+    try {
+      const { detectAndInstallMCPs, installAllMCPs, ASSISTANTS, isAssistantInstalled } = await import('../services/mcp-installer.js');
+      
+      const result = opts.all ? installAllMCPs() : detectAndInstallMCPs();
+      
+      output({ total: result.total ?? result.installed, success: result.success }, opts.json);
+      
+      if (!opts.json) {
+        if (!opts.all) {
+          if (result.installed === 0) {
+            console.log(chalk.yellow('No AI assistants detected.'));
+            console.log(chalk.dim('Use --all to install for all supported assistants.'));
+            return;
+          }
+          for (const assistant of ASSISTANTS) {
+            if (isAssistantInstalled(assistant)) {
+              console.log(
+                chalk.cyan('◆ ') + chalk.bold(assistant.name) +
+                chalk.dim(` → ${assistant.configPath}`)
+              );
+            }
+          }
+        }
+        console.log(chalk.green(`\n✓ MCP servers installed (${result.success}/${result.total ?? result.installed})`));
+      }
+    } catch (err) {
+      output({ error: err.message }, opts.json);
+      if (!opts.json) console.error(chalk.red(`Error: ${err.message}`));
+      process.exit(1);
+    }
+  });
+  
+  // ─── acfm memory uninstall-mcps ───────────────────────────────────────────
+  memory
+  .command('uninstall-mcps')
+  .description('Desinstala servidores MCP de asistentes de IA')
+  .option('--json', 'Output as JSON')
+  .action(async (opts) => {
+    try {
+      const { uninstallAllMCPs } = await import('../services/mcp-installer.js');
+      const result = uninstallAllMCPs();
+      
+      output({ success: result.success }, opts.json);
+      
+      if (!opts.json) {
+        console.log(chalk.green(`✓ MCP servers uninstalled (${result.success})`));
+      }
+    } catch (err) {
+      output({ error: err.message }, opts.json);
+      if (!opts.json) console.error(chalk.red(`Error: ${err.message}`));
+      process.exit(1);
+    }
+  });
+  
   return memory;
 }
 

@@ -1,0 +1,727 @@
+#!/usr/bin/env node
+
+/**
+ * MCP Server for AC Framework Memory System
+ * Exposes memory system functionality via Model Context Protocol
+ */
+
+import { Server } from "@modelcontextprotocol/sdk/server/index.js";
+import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
+import {
+  initDatabase,
+  isDatabaseInitialized,
+  saveMemory,
+  searchMemories,
+  getContext,
+  getTimeline,
+  getMemory,
+  updateMemory,
+  deleteMemory,
+  startSession,
+  endSession,
+  getStats,
+  findPatterns,
+  getConnections,
+  anticipateNeeds,
+  exportMemories,
+  importMemories,
+  pruneMemories,
+  MEMORY_TYPES,
+  IMPORTANCE_LEVELS
+} from "../memory/index.js";
+
+class MCPMemoryServer {
+  constructor() {
+    this.server = new Server(
+      {
+        name: "ac-framework-memory",
+        version: "1.0.0",
+      },
+      {
+        capabilities: {
+          resources: {},
+          tools: {},
+          prompts: {},
+        },
+      }
+    );
+
+    this.setupHandlers();
+    
+    // Initialize database if not already done
+    if (!isDatabaseInitialized()) {
+      initDatabase();
+      console.error("Memory system initialized for MCP server");
+    }
+  }
+
+  setupHandlers() {
+    // Register tools
+    this.server.setRequestHandler("tools/list", async () => ({
+      tools: [
+        {
+          name: "memory_save",
+          description: "Save a memory observation",
+          inputSchema: {
+            type: "object",
+            properties: {
+              content: { type: "string", description: "Content to save in memory" },
+              type: { 
+                type: "string", 
+                enum: MEMORY_TYPES,
+                default: "general_insight",
+                description: "Type of memory"
+              },
+              importance: {
+                type: "string",
+                enum: IMPORTANCE_LEVELS,
+                default: "medium",
+                description: "Importance level"
+              },
+              tags: {
+                type: "array",
+                items: { type: "string" },
+                description: "Tags for categorization"
+              },
+              projectPath: { type: "string", description: "Associated project path" },
+              changeName: { type: "string", description: "Associated change name" },
+              confidence: { 
+                type: "number", 
+                minimum: 0, 
+                maximum: 1,
+                description: "Confidence score (0-1)"
+              }
+            },
+            required: ["content"]
+          }
+        },
+        {
+          name: "memory_search",
+          description: "Search memories using full-text search",
+          inputSchema: {
+            type: "object",
+            properties: {
+              query: { type: "string", description: "Search query" },
+              limit: { type: "number", default: 10, description: "Maximum results" },
+              type: { 
+                type: "string", 
+                enum: MEMORY_TYPES,
+                description: "Filter by memory type"
+              },
+              importance: {
+                type: "string",
+                enum: IMPORTANCE_LEVELS,
+                description: "Filter by importance"
+              },
+              projectPath: { type: "string", description: "Filter by project path" },
+              minConfidence: { 
+                type: "number", 
+                minimum: 0, 
+                maximum: 1,
+                default: 0,
+                description: "Minimum confidence score"
+              }
+            },
+            required: ["query"]
+          }
+        },
+        {
+          name: "memory_recall",
+          description: "Recall relevant context for a task or project",
+          inputSchema: {
+            type: "object",
+            properties: {
+              task: { type: "string", description: "Specific task to recall context for" },
+              projectPath: { type: "string", description: "Project path" },
+              changeName: { type: "string", description: "Change name" },
+              limit: { type: "number", default: 5, description: "Number of memories to return" },
+              days: { type: "number", default: 30, description: "Days to look back" }
+            }
+          }
+        },
+        {
+          name: "memory_get",
+          description: "Get a specific memory by ID",
+          inputSchema: {
+            type: "object",
+            properties: {
+              id: { type: "number", description: "Memory ID" }
+            },
+            required: ["id"]
+          }
+        },
+        {
+          name: "memory_timeline",
+          description: "Get timeline around a specific memory",
+          inputSchema: {
+            type: "object",
+            properties: {
+              id: { type: "number", description: "Memory ID" },
+              window: { type: "number", default: 3, description: "Number of memories before/after" }
+            },
+            required: ["id"]
+          }
+        },
+        {
+          name: "memory_stats",
+          description: "Get memory system statistics",
+          inputSchema: {
+            type: "object",
+            properties: {
+              projectPath: { type: "string", description: "Filter by project path" },
+              since: { type: "string", description: "ISO date string to filter from" }
+            }
+          }
+        },
+        {
+          name: "memory_patterns",
+          description: "Find patterns in memories",
+          inputSchema: {
+            type: "object",
+            properties: {
+              type: { 
+                type: "string", 
+                enum: MEMORY_TYPES,
+                description: "Filter by memory type"
+              },
+              minFrequency: { 
+                type: "number", 
+                default: 2,
+                description: "Minimum frequency for pattern detection"
+              }
+            }
+          }
+        },
+        {
+          name: "memory_anticipate",
+          description: "Anticipate memories needed for a future task",
+          inputSchema: {
+            type: "object",
+            properties: {
+              task: { type: "string", description: "Task to anticipate needs for" },
+              projectPath: { type: "string", description: "Project path" },
+              limit: { type: "number", default: 5, description: "Number of suggestions" }
+            },
+            required: ["task"]
+          }
+        },
+        {
+          name: "memory_export",
+          description: "Export memories to JSON",
+          inputSchema: {
+            type: "object",
+            properties: {
+              filePath: { type: "string", description: "File path to export to (optional)" },
+              shareableOnly: { type: "boolean", default: true, description: "Only export shareable memories" },
+              projectPath: { type: "string", description: "Filter by project path" },
+              since: { type: "string", description: "ISO date string to filter from" }
+            }
+          }
+        },
+        {
+          name: "memory_import",
+          description: "Import memories from JSON",
+          inputSchema: {
+            type: "object",
+            properties: {
+              filePath: { type: "string", description: "File path to import from" },
+              merge: { type: "boolean", default: true, description: "Merge with existing memories" }
+            },
+            required: ["filePath"]
+          }
+        },
+        {
+          name: "memory_prune",
+          description: "Prune obsolete memories",
+          inputSchema: {
+            type: "object",
+            properties: {
+              olderThanDays: { 
+                type: "number", 
+                default: 90,
+                description: "Delete memories older than this many days"
+              },
+              dryRun: { type: "boolean", default: false, description: "Show what would be pruned without actually deleting" }
+            }
+          }
+        }
+      ]
+    }));
+
+    this.server.setRequestHandler("tools/call", async (request) => {
+      try {
+        switch (request.params.name) {
+          case "memory_save": {
+            const result = await saveMemory({
+              content: request.params.arguments.content,
+              type: request.params.arguments.type,
+              importance: request.params.arguments.importance,
+              tags: request.params.arguments.tags,
+              projectPath: request.params.arguments.projectPath,
+              changeName: request.params.arguments.changeName,
+              confidence: request.params.arguments.confidence
+            });
+            return {
+              content: [
+                {
+                  type: "text",
+                  text: JSON.stringify({
+                    success: true,
+                    id: result.id,
+                    operation: result.operation,
+                    revisionCount: result.revisionCount
+                  }, null, 2)
+                }
+              ]
+            };
+          }
+          case "memory_search": {
+            const results = await searchMemories(
+              request.params.arguments.query,
+              {
+                limit: request.params.arguments.limit,
+                type: request.params.arguments.type,
+                importance: request.params.arguments.importance,
+                projectPath: request.params.arguments.projectPath,
+                minConfidence: request.params.arguments.minConfidence
+              }
+            );
+            return {
+              content: [
+                {
+                  type: "text",
+                  text: JSON.stringify({
+                    query: request.params.arguments.query,
+                    count: results.length,
+                    results: results
+                  }, null, 2)
+                }
+              ]
+            };
+          }
+          case "memory_recall": {
+            const results = await getContext({
+              projectPath: request.params.arguments.projectPath,
+              changeName: request.params.arguments.changeName,
+              currentTask: request.params.arguments.task,
+              limit: request.params.arguments.limit,
+              lookbackDays: request.params.arguments.days
+            });
+            return {
+              content: [
+                {
+                  type: "text",
+                  text: JSON.stringify({
+                    task: request.params.arguments.task || null,
+                    projectPath: request.params.arguments.projectPath,
+                    count: results.length,
+                    memories: results
+                  }, null, 2)
+                }
+              ]
+            };
+          }
+          case "memory_get": {
+            const memory = await getMemory(request.params.arguments.id);
+            if (!memory) {
+              return {
+                content: [
+                  {
+                    type: "text",
+                    text: JSON.stringify({ error: "Memory not found" })
+                  }
+                ],
+                isError: true
+              };
+            }
+            return {
+              content: [
+                {
+                  type: "text",
+                  text: JSON.stringify({ memory }, null, 2)
+                }
+              ]
+            };
+          }
+          case "memory_timeline": {
+            const timeline = await getTimeline(
+              request.params.arguments.id,
+              {
+                window: request.params.arguments.window
+              }
+            );
+            if (!timeline) {
+              return {
+                content: [
+                  {
+                    type: "text",
+                    text: JSON.stringify({ error: "Memory not found" })
+                  }
+                ],
+                isError: true
+              };
+            }
+            return {
+              content: [
+                {
+                  type: "text",
+                  text: JSON.stringify(timeline, null, 2)
+                }
+              ]
+            };
+          }
+          case "memory_stats": {
+            const stats = await getStats({
+              projectPath: request.params.arguments.projectPath,
+              since: request.params.arguments.since
+            });
+            return {
+              content: [
+                {
+                  type: "text",
+                  text: JSON.stringify(stats, null, 2)
+                }
+              ]
+            };
+          }
+          case "memory_patterns": {
+            const patterns = await findPatterns({
+              type: request.params.arguments.type,
+              minFrequency: request.params.arguments.minFrequency
+            });
+            return {
+              content: [
+                {
+                  type: "text",
+                  text: JSON.stringify({ patterns }, null, 2)
+                }
+              ]
+            };
+          }
+          case "memory_anticipate": {
+            const memories = await anticipateNeeds(
+              request.params.arguments.task,
+              request.params.arguments.projectPath
+            );
+            return {
+              content: [
+                {
+                  type: "text",
+                  text: JSON.stringify({
+                    task: request.params.arguments.task,
+                    suggestions: memories.slice(0, request.params.arguments.limit || 5)
+                  }, null, 2)
+                }
+              ]
+            };
+          }
+          case "memory_export": {
+            const memories = await exportMemories({
+              shareableOnly: request.params.arguments.shareableOnly,
+              projectPath: request.params.arguments.projectPath,
+              since: request.params.arguments.since
+            });
+            const exportData = {
+              exportedAt: new Date().toISOString(),
+              count: memories.length,
+              memories: memories
+            };
+            if (request.params.arguments.filePath) {
+              const fs = await import("node:fs");
+              const { writeFileSync } = fs;
+              writeFileSync(
+                request.params.arguments.filePath,
+                JSON.stringify(exportData, null, 2)
+              );
+              return {
+                content: [
+                  {
+                    type: "text",
+                    text: JSON.stringify({
+                      success: true,
+                      message: `Exported ${memories.length} memories to ${request.params.arguments.filePath}`
+                    }, null, 2)
+                  }
+                ]
+              };
+            } else {
+              return {
+                content: [
+                  {
+                    type: "text",
+                    text: JSON.stringify(exportData, null, 2)
+                  }
+                ]
+              };
+            }
+          }
+          case "memory_import": {
+            const fs = await import("node:fs");
+            const { readFileSync } = fs;
+            const data = JSON.parse(readFileSync(request.params.arguments.filePath, "utf-8"));
+            const memories = data.memories || data;
+            const results = await importMemories(memories, { merge: request.params.arguments.merge });
+            const success = results.filter(r => r.success);
+            const failed = results.filter(r => !r.success);
+            return {
+              content: [
+                {
+                  type: "text",
+                  text: JSON.stringify({
+                    imported: success.length,
+                    failed: failed.length,
+                    results: results
+                  }, null, 2)
+                }
+              ]
+            };
+          }
+          case "memory_prune": {
+            const result = await pruneMemories({
+              olderThanDays: request.params.arguments.olderThanDays,
+              dryRun: request.params.arguments.dryRun
+            });
+            return {
+              content: [
+                {
+                  type: "text",
+                  text: JSON.stringify(result, null, 2)
+                }
+              ]
+            };
+          }
+          default:
+            throw new Error(`Unknown tool: ${request.params.name}`);
+        }
+      } catch (error) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: JSON.stringify({ error: error.message })
+            }
+          ],
+          isError: true
+        };
+      }
+    });
+
+    // Register resources
+    this.server.setRequestHandler("resources/list", async () => ({
+      resources: [
+        {
+          uri: "memory://stats",
+          name: "Memory Statistics",
+          description: "Current memory system statistics",
+          mimeType: "application/json"
+        },
+        {
+          uri: "memory://types",
+          name: "Memory Types",
+          description: "Available memory types and their descriptions",
+          mimeType: "application/json"
+        },
+        {
+          uri: "memory://patterns",
+          name: "Memory Patterns",
+          description: "Detected patterns in memory system",
+          mimeType: "application/json"
+        }
+      ]
+    }));
+
+    this.server.setRequestHandler("resources/read", async (request) => {
+      try {
+        switch (request.params.uri) {
+          case "memory://stats": {
+            const stats = await getStats();
+            return {
+              contents: [
+                {
+                  uri: request.params.uri,
+                  mimeType: "application/json",
+                  text: JSON.stringify(stats, null, 2)
+                }
+              ]
+            };
+          }
+          case "memory://types": {
+            const types = MEMORY_TYPES.map(type => ({
+              type,
+              description: getMemoryTypeDescription(type)
+            }));
+            return {
+              contents: [
+                {
+                  uri: request.params.uri,
+                  mimeType: "application/json",
+                  text: JSON.stringify({ types }, null, 2)
+                }
+              ]
+            };
+          }
+          case "memory://patterns": {
+            const patterns = await findPatterns({ minFrequency: 2 });
+            return {
+              contents: [
+                {
+                  uri: request.params.uri,
+                  mimeType: "application/json",
+                  text: JSON.stringify({ patterns }, null, 2)
+                }
+              ]
+            };
+          }
+          default:
+            throw new Error(`Unknown resource: ${request.params.uri}`);
+        }
+      } catch (error) {
+        return {
+          contents: [
+            {
+              uri: request.params.uri,
+              mimeType: "application/json",
+              text: JSON.stringify({ error: error.message })
+            }
+          ],
+          isError: true
+        };
+      }
+    });
+
+    // Register prompts
+    this.server.setRequestHandler("prompts/list", async () => ({
+      prompts: [
+        {
+          name: "memory_recall_prompt",
+          description: "Prompt to recall relevant memories before starting work",
+          arguments: [
+            {
+              name: "task",
+              description: "Task description to recall context for",
+              required: true
+            }
+          ]
+        },
+        {
+          name: "memory_search_prompt",
+          description: "Prompt to search for specific memories",
+          arguments: [
+            {
+              name: "query",
+              description: "Search query",
+              required: true
+            }
+          ]
+        },
+        {
+          name: "memory_anticipate_prompt",
+          description: "Prompt to anticipate memories needed for future work",
+          arguments: [
+            {
+              name: "task",
+              description: "Future task to anticipate needs for",
+              required: true
+            }
+          ]
+        }
+      ]
+    }));
+
+    this.server.setRequestHandler("prompts/get", async (request) => {
+      try {
+        switch (request.params.name) {
+          case "memory_recall_prompt": {
+            return {
+              description: "Recall relevant memories for the specified task",
+              messages: [
+                {
+                  role: "user",
+                  content: {
+                    type: "text",
+                    text: `Please recall relevant memories for this task: ${request.params.arguments.task}`
+                  }
+                ]
+              ];
+          }
+          case "memory_search_prompt": {
+            return {
+              description: "Search for memories matching the query",
+              messages: [
+                {
+                  role: "user",
+                  content: {
+                    type: "text",
+                    text: `Please search memories for: ${request.params.arguments.query}`
+                  }
+                ]
+              ];
+          }
+          case "memory_anticipate_prompt": {
+            return {
+              description: "Anticipate memories that will be needed for future work",
+              messages: [
+                {
+                  role: "user",
+                  content: {
+                    type: "text",
+                    text: `Please anticipate what memories will be needed for: ${request.params.arguments.task}`
+                  }
+                ]
+              ];
+          }
+          default:
+            throw new Error(`Unknown prompt: ${request.params.name}`);
+        }
+      } catch (error) {
+        return {
+          description: "Error loading prompt",
+          messages: [
+            {
+              role: "user",
+              content: {
+                type: "text",
+                text: `Error: ${error.message}`
+              }
+            ]
+          ];
+        }
+      }
+    });
+  }
+
+  async run() {
+    const transport = new StdioServerTransport();
+    await this.server.connect(transport);
+    console.error("AC Framework Memory MCP Server running on stdio");
+  }
+}
+
+function getMemoryTypeDescription(type) {
+  const descriptions = {
+    architectural_decision: "Major design decisions about system architecture",
+    bugfix_pattern: "Solutions to bugs and issues encountered",
+    api_pattern: "Patterns and best practices for API design",
+    performance_insight: "Learnings from performance optimization work",
+    security_fix: "Security vulnerability fixes and patches",
+    refactor_technique: "Successful code refactoring patterns",
+    dependency_note: "Notes about project dependencies and versions",
+    workaround: "Temporary solutions to problems",
+    convention: "Established project conventions and standards",
+    context_boundary: "Defined system boundaries and limitations",
+    general_insight: "General insights and learnings",
+    session_summary: "Summary of work completed in a session"
+  };
+  return descriptions[type] || "Memory type description not available";
+}
+
+// Start server if called directly
+if (import.meta.url === `file://${process.argv[1]}`) {
+  const server = new MCPMemoryServer();
+  server.run().catch(error => {
+    console.error("Failed to start MCP server:", error);
+    process.exit(1);
+  });
+}
+
+export default MCPMemoryServer;

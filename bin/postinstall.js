@@ -29,6 +29,10 @@ console.log('      acfm memory search       Search memories');
 console.log('      acfm memory save         Save memory manually');
 console.log('      acfm memory stats        View memory statistics');
 console.log();
+console.log('    MCP (Model Context Protocol) Servers');
+console.log('      acfm memory install-mcps   Install MCP servers for AI assistants');
+console.log('      acfm memory uninstall-mcps Uninstall MCP servers from AI assistants');
+console.log();
 console.log('    Tip: Add --json to any command for machine-readable output.');
 console.log();
 
@@ -43,4 +47,13 @@ if (isWin) {
   console.log('       - Add the npm prefix path');
   console.log('    4. Restart your terminal');
   console.log();
+}
+
+// Auto-detect and install MCPs for supported assistants
+try {
+  const { detectAndInstallMCPs } = require('../src/services/mcp-installer');
+  detectAndInstallMCPs();
+} catch (error) {
+  // Silently fail if MCP installer is not available yet
+  // This allows the framework to work without MCP dependencies during early development
 }
