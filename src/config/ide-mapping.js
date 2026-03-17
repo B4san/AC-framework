@@ -23,7 +23,7 @@ export const IDE_MD_MAP = {
   '.kimi': 'AGENTS.md',
   '.opencode': 'AGENTS.md',
   '.qoder': 'AGENTS.md',
-  '.qwen': 'QWEN.md',
+  '.qwen': 'AGENTS.md',
   '.roo': 'AGENTS.md',
   '.trae': 'AGENTS.md',
   '.windsurf': 'AGENTS.md',
@@ -43,6 +43,5 @@ export const MD_DESCRIPTIONS = {
   'AGENTS.md': 'Generic agent instructions (used by most assistants)',
   'CLAUDE.md': 'Anthropic Claude Code instructions',
   'GEMINI.md': 'Google Gemini instructions',
-  'QWEN.md': 'Qwen (Alibaba Cloud) instructions',
   'copilot-instructions.md': 'GitHub Copilot instructions',
 };

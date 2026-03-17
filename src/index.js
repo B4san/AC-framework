@@ -1,7 +1,20 @@
-export { getSelectableModules, expandWithBundled, copyModule, copyMdFile, FRAMEWORK_PATH } from './services/installer.js';
+export {
+  getAvailableTemplates,
+  getSelectableModules,
+  resolveTemplatePath,
+  expandWithBundled,
+  copyModule,
+  copyMdFile,
+  saveTemplateSelection,
+  readTemplateSelection,
+  detectTemplateForModules,
+  FRAMEWORK_PATH,
+  DEFAULT_TEMPLATE,
+  TEMPLATE_METADATA_FILE,
+} from './services/installer.js';
 export { downloadFramework, cleanupTempDir, downloadWithSpinner } from './services/github-sync.js';
 export { detectIDE } from './services/detector.js';
-export { ALWAYS_INSTALL, BUNDLED, DESCRIPTIONS, GITHUB_CONFIG } from './config/constants.js';
+export { ALWAYS_INSTALL, BUNDLED, DESCRIPTIONS, GITHUB_CONFIG, TEMPLATE_DESCRIPTIONS } from './config/constants.js';
 export { IDE_MD_MAP, AVAILABLE_MD_FILES } from './config/ide-mapping.js';
 export {
   initProject,

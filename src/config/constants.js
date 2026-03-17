@@ -80,3 +80,54 @@ export const ASSISTANT_ICONS = {
   '.trae': '▸',
   '.windsurf': '◇',
 };
+
+export const TEMPLATE_DESCRIPTIONS = {
+  new_project: 'Best default for greenfield projects with the full skill catalog.',
+  mobile_development: 'Mobile-focused setup with general workflow skills and less web-specific specialization.',
+  web_development: 'Web-focused setup with UI, API, testing, performance, and React-oriented guidance.',
+};
+
+export const TEMPLATE_CAPABILITIES = {
+  new_project: [
+    'Full spec-driven workflow from planning to archive',
+    'Broad skill catalog for app, API, quality, and security work',
+    'Best starting point when project type is still flexible',
+  ],
+  mobile_development: [
+    'Spec-driven workflow plus general execution and documentation skills',
+    'Reduced specialization to keep the template lighter and more adaptable',
+    'Good fit for React Native, Flutter, Kotlin, Swift, or hybrid teams',
+  ],
+  web_development: [
+    'Web UI, API, testing, security, and performance oriented workflow',
+    'Includes interface and API design guidance for product development',
+    'Ideal for frontend, fullstack, dashboard, and SaaS-style projects',
+  ],
+};
+
+export const TEMPLATE_SKILL_PREVIEWS = {
+  new_project: [
+    'brainstorming',
+    'project-index',
+    'spec-clarification',
+    'test-generator',
+    'code-review',
+    'secure-coding-cybersecurity',
+  ],
+  mobile_development: [
+    'brainstorming',
+    'project-index',
+    'spec-analysis',
+    'context-synthesizer',
+    'systematic-debugging',
+    'openspec-apply-change',
+  ],
+  web_development: [
+    'api-design-principles',
+    'interface-design',
+    'vercel-react-best-practices',
+    'test-generator',
+    'performance-optimizer',
+    'secure-coding-cybersecurity',
+  ],
+};

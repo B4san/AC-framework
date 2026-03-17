@@ -13,13 +13,18 @@
 import chalk from 'chalk';
 import gradient from 'gradient-string';
 import inquirer from 'inquirer';
-import { DESCRIPTIONS, ALWAYS_INSTALL, BUNDLED } from '../config/constants.js';
+import { DESCRIPTIONS, ALWAYS_INSTALL, BUNDLED, TEMPLATE_DESCRIPTIONS } from '../config/constants.js';
 import { AVAILABLE_MD_FILES, MD_DESCRIPTIONS } from '../config/ide-mapping.js';
-import { formatFolderName, sleep } from '../utils/helpers.js';
+import { formatFolderName, formatTemplateName, sleep } from '../utils/helpers.js';
 import {
   existsInTarget,
   copyModule,
   copyMdFile,
+  detectTemplateForModules,
+  getAvailableTemplates,
+  readTemplateSelection,
+  resolveTemplatePath,
+  saveTemplateSelection,
 } from '../services/installer.js';
 import { downloadWithSpinner, cleanupTempDir } from '../services/github-sync.js';
 import { showBanner } from '../ui/banner.js';
@@ -34,6 +39,16 @@ import {
 } from '../ui/animations.js';
 
 const acGradient = gradient(['#6C5CE7', '#00CEC9', '#0984E3']);
+
+function buildTemplateChoices(templates) {
+  return templates.map((template) => ({
+    name:
+      `${chalk.hex('#DFE6E9').bold(formatTemplateName(template))}` +
+      chalk.hex('#636E72')(` · ${TEMPLATE_DESCRIPTIONS[template] || 'Template for AI-assisted development workflows'}`),
+    value: template,
+    short: formatTemplateName(template),
+  }));
+}
 
 // ── Main command ─────────────────────────────────────────────────
 
@@ -145,11 +160,50 @@ export async function updateCommand(options = {}) {
 
   let tempDir = null;
   let commitSha = null;
+  let templatePath = null;
+  let resolvedTemplate = null;
 
   try {
     const result = await downloadWithSpinner({ branch: options.branch });
     tempDir = result.tempDir;
     commitSha = result.commitSha;
+    resolvedTemplate = await readTemplateSelection(targetDir);
+
+    if (!resolvedTemplate) {
+      const availableTemplates = await getAvailableTemplates(tempDir);
+      const matches = [];
+
+      for (const template of availableTemplates) {
+        const templateSource = await resolveTemplatePath(template, tempDir);
+        const isMatch = await Promise.all(installedModules.map((mod) => existsInTarget(templateSource, mod)));
+        if (isMatch.every(Boolean)) {
+          matches.push(template);
+        }
+      }
+
+      if (matches.length === 1) {
+        [resolvedTemplate] = matches;
+      } else if (matches.length > 1) {
+        console.log(chalk.hex('#FDCB6E')('  No saved template metadata found, and multiple templates match this project.'));
+        console.log();
+
+        const { selectedTemplate } = await inquirer.prompt([
+          {
+            type: 'list',
+            name: 'selectedTemplate',
+            message: acGradient('Choose the template to use for this update:'),
+            choices: buildTemplateChoices(matches),
+            pageSize: 10,
+          },
+        ]);
+
+        resolvedTemplate = selectedTemplate;
+      } else {
+        resolvedTemplate = await detectTemplateForModules(installedModules, tempDir);
+      }
+    }
+
+    templatePath = await resolveTemplatePath(resolvedTemplate, tempDir);
   } catch (err) {
     console.log();
     console.log(chalk.hex('#D63031')(`  ✗ ${err.message}`));
@@ -164,6 +218,14 @@ export async function updateCommand(options = {}) {
     console.log();
   }
 
+  if (resolvedTemplate) {
+    console.log(
+      chalk.hex('#636E72')('  Template source: ') +
+      chalk.hex('#DFE6E9')(resolvedTemplate)
+    );
+    console.log();
+  }
+
   // ── Step 3/3: Update modules ──────────────────────────────────
   await animatedSeparator(60);
   console.log();
@@ -175,13 +237,13 @@ export async function updateCommand(options = {}) {
   try {
     // Update module folders
     for (const mod of installedModules) {
-      const displayName = formatFolderName(mod);
-      try {
-        await installWithAnimation(displayName, async () => {
-          await copyModule(mod, targetDir, tempDir);
-        });
-        updated++;
-      } catch (err) {
+        const displayName = formatFolderName(mod);
+        try {
+          await installWithAnimation(displayName, async () => {
+            await copyModule(mod, targetDir, templatePath);
+          });
+          updated++;
+        } catch (err) {
         errors.push({ folder: mod, error: err.message });
       }
       await sleep(80);
@@ -191,7 +253,7 @@ export async function updateCommand(options = {}) {
     for (const md of installedMdFiles) {
       try {
         await installWithAnimation(md, async () => {
-          await copyMdFile(md, targetDir, tempDir);
+          await copyMdFile(md, targetDir, templatePath);
         });
         updated++;
       } catch (err) {
@@ -206,6 +268,9 @@ export async function updateCommand(options = {}) {
 
   // ── Results ───────────────────────────────────────────────────
   if (errors.length === 0) {
+    if (resolvedTemplate) {
+      await saveTemplateSelection(targetDir, resolvedTemplate);
+    }
     await celebrateSuccess(updated, targetDir);
   } else {
     await showFailureSummary(updated, errors);

@@ -17,17 +17,27 @@ import inquirer from 'inquirer';
 import { existsSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
-import { DESCRIPTIONS, ASSISTANT_ICONS, BUNDLED } from '../config/constants.js';
+import {
+  DESCRIPTIONS,
+  ASSISTANT_ICONS,
+  BUNDLED,
+  TEMPLATE_DESCRIPTIONS,
+  TEMPLATE_CAPABILITIES,
+  TEMPLATE_SKILL_PREVIEWS,
+} from '../config/constants.js';
 import { IDE_MD_MAP, AVAILABLE_MD_FILES, MD_DESCRIPTIONS } from '../config/ide-mapping.js';
-import { formatFolderName, sleep } from '../utils/helpers.js';
+import { formatFolderName, formatTemplateName, sleep } from '../utils/helpers.js';
 import { detectIDE } from '../services/detector.js';
 import {
+  getAvailableTemplates,
   getSelectableModules,
+  resolveTemplatePath,
   expandWithBundled,
   existsInTarget,
   copyModule,
   copyMdFile,
   FRAMEWORK_PATH,
+  saveTemplateSelection,
 } from '../services/installer.js';
 import { downloadWithSpinner, cleanupTempDir } from '../services/github-sync.js';
 import {
@@ -165,6 +175,40 @@ function buildChoices(folders) {
   }
 
   return choices;
+}
+
+function buildTemplateChoices(templates) {
+  return templates.map((template) => {
+    const displayName = formatTemplateName(template);
+    const desc = TEMPLATE_DESCRIPTIONS[template] || 'Template for AI-assisted development workflows';
+    return {
+      name:
+        `${chalk.hex('#DFE6E9').bold(displayName)}` +
+        chalk.hex('#636E72')(` · ${desc}`),
+      value: template,
+      short: displayName,
+    };
+  });
+}
+
+function printTemplatePreview(template) {
+  const capabilities = TEMPLATE_CAPABILITIES[template] || [];
+  const skills = TEMPLATE_SKILL_PREVIEWS[template] || [];
+
+  if (capabilities.length > 0) {
+    console.log(chalk.hex('#B2BEC3')('  What this template is optimized for:'));
+    for (const item of capabilities) {
+      console.log(chalk.hex('#00CEC9')('  ◆ ') + chalk.hex('#DFE6E9')(item));
+    }
+    console.log();
+  }
+
+  if (skills.length > 0) {
+    console.log(chalk.hex('#B2BEC3')('  Included skill examples:'));
+    const skillLine = skills.map((skill) => `\`${skill}\``).join('  ');
+    console.log(chalk.hex('#6C5CE7')(`  ${skillLine}`));
+    console.log();
+  }
 }
 
 /**
@@ -327,32 +371,70 @@ export async function initCommand(options = {}) {
     }
 
     // ── Step: Scan ────────────────────────────────────────────────
-    await stepHeader(1 + stepOffset, totalSteps, 'Scanning framework modules');
-    await scanAnimation('Indexing available modules', 1000);
+    await stepHeader(1 + stepOffset, totalSteps, 'Scanning framework templates');
+    await scanAnimation('Indexing available templates', 1000);
     console.log();
 
-    let folders;
+    let templates;
     try {
-      folders = await getSelectableModules(frameworkPath);
+      templates = await getAvailableTemplates(frameworkPath);
     } catch {
       console.log(chalk.hex('#D63031')('  ✗ Error: Could not read framework directory.'));
       console.log(chalk.hex('#636E72')('  Make sure ac-framework is installed correctly.'));
       process.exit(1);
     }
 
-    if (folders.length === 0) {
-      console.log(chalk.hex('#FDCB6E')('  No modules found in framework directory.'));
+    if (templates.length === 0) {
+      console.log(chalk.hex('#FDCB6E')('  No templates found in framework directory.'));
       process.exit(0);
     }
 
-    const countBadge = chalk.hex('#2D3436').bgHex('#00CEC9').bold(` ${folders.length} `);
-    console.log(`  ${countBadge} ${chalk.hex('#B2BEC3')('assistant modules found')}`);
+    const countBadge = chalk.hex('#2D3436').bgHex('#00CEC9').bold(` ${templates.length} `);
+    console.log(`  ${countBadge} ${chalk.hex('#B2BEC3')('templates found')}`);
     console.log();
     await animatedSeparator(60);
     console.log();
 
+    // ── Step: Select Template ─────────────────────────────────────
+    await stepHeader(2 + stepOffset, totalSteps, 'Select your template');
+
+    const templateChoices = buildTemplateChoices(templates);
+    const { template } = await inquirer.prompt([
+      {
+        type: 'list',
+        name: 'template',
+        message: acGradient('Choose a development template:'),
+        choices: templateChoices,
+        pageSize: 10,
+      },
+    ]);
+
+    const templatePath = await resolveTemplatePath(template, frameworkPath);
+    const templateBadge = chalk.hex('#2D3436').bgHex('#00CEC9').bold(` ${formatTemplateName(template)} `);
+    console.log();
+    console.log(`  ${chalk.hex('#636E72')('Template:')} ${templateBadge}`);
+    console.log(chalk.hex('#636E72')(`  Source: ${templatePath}`));
+    console.log();
+    printTemplatePreview(template);
+
+    let folders;
+    try {
+      folders = await getSelectableModules(templatePath);
+    } catch {
+      console.log(chalk.hex('#D63031')('  ✗ Error: Could not read template contents.'));
+      process.exit(1);
+    }
+
+    if (folders.length === 0) {
+      console.log(chalk.hex('#FDCB6E')('  No assistant modules found inside the selected template.'));
+      process.exit(0);
+    }
+
+    await animatedSeparator(60);
+    console.log();
+
     // ── Step: Select ──────────────────────────────────────────────
-    await stepHeader(2 + stepOffset, totalSteps, 'Select your assistants');
+    await stepHeader(3 + stepOffset, totalSteps, 'Select your assistants');
 
     const key = (k) => chalk.hex('#2D3436').bgHex('#636E72')(` ${k} `);
     console.log(
@@ -451,7 +533,7 @@ export async function initCommand(options = {}) {
     // ── Step: Instruction Files ───────────────────────────────────
     await animatedSeparator(60);
     console.log();
-    await stepHeader(3 + stepOffset, totalSteps, 'Instruction files');
+    await stepHeader(4 + stepOffset, totalSteps, 'Instruction files');
 
     const mdFiles = await selectMdFiles(selected, targetDir);
 
@@ -486,7 +568,7 @@ export async function initCommand(options = {}) {
     console.log();
     await animatedSeparator(60);
     console.log();
-    await stepHeader(4 + stepOffset, totalSteps, 'Installing modules');
+    await stepHeader(5 + stepOffset, totalSteps, 'Installing modules');
 
     const allToInstall = expandWithBundled(selected);
     let installed = 0;
@@ -494,13 +576,13 @@ export async function initCommand(options = {}) {
 
     // Install module folders
     for (const folder of allToInstall) {
-      const displayName = formatFolderName(folder);
-      try {
-        await installWithAnimation(displayName, async () => {
-          await copyModule(folder, targetDir, frameworkPath);
-        });
-        installed++;
-      } catch (err) {
+        const displayName = formatFolderName(folder);
+        try {
+          await installWithAnimation(displayName, async () => {
+            await copyModule(folder, targetDir, templatePath);
+          });
+          installed++;
+        } catch (err) {
         errors.push({ folder, error: err.message });
       }
       await sleep(80);
@@ -510,7 +592,7 @@ export async function initCommand(options = {}) {
     for (const md of mdFiles) {
       try {
         await installWithAnimation(md, async () => {
-          await copyMdFile(md, targetDir, frameworkPath);
+          await copyMdFile(md, targetDir, templatePath);
         });
         installed++;
       } catch (err) {
@@ -521,6 +603,7 @@ export async function initCommand(options = {}) {
 
     // ── Final result ──────────────────────────────────────────────
     if (errors.length === 0) {
+      await saveTemplateSelection(targetDir, template);
       await celebrateSuccess(installed, targetDir);
       await setupPersistentMemory();
     } else {
