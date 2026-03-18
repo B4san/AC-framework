@@ -6,6 +6,7 @@ It combines three layers in one CLI:
 - template-based assistant configurations for multiple IDEs and AI CLIs
 - a built-in spec-driven workflow inspired by OpenSpec / spec-driven development
 - a persistent local memory system with MCP integration for supported assistants
+- an optional collaborative multi-agent runtime powered by OpenCode + tmux
 
 ## Why AC Framework
 
@@ -25,6 +26,7 @@ The goal is simple: help AI write better code, with more context, more disciplin
 - `Spec-driven workflow` - use `acfm spec` to initialize, create, validate, continue, and archive structured changes.
 - `Persistent memory` - store architectural decisions, bugfixes, refactors, conventions, and context in a local SQLite memory database.
 - `MCP integration` - connect the memory system to supported assistants through MCP so they can recall and save context directly.
+- `Collaborative agents (optional)` - enable SynapseGrid to run planner/critic/coder/reviewer in coordinated tmux panes with shared context.
 - `GitHub sync` - use `acfm init --latest` or `acfm update` to pull the latest framework content from GitHub.
 - `Legacy compatibility` - `.acfm/` is the new default, but existing `openspec/` directories still work.
 
@@ -55,6 +57,7 @@ The CLI now guides you through:
 2. choose one or more assistants from that template
 3. install the matching root instruction files like `AGENTS.md`, `CLAUDE.md`, `GEMINI.md`, or `copilot-instructions.md`
 4. optionally initialize NexusVault persistent memory and MCP connections
+5. optionally enable SynapseGrid collaborative agents (auto-installs OpenCode + tmux)
 
 ### 2. Initialize the spec-driven workspace
 
@@ -122,6 +125,29 @@ Some assistants include bundled companions automatically:
 | `acfm init --branch <name>` | Same as `--latest`, but from a specific branch |
 | `acfm update` | Update installed assistant configs and instruction files using the saved or detected template |
 | `acfm update --branch <name>` | Update from a specific GitHub branch |
+
+### Collaborative Agents (Optional)
+
+SynapseGrid is an optional collaborative runtime that coordinates 4 OpenCode-backed roles in tmux panes:
+- planner
+- critic
+- coder
+- reviewer
+
+Each role runs in turn against a shared, accumulating context so outputs from one agent become input for the next round.
+
+| Command | Description |
+|---|---|
+| `acfm agents setup` | Install optional dependencies (`opencode` and `tmux`) |
+| `acfm agents start --task "..."` | Start a SynapseGrid collaborative session |
+| `acfm agents resume` | Resume a previous session and recreate workers if needed |
+| `acfm agents list` | List recent SynapseGrid sessions |
+| `acfm agents attach` | Attach directly to the SynapseGrid tmux session |
+| `acfm agents logs` | Show recent worker logs (all roles or one role) |
+| `acfm agents export --format md --out file.md` | Export transcript in Markdown or JSON |
+| `acfm agents send "..."` | Send a new user message into the active session |
+| `acfm agents status` | Show current collaborative session state |
+| `acfm agents stop` | Stop the active collaborative session |
 
 ### Spec Workflow
 

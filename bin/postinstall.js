@@ -33,6 +33,18 @@ console.log('    MCP (Model Context Protocol) Servers');
 console.log('      acfm memory install-mcps   Install MCP servers for AI assistants');
 console.log('      acfm memory uninstall-mcps Uninstall MCP servers from AI assistants');
 console.log();
+console.log('    Collaborative Agents (Optional)');
+console.log('      acfm agents setup          Install OpenCode + tmux dependencies');
+console.log('      acfm agents start --task   Start SynapseGrid collaborative session');
+console.log('      acfm agents resume         Resume SynapseGrid session');
+console.log('      acfm agents list           List recent SynapseGrid sessions');
+console.log('      acfm agents attach         Attach to SynapseGrid tmux session');
+console.log('      acfm agents logs           Show recent worker logs');
+console.log('      acfm agents export         Export session transcript');
+console.log('      acfm agents send           Send message to active session');
+console.log('      acfm agents status         View collaborative session status');
+console.log('      acfm agents stop           Stop collaborative session');
+console.log();
 console.log('    Tip: Add --json to any command for machine-readable output.');
 console.log();
 

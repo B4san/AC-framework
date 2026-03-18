@@ -50,6 +50,8 @@ import {
   stepHeader,
   pulseDiamondIntro,
 } from '../ui/animations.js';
+import { COLLAB_SYSTEM_NAME } from '../agents/constants.js';
+import { ensureCollabDependencies, hasCommand } from '../services/dependency-installer.js';
 
 const acGradient = gradient(['#6C5CE7', '#00CEC9', '#0984E3']);
 
@@ -146,6 +148,75 @@ async function setupPersistentMemory() {
   console.log();
   console.log(chalk.hex('#6C5CE7').bold('  NexusVault is active.'));
   console.log(chalk.hex('#636E72')('  Use acfm memory --help to manage your knowledge base.'));
+  console.log();
+}
+
+// ── Collaborative Agentic Setup ───────────────────────────────────
+
+async function setupCollaborativeSystem() {
+  const hasOpenCode = hasCommand('opencode');
+  const hasTmux = hasCommand('tmux');
+  const alreadyReady = hasOpenCode && hasTmux;
+
+  console.log();
+  await animatedSeparator(60);
+  console.log();
+
+  const badge = chalk.hex('#2D3436').bgHex('#00B894').bold(` ${COLLAB_SYSTEM_NAME} `);
+  console.log(`  ${badge} ${chalk.hex('#B2BEC3').bold('Collaborative Agent System')}`);
+  console.log();
+  console.log(
+    chalk.hex('#636E72')(
+      `  ${COLLAB_SYSTEM_NAME} launches a real-time collaborative agent war-room with\n` +
+      '  4 coordinated roles (planner, critic, coder, reviewer) in tmux panes.\n\n' +
+      '  Each round is turn-based with shared incremental context, so every\n' +
+      '  contribution from one agent is fed to the next, not isolated fan-out.\n\n' +
+      `  Dependencies: ${chalk.hex('#DFE6E9')('OpenCode')} + ${chalk.hex('#DFE6E9')('tmux')}`
+    )
+  );
+  console.log();
+
+  const { enableCollab } = await inquirer.prompt([{
+    type: 'confirm',
+    name: 'enableCollab',
+    message: chalk.hex('#B2BEC3')(`Enable ${COLLAB_SYSTEM_NAME} collaborative agents?`),
+    default: true,
+  }]);
+
+  if (!enableCollab) {
+    console.log();
+    console.log(chalk.hex('#636E72')(`  Skipped. Enable it later with: acfm agents setup`));
+    console.log();
+    return;
+  }
+
+  if (alreadyReady) {
+    console.log();
+    console.log(chalk.hex('#00B894')('  ◆ OpenCode and tmux are already available.'));
+    console.log(chalk.hex('#636E72')('  Run `acfm agents start --task "..."` to launch collaboration.'));
+    console.log();
+    return;
+  }
+
+  console.log();
+  console.log(chalk.hex('#B2BEC3')(`  Installing ${COLLAB_SYSTEM_NAME} dependencies...`));
+  console.log();
+
+  const result = ensureCollabDependencies();
+
+  const oColor = result.opencode.success ? chalk.hex('#00B894') : chalk.hex('#D63031');
+  const tColor = result.tmux.success ? chalk.hex('#00B894') : chalk.hex('#D63031');
+  console.log(oColor(`  ◆ OpenCode: ${result.opencode.message}`));
+  console.log(tColor(`  ◆ tmux: ${result.tmux.message}`));
+  console.log();
+
+  if (result.success) {
+    console.log(chalk.hex('#00B894').bold(`  ${COLLAB_SYSTEM_NAME} is active.`));
+    console.log(chalk.hex('#636E72')('  Run acfm agents start --task "..." to open the war-room.'));
+  } else {
+    console.log(chalk.hex('#FDCB6E')(`  ${COLLAB_SYSTEM_NAME} setup is partially complete.`));
+    console.log(chalk.hex('#636E72')('  Resolve dependency errors and run: acfm agents setup'));
+  }
   console.log();
 }
 
@@ -613,6 +684,7 @@ export async function initCommand(options = {}) {
       await saveTemplateSelection(targetDir, template);
       await celebrateSuccess(installed, targetDir);
       await setupPersistentMemory();
+      await setupCollaborativeSystem();
     } else {
       await showFailureSummary(installed, errors);
     }

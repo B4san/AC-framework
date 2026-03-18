@@ -8,6 +8,7 @@ import { initCommand } from './commands/init.js';
 import { updateCommand } from './commands/update.js';
 import { specCommand } from './commands/spec.js';
 import { memoryCommand } from './commands/memory.js';
+import { agentsCommand } from './commands/agents.js';
 import { showBanner } from './ui/banner.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -40,5 +41,6 @@ program
 
 program.addCommand(specCommand());
 program.addCommand(memoryCommand());
+program.addCommand(agentsCommand());
 
 program.parse();
