@@ -62,6 +62,10 @@ function buildTarballUrl(branch) {
  */
 function createPathFilter(frameworkDir, options = {}) {
   const { template, foldersToExtract, mdFiles } = options;
+
+  const hasFolderFilter = Array.isArray(foldersToExtract) && foldersToExtract.length > 0;
+  const hasMdFilter = Array.isArray(mdFiles) && mdFiles.length > 0;
+
   return (entryPath) => {
     const segments = entryPath.split('/').filter(Boolean);
 
@@ -80,18 +84,24 @@ function createPathFilter(frameworkDir, options = {}) {
       if (segments[2] !== template) return false;
 
       // Inside the template directory, if we have specific folders/files to extract:
-      if (foldersToExtract && mdFiles) {
+      // apply each filter independently so we never fall back to full-template
+      // extraction when only one filter list is provided.
+      if (hasFolderFilter || hasMdFilter) {
         const item = segments[3];
         // If it's undefined, it's the template folder itself, keep it to allow its creation
         if (!item) return true;
 
         // If it's a file at the root of the template, check if it's in mdFiles
-        if (segments.length === 4 && item.endsWith('.md')) {
+        if (hasMdFilter && segments.length === 4 && item.endsWith('.md')) {
           return mdFiles.includes(item);
         }
 
-        // Check if it's one of the selected assistant folders or a required file
-        return foldersToExtract.includes(item) || mdFiles.includes(item);
+        // Check if it's one of the selected assistant folders.
+        if (hasFolderFilter && foldersToExtract.includes(item)) {
+          return true;
+        }
+
+        return false;
       }
 
       return true;
