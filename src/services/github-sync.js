@@ -60,7 +60,8 @@ function buildTarballUrl(branch) {
  * @param {string} frameworkDir - Name of the framework directory (default: "framework").
  * @returns {(entryPath: string) => boolean}
  */
-function createPathFilter(frameworkDir) {
+function createPathFilter(frameworkDir, options = {}) {
+  const { template, foldersToExtract, mdFiles } = options;
   return (entryPath) => {
     const segments = entryPath.split('/').filter(Boolean);
 
@@ -71,7 +72,31 @@ function createPathFilter(frameworkDir) {
 
     // Only extract entries whose second segment is the framework dir
     // and that have actual content beyond it (length > 2).
-    return segments.length > 2 && segments[1] === frameworkDir;
+    if (segments.length > 2 && segments[1] === frameworkDir) {
+      // If we don't have filters, extract everything
+      if (!template) return true;
+
+      // Extract only the matching template directory
+      if (segments[2] !== template) return false;
+
+      // Inside the template directory, if we have specific folders/files to extract:
+      if (foldersToExtract && mdFiles) {
+        const item = segments[3];
+        // If it's undefined, it's the template folder itself, keep it to allow its creation
+        if (!item) return true;
+
+        // If it's a file at the root of the template, check if it's in mdFiles
+        if (segments.length === 4 && item.endsWith('.md')) {
+          return mdFiles.includes(item);
+        }
+
+        // Check if it's one of the selected assistant folders or a required file
+        return foldersToExtract.includes(item) || mdFiles.includes(item);
+      }
+
+      return true;
+    }
+    return false;
   };
 }
 
@@ -97,7 +122,7 @@ function createPathFilter(frameworkDir) {
  * @returns {Promise<{ tempDir: string, commitSha: string|null }>}
  * @throws {Error} On network failure, timeout, or GitHub API errors.
  */
-export async function downloadFramework({ branch, timeout } = {}) {
+export async function downloadFramework({ branch, timeout, template, foldersToExtract, mdFiles } = {}) {
   const url = buildTarballUrl(branch);
   const { frameworkDir } = GITHUB_CONFIG;
   const requestTimeout = timeout || GITHUB_CONFIG.timeout;
@@ -157,7 +182,7 @@ export async function downloadFramework({ branch, timeout } = {}) {
       tarExtract({
         cwd: tempDir,
         strip: 2,
-        filter: createPathFilter(frameworkDir),
+        filter: createPathFilter(frameworkDir, { template, foldersToExtract, mdFiles }),
       }),
     );
 

@@ -341,37 +341,8 @@ export async function initCommand(options = {}) {
     console.log();
     await pulseDiamondIntro(1800);
     
-    // ── Download (only with --latest / --branch) ──────────────────
-    if (useLatest) {
-      await stepHeader(1, totalSteps, 'Downloading latest framework');
-
-      const branchLabel = options.branch || 'main';
-      const branchBadge = chalk.hex('#2D3436').bgHex('#6C5CE7').bold(` ${branchLabel} `);
-      console.log(`  ${chalk.hex('#636E72')('Branch:')} ${branchBadge}`);
-      console.log();
-
-      try {
-        const result = await downloadWithSpinner({
-          branch: options.branch,
-        });
-        tempDir = result.tempDir;
-        frameworkPath = result.tempDir;
-
-        if (result.commitSha) {
-          const shaBadge = chalk.hex('#2D3436').bgHex('#00CEC9').bold(` ${result.commitSha.slice(0, 7)} `);
-          console.log(`  ${shaBadge} ${chalk.hex('#636E72')('latest commit')}`);
-        }
-        console.log();
-      } catch (err) {
-        console.log();
-        console.log(chalk.hex('#FDCB6E')(`  ⚠  ${err.message}`));
-        console.log(chalk.hex('#636E72')('  Falling back to bundled version...\n'));
-        frameworkPath = FRAMEWORK_PATH;
-      }
-    }
-
     // ── Step: Scan ────────────────────────────────────────────────
-    await stepHeader(1 + stepOffset, totalSteps, 'Scanning framework templates');
+    await stepHeader(1, totalSteps, 'Scanning framework templates');
     await scanAnimation('Indexing available templates', 1000);
     console.log();
 
@@ -396,7 +367,7 @@ export async function initCommand(options = {}) {
     console.log();
 
     // ── Step: Select Template ─────────────────────────────────────
-    await stepHeader(2 + stepOffset, totalSteps, 'Select your template');
+    await stepHeader(2, totalSteps, 'Select your template');
 
     const templateChoices = buildTemplateChoices(templates);
     const { template } = await inquirer.prompt([
@@ -409,17 +380,17 @@ export async function initCommand(options = {}) {
       },
     ]);
 
-    const templatePath = await resolveTemplatePath(template, frameworkPath);
+    const localTemplatePath = await resolveTemplatePath(template, frameworkPath);
     const templateBadge = chalk.hex('#2D3436').bgHex('#00CEC9').bold(` ${formatTemplateName(template)} `);
     console.log();
     console.log(`  ${chalk.hex('#636E72')('Template:')} ${templateBadge}`);
-    console.log(chalk.hex('#636E72')(`  Source: ${templatePath}`));
+    console.log(chalk.hex('#636E72')(`  Source: ${useLatest ? 'GitHub (Pending)' : localTemplatePath}`));
     console.log();
     printTemplatePreview(template);
 
     let folders;
     try {
-      folders = await getSelectableModules(templatePath);
+      folders = await getSelectableModules(localTemplatePath);
     } catch {
       console.log(chalk.hex('#D63031')('  ✗ Error: Could not read template contents.'));
       process.exit(1);
@@ -434,7 +405,7 @@ export async function initCommand(options = {}) {
     console.log();
 
     // ── Step: Select ──────────────────────────────────────────────
-    await stepHeader(3 + stepOffset, totalSteps, 'Select your assistants');
+    await stepHeader(3, totalSteps, 'Select your assistants');
 
     const key = (k) => chalk.hex('#2D3436').bgHex('#636E72')(` ${k} `);
     console.log(
@@ -533,7 +504,7 @@ export async function initCommand(options = {}) {
     // ── Step: Instruction Files ───────────────────────────────────
     await animatedSeparator(60);
     console.log();
-    await stepHeader(4 + stepOffset, totalSteps, 'Instruction files');
+    await stepHeader(4, totalSteps, 'Instruction files');
 
     const mdFiles = await selectMdFiles(selected, targetDir);
 
@@ -564,13 +535,49 @@ export async function initCommand(options = {}) {
       process.exit(0);
     }
 
+    const allToInstall = expandWithBundled(selected);
+
+    // ── Download (only with --latest / --branch) ──────────────────
+    let activeTemplatePath = localTemplatePath;
+    if (useLatest) {
+      console.log();
+      await animatedSeparator(60);
+      console.log();
+      await stepHeader(5, totalSteps, 'Downloading latest framework');
+
+      const branchLabel = options.branch || 'main';
+      const branchBadge = chalk.hex('#2D3436').bgHex('#6C5CE7').bold(` ${branchLabel} `);
+      console.log(`  ${chalk.hex('#636E72')('Branch:')} ${branchBadge}`);
+      console.log();
+
+      try {
+        const result = await downloadWithSpinner({
+          branch: options.branch,
+          template: template,
+          foldersToExtract: allToInstall,
+          mdFiles: mdFiles,
+        });
+        tempDir = result.tempDir;
+        activeTemplatePath = await resolveTemplatePath(template, tempDir);
+
+        if (result.commitSha) {
+          const shaBadge = chalk.hex('#2D3436').bgHex('#00CEC9').bold(` ${result.commitSha.slice(0, 7)} `);
+          console.log(`  ${shaBadge} ${chalk.hex('#636E72')('latest commit')}`);
+        }
+        console.log();
+      } catch (err) {
+        console.log();
+        console.log(chalk.hex('#FDCB6E')(`  ⚠  ${err.message}`));
+        console.log(chalk.hex('#636E72')('  Falling back to bundled version...\n'));
+      }
+    }
+
     // ── Step: Install ─────────────────────────────────────────────
     console.log();
     await animatedSeparator(60);
     console.log();
-    await stepHeader(5 + stepOffset, totalSteps, 'Installing modules');
+    await stepHeader(useLatest ? 6 : 5, totalSteps, 'Installing modules');
 
-    const allToInstall = expandWithBundled(selected);
     let installed = 0;
     const errors = [];
 
@@ -579,7 +586,7 @@ export async function initCommand(options = {}) {
         const displayName = formatFolderName(folder);
         try {
           await installWithAnimation(displayName, async () => {
-            await copyModule(folder, targetDir, templatePath);
+            await copyModule(folder, targetDir, activeTemplatePath);
           });
           installed++;
         } catch (err) {
@@ -592,7 +599,7 @@ export async function initCommand(options = {}) {
     for (const md of mdFiles) {
       try {
         await installWithAnimation(md, async () => {
-          await copyMdFile(md, targetDir, templatePath);
+          await copyMdFile(md, targetDir, activeTemplatePath);
         });
         installed++;
       } catch (err) {

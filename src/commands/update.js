@@ -133,6 +133,43 @@ export async function updateCommand(options = {}) {
 
   console.log();
 
+  // ── Step 2/3: Determine template ──────────────────────────────
+  let resolvedTemplate = await readTemplateSelection(targetDir);
+
+  if (!resolvedTemplate) {
+    const availableTemplates = await getAvailableTemplates();
+    const matches = [];
+
+    for (const template of availableTemplates) {
+      const templateSource = await resolveTemplatePath(template);
+      const isMatch = await Promise.all(installedModules.map((mod) => existsInTarget(templateSource, mod)));
+      if (isMatch.every(Boolean)) {
+        matches.push(template);
+      }
+    }
+
+    if (matches.length === 1) {
+      [resolvedTemplate] = matches;
+    } else if (matches.length > 1) {
+      console.log(chalk.hex('#FDCB6E')('  No saved template metadata found, and multiple templates match this project.'));
+      console.log();
+
+      const { selectedTemplate } = await inquirer.prompt([
+        {
+          type: 'list',
+          name: 'selectedTemplate',
+          message: acGradient('Choose the template to use for this update:'),
+          choices: buildTemplateChoices(matches),
+          pageSize: 10,
+        },
+      ]);
+
+      resolvedTemplate = selectedTemplate;
+    } else {
+      resolvedTemplate = await detectTemplateForModules(installedModules);
+    }
+  }
+
   // ── Confirmation ──────────────────────────────────────────────
   const branchLabel = options.branch || 'main';
   const branchBadge = chalk.hex('#2D3436').bgHex('#6C5CE7').bold(` ${branchLabel} `);
@@ -161,48 +198,16 @@ export async function updateCommand(options = {}) {
   let tempDir = null;
   let commitSha = null;
   let templatePath = null;
-  let resolvedTemplate = null;
 
   try {
-    const result = await downloadWithSpinner({ branch: options.branch });
+    const result = await downloadWithSpinner({
+      branch: options.branch,
+      template: resolvedTemplate,
+      foldersToExtract: installedModules,
+      mdFiles: installedMdFiles,
+    });
     tempDir = result.tempDir;
     commitSha = result.commitSha;
-    resolvedTemplate = await readTemplateSelection(targetDir);
-
-    if (!resolvedTemplate) {
-      const availableTemplates = await getAvailableTemplates(tempDir);
-      const matches = [];
-
-      for (const template of availableTemplates) {
-        const templateSource = await resolveTemplatePath(template, tempDir);
-        const isMatch = await Promise.all(installedModules.map((mod) => existsInTarget(templateSource, mod)));
-        if (isMatch.every(Boolean)) {
-          matches.push(template);
-        }
-      }
-
-      if (matches.length === 1) {
-        [resolvedTemplate] = matches;
-      } else if (matches.length > 1) {
-        console.log(chalk.hex('#FDCB6E')('  No saved template metadata found, and multiple templates match this project.'));
-        console.log();
-
-        const { selectedTemplate } = await inquirer.prompt([
-          {
-            type: 'list',
-            name: 'selectedTemplate',
-            message: acGradient('Choose the template to use for this update:'),
-            choices: buildTemplateChoices(matches),
-            pageSize: 10,
-          },
-        ]);
-
-        resolvedTemplate = selectedTemplate;
-      } else {
-        resolvedTemplate = await detectTemplateForModules(installedModules, tempDir);
-      }
-    }
-
     templatePath = await resolveTemplatePath(resolvedTemplate, tempDir);
   } catch (err) {
     console.log();
