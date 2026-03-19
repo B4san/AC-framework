@@ -59,6 +59,8 @@ The CLI now guides you through:
 4. optionally initialize NexusVault persistent memory and MCP connections
 5. optionally enable SynapseGrid collaborative agents (auto-installs OpenCode + tmux)
 
+If enabled, `acfm init` also auto-installs the optional SynapseGrid MCP server into detected assistants.
+
 ### 2. Initialize the spec-driven workspace
 
 ```bash
@@ -139,6 +141,8 @@ Each role runs in turn against a shared, accumulating context so outputs from on
 | Command | Description |
 |---|---|
 | `acfm agents setup` | Install optional dependencies (`opencode` and `tmux`) |
+| `acfm agents install-mcps` | Install SynapseGrid MCP server for detected assistants |
+| `acfm agents uninstall-mcps` | Remove SynapseGrid MCP server from assistants |
 | `acfm agents start --task "..."` | Start a SynapseGrid collaborative session |
 | `acfm agents resume` | Resume a previous session and recreate workers if needed |
 | `acfm agents list` | List recent SynapseGrid sessions |
@@ -212,6 +216,10 @@ The current MCP installer supports these assistant config targets:
 - Windsurf
 - Gemini
 - Codex
+
+MCP server IDs installed by AC Framework:
+- `ac-framework-memory` (NexusVault memory tools)
+- `ac-framework-collab` (SynapseGrid collaborative session tools)
 
 ## Spec-Driven Methodology
 

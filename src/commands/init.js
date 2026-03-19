@@ -190,9 +190,41 @@ async function setupCollaborativeSystem() {
     return;
   }
 
+  async function installCollabMcpConnections() {
+    console.log();
+    console.log(chalk.hex('#B2BEC3')(`  Connecting ${COLLAB_SYSTEM_NAME} MCP tools to detected assistants...`));
+    console.log();
+
+    const { detectAndInstallMCPs, ASSISTANTS, isAssistantInstalled } = await import('../services/mcp-installer.js');
+    const { installed, success } = detectAndInstallMCPs({ target: 'collab' });
+
+    if (installed === 0) {
+      console.log(chalk.hex('#636E72')('  No AI assistants detected yet.'));
+      console.log(chalk.hex('#636E72')('  Run ') + chalk.hex('#DFE6E9')('acfm agents install-mcps') + chalk.hex('#636E72')(' after installing an assistant.'));
+      console.log();
+      return;
+    }
+
+    for (const assistant of ASSISTANTS) {
+      if (isAssistantInstalled(assistant)) {
+        console.log(
+          chalk.hex('#00B894')('  ◆ ') +
+          chalk.hex('#DFE6E9').bold(assistant.name) +
+          chalk.hex('#636E72')(` · MCP config → ${assistant.configPath}`)
+        );
+      }
+    }
+
+    console.log();
+    const successBadge = chalk.hex('#2D3436').bgHex('#00B894').bold(` ${success}/${installed} `);
+    console.log(`  ${successBadge} ${chalk.hex('#B2BEC3')(`${COLLAB_SYSTEM_NAME} MCP connections installed`)}`);
+    console.log();
+  }
+
   if (alreadyReady) {
     console.log();
     console.log(chalk.hex('#00B894')('  ◆ OpenCode and tmux are already available.'));
+    await installCollabMcpConnections();
     console.log(chalk.hex('#636E72')('  Run `acfm agents start --task "..."` to launch collaboration.'));
     console.log();
     return;
@@ -211,6 +243,7 @@ async function setupCollaborativeSystem() {
   console.log();
 
   if (result.success) {
+    await installCollabMcpConnections();
     console.log(chalk.hex('#00B894').bold(`  ${COLLAB_SYSTEM_NAME} is active.`));
     console.log(chalk.hex('#636E72')('  Run acfm agents start --task "..." to open the war-room.'));
   } else {

@@ -35,6 +35,8 @@ console.log('      acfm memory uninstall-mcps Uninstall MCP servers from AI assi
 console.log();
 console.log('    Collaborative Agents (Optional)');
 console.log('      acfm agents setup          Install OpenCode + tmux dependencies');
+console.log('      acfm agents install-mcps   Install SynapseGrid MCP servers');
+console.log('      acfm agents uninstall-mcps Remove SynapseGrid MCP servers');
 console.log('      acfm agents start --task   Start SynapseGrid collaborative session');
 console.log('      acfm agents resume         Resume SynapseGrid session');
 console.log('      acfm agents list           List recent SynapseGrid sessions');

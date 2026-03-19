@@ -98,6 +98,33 @@ acfm memory stats
 
 **User communication:** "Memory saved: [brief description]" when auto-saving occurs.
 
+### SynapseGrid Collaborative MCP Protocol (Optional)
+
+If SynapseGrid is enabled in `acfm init`, AC Framework installs the collaborative MCP server automatically for detected assistants.
+
+**Session-start requirement when collaboration is enabled:**
+1. Prefer the available SynapseGrid MCP tools for collaborative session control before falling back to direct CLI.
+2. Use shared session state and transcript as the source of truth for role-by-role collaboration.
+3. If collaborative MCP is unavailable, use CLI fallback commands and keep behavior equivalent.
+
+**How to use SynapseGrid collaboration:**
+```text
+Preferred: use SynapseGrid MCP tools (ac-framework-collab) for session start/status/step/stop.
+Fallback: use AC Framework agents CLI commands directly.
+```
+```bash
+# Optional install/reinstall of collaborative MCP servers
+acfm agents install-mcps
+
+# Start collaborative runtime manually
+acfm agents start --task "design and implement feature X"
+
+# Resume/list/export operations
+acfm agents resume
+acfm agents list
+acfm agents export --format md --out synapse-session.md
+```
+
 
 ### OpenSpec Skills (The heart of the framework)
 

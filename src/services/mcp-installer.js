@@ -20,9 +20,28 @@ import { fileURLToPath } from 'node:url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
+const MCP_TARGETS = {
+  memory: {
+    id: 'ac-framework-memory',
+    path: join(__dirname, '../mcp/server.js'),
+  },
+  collab: {
+    id: 'ac-framework-collab',
+    path: join(__dirname, '../mcp/collab-server.js'),
+  },
+};
+
 /** Absolute path to the MCP server entry point */
-export function getMCPServerPath() {
-  return join(__dirname, '../mcp/server.js');
+export function getMCPServerPath(target = 'memory') {
+  return resolveTarget(target).path;
+}
+
+function resolveTarget(target = 'memory') {
+  const key = String(target || 'memory').toLowerCase();
+  if (!MCP_TARGETS[key]) {
+    throw new Error(`Unknown MCP target: ${target}`);
+  }
+  return MCP_TARGETS[key];
 }
 
 const home = homedir();
@@ -40,7 +59,7 @@ export const ASSISTANTS = [
     name: 'opencode',
     configPath: join(home, '.config', 'opencode', 'opencode.json'),
     detectDir: join(home, '.config', 'opencode'),
-    install(serverPath) {
+    install(serverPath, serverId = 'ac-framework-memory') {
       const configDir = dirname(this.configPath);
       if (!existsSync(configDir)) mkdirSync(configDir, { recursive: true });
 
@@ -50,7 +69,7 @@ export const ASSISTANTS = [
       }
 
       if (!config.mcp) config.mcp = {};
-      config.mcp['ac-framework-memory'] = {
+      config.mcp[serverId] = {
         type: 'local',
         command: ['node', serverPath],
       };
@@ -58,12 +77,12 @@ export const ASSISTANTS = [
       writeFileSync(this.configPath, JSON.stringify(config, null, 2));
       return true;
     },
-    uninstall() {
+    uninstall(serverId = 'ac-framework-memory') {
       if (!existsSync(this.configPath)) return true;
       let config = {};
       try { config = JSON.parse(readFileSync(this.configPath, 'utf8')); } catch { return true; }
-      if (config.mcp?.['ac-framework-memory']) {
-        delete config.mcp['ac-framework-memory'];
+      if (config.mcp?.[serverId]) {
+        delete config.mcp[serverId];
         writeFileSync(this.configPath, JSON.stringify(config, null, 2));
       }
       return true;
@@ -77,14 +96,14 @@ export const ASSISTANTS = [
     name: 'claude',
     configPath: join(home, '.claude.json'),
     detectFile: join(home, '.claude.json'),
-    install(serverPath) {
+    install(serverPath, serverId = 'ac-framework-memory') {
       let config = {};
       if (existsSync(this.configPath)) {
         try { config = JSON.parse(readFileSync(this.configPath, 'utf8')); } catch { config = {}; }
       }
 
       if (!config.mcpServers) config.mcpServers = {};
-      config.mcpServers['ac-framework-memory'] = {
+      config.mcpServers[serverId] = {
         type: 'stdio',
         command: 'node',
         args: [serverPath],
@@ -93,12 +112,12 @@ export const ASSISTANTS = [
       writeFileSync(this.configPath, JSON.stringify(config, null, 2));
       return true;
     },
-    uninstall() {
+    uninstall(serverId = 'ac-framework-memory') {
       if (!existsSync(this.configPath)) return true;
       let config = {};
       try { config = JSON.parse(readFileSync(this.configPath, 'utf8')); } catch { return true; }
-      if (config.mcpServers?.['ac-framework-memory']) {
-        delete config.mcpServers['ac-framework-memory'];
+      if (config.mcpServers?.[serverId]) {
+        delete config.mcpServers[serverId];
         writeFileSync(this.configPath, JSON.stringify(config, null, 2));
       }
       return true;
@@ -112,11 +131,11 @@ export const ASSISTANTS = [
     name: 'cursor',
     configPath: join(home, '.cursor', 'mcp.json'),
     detectDir: join(home, '.cursor'),
-    install(serverPath) {
-      return installJsonMcpServers(this.configPath, serverPath);
+    install(serverPath, serverId = 'ac-framework-memory') {
+      return installJsonMcpServers(this.configPath, serverPath, serverId);
     },
-    uninstall() {
-      return uninstallJsonMcpServers(this.configPath);
+    uninstall(serverId = 'ac-framework-memory') {
+      return uninstallJsonMcpServers(this.configPath, serverId);
     },
   },
 
@@ -127,11 +146,11 @@ export const ASSISTANTS = [
     name: 'windsurf',
     configPath: join(home, '.codeium', 'windsurf', 'mcp_config.json'),
     detectDir: join(home, '.codeium', 'windsurf'),
-    install(serverPath) {
-      return installJsonMcpServers(this.configPath, serverPath);
+    install(serverPath, serverId = 'ac-framework-memory') {
+      return installJsonMcpServers(this.configPath, serverPath, serverId);
     },
-    uninstall() {
-      return uninstallJsonMcpServers(this.configPath);
+    uninstall(serverId = 'ac-framework-memory') {
+      return uninstallJsonMcpServers(this.configPath, serverId);
     },
   },
 
@@ -142,11 +161,11 @@ export const ASSISTANTS = [
     name: 'gemini',
     configPath: join(home, '.gemini', 'settings.json'),
     detectDir: join(home, '.gemini'),
-    install(serverPath) {
-      return installJsonMcpServers(this.configPath, serverPath);
+    install(serverPath, serverId = 'ac-framework-memory') {
+      return installJsonMcpServers(this.configPath, serverPath, serverId);
     },
-    uninstall() {
-      return uninstallJsonMcpServers(this.configPath);
+    uninstall(serverId = 'ac-framework-memory') {
+      return uninstallJsonMcpServers(this.configPath, serverId);
     },
   },
 
@@ -157,11 +176,11 @@ export const ASSISTANTS = [
     name: 'codex',
     configPath: join(home, '.codex', 'config.toml'),
     detectDir: join(home, '.codex'),
-    install(serverPath) {
-      return installTomlMcpServer(this.configPath, serverPath);
+    install(serverPath, serverId = 'ac-framework-memory') {
+      return installTomlMcpServer(this.configPath, serverPath, serverId);
     },
-    uninstall() {
-      return uninstallTomlMcpServer(this.configPath);
+    uninstall(serverId = 'ac-framework-memory') {
+      return uninstallTomlMcpServer(this.configPath, serverId);
     },
   },
 ];
@@ -179,7 +198,7 @@ export function isAssistantInstalled(assistant) {
 
 // ── Generic JSON mcpServers helpers ───────────────────────────────
 
-function installJsonMcpServers(configPath, serverPath) {
+function installJsonMcpServers(configPath, serverPath, serverId = 'ac-framework-memory') {
   const configDir = dirname(configPath);
   if (!existsSync(configDir)) mkdirSync(configDir, { recursive: true });
 
@@ -189,7 +208,7 @@ function installJsonMcpServers(configPath, serverPath) {
   }
 
   if (!config.mcpServers) config.mcpServers = {};
-  config.mcpServers['ac-framework-memory'] = {
+  config.mcpServers[serverId] = {
     command: 'node',
     args: [serverPath],
   };
@@ -198,12 +217,12 @@ function installJsonMcpServers(configPath, serverPath) {
   return true;
 }
 
-function uninstallJsonMcpServers(configPath) {
+function uninstallJsonMcpServers(configPath, serverId = 'ac-framework-memory') {
   if (!existsSync(configPath)) return true;
   let config = {};
   try { config = JSON.parse(readFileSync(configPath, 'utf8')); } catch { return true; }
-  if (config.mcpServers?.['ac-framework-memory']) {
-    delete config.mcpServers['ac-framework-memory'];
+  if (config.mcpServers?.[serverId]) {
+    delete config.mcpServers[serverId];
     writeFileSync(configPath, JSON.stringify(config, null, 2));
   }
   return true;
@@ -217,16 +236,19 @@ function uninstallJsonMcpServers(configPath) {
 //   command = "node"
 //   args = ["/abs/path/to/server.js"]
 
-const TOML_SECTION = 'mcp_servers.ac-framework-memory';
+function getTomlSection(serverId) {
+  return `mcp_servers.${serverId}`;
+}
 
-function installTomlMcpServer(configPath, serverPath) {
+function installTomlMcpServer(configPath, serverPath, serverId = 'ac-framework-memory') {
   const configDir = dirname(configPath);
   if (!existsSync(configDir)) mkdirSync(configDir, { recursive: true });
+  const section = getTomlSection(serverId);
 
   // Escape backslashes for Windows paths
   const escapedPath = serverPath.replace(/\\/g, '\\\\');
   const newBlock = [
-    `[${TOML_SECTION}]`,
+    `[${section}]`,
     `command = "node"`,
     `args = ["${escapedPath}"]`,
   ].join('\n');
@@ -236,9 +258,9 @@ function installTomlMcpServer(configPath, serverPath) {
     try { existing = readFileSync(configPath, 'utf8'); } catch { existing = ''; }
   }
 
-  if (existing.includes(`[${TOML_SECTION}]`)) {
+  if (existing.includes(`[${section}]`)) {
     // Replace existing block — remove old section, append new one
-    existing = removeTomlSection(existing, TOML_SECTION);
+    existing = removeTomlSection(existing, section);
   }
 
   const separator = existing.trim() ? '\n\n' : '';
@@ -246,12 +268,13 @@ function installTomlMcpServer(configPath, serverPath) {
   return true;
 }
 
-function uninstallTomlMcpServer(configPath) {
+function uninstallTomlMcpServer(configPath, serverId = 'ac-framework-memory') {
   if (!existsSync(configPath)) return true;
+  const section = getTomlSection(serverId);
   let content = '';
   try { content = readFileSync(configPath, 'utf8'); } catch { return true; }
-  if (content.includes(`[${TOML_SECTION}]`)) {
-    content = removeTomlSection(content, TOML_SECTION);
+  if (content.includes(`[${section}]`)) {
+    content = removeTomlSection(content, section);
     writeFileSync(configPath, content);
   }
   return true;
@@ -283,18 +306,20 @@ function removeTomlSection(toml, sectionKey) {
 
 // ── Install / Uninstall per assistant ────────────────────────────
 
-export function installMCPForAssistant(assistant) {
+export function installMCPForAssistant(assistant, target = 'memory') {
   try {
-    return assistant.install(getMCPServerPath());
+    const resolved = resolveTarget(target);
+    return assistant.install(resolved.path, resolved.id);
   } catch (error) {
     console.error(`  Failed to install MCP for ${assistant.name}: ${error.message}`);
     return false;
   }
 }
 
-export function uninstallMCPForAssistant(assistant) {
+export function uninstallMCPForAssistant(assistant, target = 'memory') {
   try {
-    return assistant.uninstall();
+    const resolved = resolveTarget(target);
+    return assistant.uninstall(resolved.id);
   } catch (error) {
     console.error(`  Failed to uninstall MCP for ${assistant.name}: ${error.message}`);
     return false;
@@ -307,38 +332,41 @@ export function uninstallMCPForAssistant(assistant) {
  * Detects which assistants are installed and installs MCPs for them.
  * Returns { installed, success } counts.
  */
-export function detectAndInstallMCPs() {
+export function detectAndInstallMCPs(options = {}) {
+  const target = options.target || 'memory';
   let installed = 0;
   let success = 0;
 
   for (const assistant of ASSISTANTS) {
     if (isAssistantInstalled(assistant)) {
       installed++;
-      if (installMCPForAssistant(assistant)) success++;
+      if (installMCPForAssistant(assistant, target)) success++;
     }
   }
 
-  return { installed, success, assistants: ASSISTANTS };
+  return { installed, success, assistants: ASSISTANTS, target };
 }
 
 /**
  * Installs MCPs for ALL supported assistants regardless of detection.
  */
-export function installAllMCPs() {
+export function installAllMCPs(options = {}) {
+  const target = options.target || 'memory';
   let success = 0;
   for (const assistant of ASSISTANTS) {
-    if (installMCPForAssistant(assistant)) success++;
+    if (installMCPForAssistant(assistant, target)) success++;
   }
-  return { total: ASSISTANTS.length, success };
+  return { total: ASSISTANTS.length, success, target };
 }
 
 /**
  * Uninstalls MCPs from all detected assistants.
  */
-export function uninstallAllMCPs() {
+export function uninstallAllMCPs(options = {}) {
+  const target = options.target || 'memory';
   let success = 0;
   for (const assistant of ASSISTANTS) {
-    if (isAssistantInstalled(assistant) && uninstallMCPForAssistant(assistant)) success++;
+    if (isAssistantInstalled(assistant) && uninstallMCPForAssistant(assistant, target)) success++;
   }
-  return { success };
+  return { success, target };
 }

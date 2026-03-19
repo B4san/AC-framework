@@ -163,16 +163,85 @@ export function agentsCommand() {
     .command('setup')
     .description('Install optional collaboration dependencies (OpenCode + tmux)')
     .option('--json', 'Output as JSON')
-    .action((opts) => {
+    .action(async (opts) => {
       const result = ensureCollabDependencies();
-      output(result, opts.json);
+      let collabMcp = null;
+
+      if (result.success) {
+        const { detectAndInstallMCPs } = await import('../services/mcp-installer.js');
+        collabMcp = detectAndInstallMCPs({ target: 'collab' });
+      }
+
+      const payload = { ...result, collabMcp };
+      output(payload, opts.json);
       if (!opts.json) {
         const oLabel = result.opencode.success ? chalk.green('ok') : chalk.red('failed');
         const tLabel = result.tmux.success ? chalk.green('ok') : chalk.red('failed');
         console.log(`OpenCode: ${oLabel} - ${result.opencode.message}`);
         console.log(`tmux:     ${tLabel} - ${result.tmux.message}`);
+        if (collabMcp) {
+          console.log(`Collab MCP: ${chalk.green('ok')} - installed ${collabMcp.success}/${collabMcp.installed} on detected assistants`);
+        }
       }
       if (!result.success) process.exit(1);
+    });
+
+  agents
+    .command('install-mcps')
+    .description('Install SynapseGrid MCP server into detected AI assistants')
+    .option('--all', 'Install for all supported assistants, without detection', false)
+    .option('--json', 'Output as JSON')
+    .action(async (opts) => {
+      try {
+        const { detectAndInstallMCPs, installAllMCPs, ASSISTANTS, isAssistantInstalled } = await import('../services/mcp-installer.js');
+        const result = opts.all
+          ? installAllMCPs({ target: 'collab' })
+          : detectAndInstallMCPs({ target: 'collab' });
+
+        output({ total: result.total ?? result.installed, success: result.success, target: 'collab' }, opts.json);
+
+        if (!opts.json) {
+          if (!opts.all) {
+            if (result.installed === 0) {
+              console.log(chalk.yellow('No AI assistants detected.'));
+              console.log(chalk.dim('Use --all to install for all supported assistants.'));
+              return;
+            }
+            for (const assistant of ASSISTANTS) {
+              if (isAssistantInstalled(assistant)) {
+                console.log(
+                  chalk.hex('#00B894')('◆ ') + chalk.bold(assistant.name) +
+                  chalk.dim(` → ${assistant.configPath}`)
+                );
+              }
+            }
+          }
+          console.log(chalk.green(`\n✓ SynapseGrid MCP installed (${result.success}/${result.total ?? result.installed})`));
+        }
+      } catch (error) {
+        output({ error: error.message }, opts.json);
+        if (!opts.json) console.error(chalk.red(`Error: ${error.message}`));
+        process.exit(1);
+      }
+    });
+
+  agents
+    .command('uninstall-mcps')
+    .description('Uninstall SynapseGrid MCP server from detected AI assistants')
+    .option('--json', 'Output as JSON')
+    .action(async (opts) => {
+      try {
+        const { uninstallAllMCPs } = await import('../services/mcp-installer.js');
+        const result = uninstallAllMCPs({ target: 'collab' });
+        output({ success: result.success, target: 'collab' }, opts.json);
+        if (!opts.json) {
+          console.log(chalk.green(`✓ SynapseGrid MCP uninstalled (${result.success})`));
+        }
+      } catch (error) {
+        output({ error: error.message }, opts.json);
+        if (!opts.json) console.error(chalk.red(`Error: ${error.message}`));
+        process.exit(1);
+      }
     });
 
   agents

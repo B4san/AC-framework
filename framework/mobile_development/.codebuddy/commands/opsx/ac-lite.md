@@ -4,17 +4,15 @@
 
 ## Purpose
 
-`ac-lite` keeps the same spec-driven quality bar as `ac.md`, but reduces token usage by:
+`ac-lite` keeps OpenSpec rigor while reducing context load by:
 
-1. Loading only the core workflow skills by default.
-2. Activating extra skills only when objective risk gates require them.
-3. Enforcing mandatory quality checkpoints before implementation and archive.
+1. Loading only mandatory core workflow skills by default.
+2. Activating mobile/platform specialist skills only when objective gates trigger.
+3. Enforcing hard implementation and closure checkpoints.
 
 ---
 
 ## Default Skill Set (Always Load)
-
-These are the only mandatory skills for every change:
 
 1. `acfm-spec-workflow`
 2. `acfm-memory`
@@ -23,217 +21,110 @@ These are the only mandatory skills for every change:
 5. `openspec-apply-change`
 6. `openspec-verify-change`
 7. `openspec-archive-change`
+8. `mobile-design`
 
 ---
 
 ## Persistent Memory Protocol (Always Active)
 
-Agents must use the available persistent memory system proactively on every chat/session.
+At session start:
+1. Recall project memory before planning or implementation.
+2. Search for task-specific patterns (architecture, bugfixes, conventions).
+3. Treat recalled memory as active unless repo state or user instructions override.
 
-**Session-start requirement (always):**
-1. Consult the available persistent memory tool or MCP before planning, implementing, or giving project-specific guidance.
-2. Recall project-level context first, then search for task-specific decisions, conventions, bugfixes, and architecture notes.
-3. Treat recalled memory as active context unless the current repository state or an explicit user instruction supersedes it.
-4. If memory tooling is unavailable, continue with repository inspection and use the AC Framework CLI fallback when possible.
+Save reusable context after major decisions, fixes, and closures.
 
-**Save automatically when information is reusable:**
-- Architectural decisions from proposals/designs
-- Bugfix patterns and solutions
-- Performance optimizations
-- Refactoring techniques
-- Security fixes
-- API patterns and conventions
-- Reusable workflow conventions and project constraints
-
-**Memory hygiene rules:**
-- Save only reusable information likely to matter in future chats.
-- Do not save secrets, credentials, tokens, or one-off sensitive data.
-- Redact content inside `<private>...</private>` before saving.
-- Prefer concise titles, the correct memory type, clear tags, and realistic confidence scores.
-
-**Fallback examples:**
+Fallback CLI examples:
 ```bash
-acfm memory recall "implementing authentication"
-acfm memory search "JWT token refresh"
 acfm memory recall
+acfm memory search "offline sync"
 acfm memory stats
 ```
 
 ---
 
-## Conditional Skills (Load Only If Gate Triggers)
+## Conditional Skill Gates
 
-### Security Gate
+### Platform/Stack Gate
+Load based on selected implementation stack:
+- `flutter-expert` [IF Flutter]
+- `ios-developer` [IF native iOS]
+- `react-native-architecture` [IF React Native architecture/native modules]
+- `react-native-design` [IF React Native UI/navigation/animation]
+- `react-state-management` [IF global/complex state]
 
-Load `secure-coding-cybersecurity` if the change touches any of:
+### Platform UI Gate
+- `mobile-ios-design` [IF iOS UI changes]
+- `mobile-android-design` [IF Android UI changes]
 
-- Auth/session/permissions
-- User input handling or validation
-- SQL/ORM queries or dynamic filters
-- File paths/uploads
-- Secrets/tokens/credentials
-- Shell/command execution
+### Clarity/Scale Gate
+- `spec-clarification` [IF requirements ambiguous]
+- `spec-analysis` [IF cross-artifact consistency needs verification]
+- `microtask-decomposition` [IF tasks remain too complex]
+- `project-index` / `context-synthesizer` [IF repo/session scale requires]
 
-### Testing Gate
-
-Load `test-generator` if:
-
-- There are no tests for the changed behavior, or
-- Existing tests do not cover acceptance criteria, or
-- Regression risk is medium/high.
-
-### Consistency Gate
-
-Load `spec-analysis` and `requirement-checklist` if:
-
-- Requirements are ambiguous, or
-- Change spans multiple modules, or
-- Change modifies core domain behavior.
-
-### API Gate
-
-Load `api-design-principles` if API contracts/endpoints/schemas are added or modified.
-
-### UI Gate
-
-Load `interface-design` if dashboard/app UI behavior is introduced or changed.
-
-### Performance Gate
-
-Load `performance-optimizer` if:
-
-- The change affects hot paths, or
-- Latency/throughput targets exist, or
-- A performance regression is detected/suspected.
-
-### Context Scale Gate
-
-Load `project-index` and/or `context-synthesizer` if:
-
-- Codebase is large and discovery cost is high, or
-- Session is long and context drift appears.
+### Research Gate
+- `research-retrieval` [IF external docs are needed]
 
 ### Debug Gate
+- `systematic-debugging` [IF blocked by bugs/regressions]
 
-Load `systematic-debugging` when blocked by non-trivial bugs or unstable behavior.
+### Delivery Gate
+- `documentation`, `sync-index`, `changelog-generator` [during closure]
 
 ---
 
 ## Mandatory Quality Gates
 
-These gates are non-optional in `ac-lite`.
-
 ### Gate A: Ready to Implement
-
 Before `openspec-apply-change`, all must be true:
-
-- Change exists and status is valid (`acfm spec status --change <name> --json`)
+- Change is initialized and valid (`acfm spec status --change <name> --json`)
 - `tasks.md` exists with actionable checkboxes
-- Acceptance criteria are clear in artifacts
-- Required conditional skills (if triggered) were executed
-- Session-start memory recall completed for this chat/session
+- Platform and stack are explicit
+- Required conditional skills were executed
+- Session-start memory recall completed
 
-If any item fails: stop, resolve, then continue.
-
-### Gate B: Ready to Archive
-
+### Gate B: Ready to Close
 Before `openspec-archive-change`, all must be true:
-
 - `openspec-verify-change` completed
-- No CRITICAL findings remain
-- Relevant tests pass for changed behavior
-- Tasks are complete or explicitly accepted by user with warning
-- Relevant reusable context from the completed work was saved to memory
-
-If any item fails: stop, fix, re-verify.
+- Critical issues resolved (or explicitly accepted with warning)
+- Task list reflects final state
+- Reusable context saved to memory
+- `documentation` / `sync-index` / changelog steps executed as required
 
 ---
 
-## Lite Workflows
+## Lite Workflow
 
-### New Change (Default Path)
-
-1. Run `acfm-spec-workflow` checks (`acfm spec status --json`, init if needed).
-2. Run a session-start memory recall using the available memory tool/MCP or the AC Framework CLI fallback.
-3. Create change with `openspec-new-change` (or `openspec-ff-change` if user requests speed).
-4. Build artifacts with `openspec-continue-change` until apply-ready.
-5. Evaluate conditional gates and load only triggered skills.
+### New Mobile Change
+1. `acfm-spec-workflow` status/init checks.
+2. Session-start memory recall (`acfm-memory`).
+3. Start change (`openspec-new-change` or `openspec-ff-change`).
+4. Build artifacts (`openspec-continue-change`).
+5. Trigger and run only needed conditional skills.
 6. Pass Gate A.
-7. Implement with `openspec-apply-change`.
-8. Verify with `openspec-verify-change`.
+7. Implement (`openspec-apply-change`).
+8. Verify (`openspec-verify-change`).
 9. Pass Gate B.
-10. Archive with `openspec-archive-change`.
+10. Archive/sync and generate closure docs.
 
-### Existing Change (Default Path)
-
-1. Confirm initialization and active changes.
-2. Run a session-start memory recall using the available memory tool/MCP or the AC Framework CLI fallback.
-3. Select target change.
-4. Refresh artifact status.
-5. Evaluate conditional gates (only load what triggers).
-6. Pass Gate A.
-7. Implement.
-8. Verify.
-9. Pass Gate B.
-10. Archive.
+### Existing Mobile Change
+1. Confirm initialization and target change.
+2. Run memory recall.
+3. Refresh artifacts.
+4. Run only triggered conditional skills.
+5. Pass Gate A.
+6. Implement and debug as needed.
+7. Verify.
+8. Pass Gate B.
+9. Archive/sync.
 
 ---
 
 ## Operational Rules
 
-1. Run memory recall at the start of every new chat/session before planning or implementation.
-2. Save important reusable context automatically after significant decisions, fixes, or conventions emerge.
-3. Do not load broad quality/documentation skills by default.
-4. Do not run optional skills "just in case".
-5. If risk increases during implementation, activate the matching conditional skill immediately.
-6. Prefer deterministic CLI checks over narrative assumptions.
-7. Keep outputs concise but auditable (show which gates passed/failed and why).
-
----
-
-## Suggested Minimal Execution Template
-
-Use this structure in each run:
-
-1. **Change Context**
-   - Change name
-   - Current artifact progress
-
-2. **Memory Status**
-   - Session recall completed: yes/no
-   - Relevant prior decisions/patterns found
-   - Memory save needed at close: yes/no
-
-3. **Triggered Gates**
-   - Security: pass/fail + reason
-   - Testing: pass/fail + reason
-   - Consistency/API/UI/Performance/Context/Debug: pass/fail + reason
-
-4. **Skills Loaded**
-   - Core: always list
-   - Conditional: list only triggered ones
-
-5. **Gate A Status**
-   - Ready to implement: yes/no
-
-6. **Implementation + Verify**
-   - What was implemented
-   - Verify findings summary
-
-7. **Gate B Status**
-   - Ready to archive: yes/no
-
-8. **Archive Result**
-   - Archive path and timestamp
-
----
-
-## Token Strategy Summary
-
-`ac-lite` reduces cost by replacing "load everything first" with:
-
-- Mandatory core workflow only
-- Risk-gated skill expansion
-- Hard quality checkpoints at implementation and archive boundaries
-
-This preserves software quality while avoiding unnecessary instruction/context overhead.
+1. Do not load non-triggered skills "just in case".
+2. Do not implement before platform/stack is explicit.
+3. If risk increases, load matching skill immediately.
+4. Keep outputs concise and auditable (which gates passed/failed and why).
+5. Save reusable memory at significant milestones.

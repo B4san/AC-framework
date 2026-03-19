@@ -1,192 +1,297 @@
 **Fundamental Principle**: *"Quality over speed. Documentation before code. Planning before execution."*
 
---- YOU SHOULD FOLLOW THIS EXACT WORKFLOW HERE, DONT SKIP STEPS, DONT CHANGE THE ORDER OF THE WORKFLOW, DONT SKIP SKILLS, DONT SKIP PHASES, DONT SKIP ANYTHING, JUST FOLLOW THE WORKFLOW EXACTLY AS IT IS WRITTEN HERE
+--- **CRITICAL: ZERO SKIP POLICY** ---
 
-## 🛠️ Available Skills
+**YOU CANNOT SKIP ANY STEP. YOU CANNOT SKIP ANY SKILL. YOU CANNOT SKIP ANY PHASE.**
 
-### Quality and Security Skills
-
-| Skill | Description | Primary Use |
-|-------|-------------|---------------|
-| `secure-coding-cybersecurity` | Detects and prevents security vulnerabilities (SQLi, XSS, command injection, hardcoded secrets). Follows OWASP Top 10 standards. | Secure code validation |
-| `code-maintainability` | Analyzes code maintainability: duplication, documentation, error handling, naming conventions, SOLID architecture, performance. | Refactoring and standards |
-| `error-handling-patterns` | Error handling patterns in multiple languages: exceptions, Result types, retry, circuit breaker, graceful degradation. | Application resilience |
-| `performance-optimizer` | Methodologies for measuring, profiling, and optimizing code (caching, algorithm complexity, resource usage). | Performance Engineering |
-| `test-generator` | Generate comprehensive test suites (Unit, Integration, E2E) ensuring requirements are met. | Test Driven Development |
-
-### SpecKit Consistency & Quality Skills
-
-| Skill | Description | Primary Use |
-|-------|-------------|---------------|
-| `project-constitution` | Manage the project's core principles and ensuring alignment. | Project Governance |
-| `requirement-checklist` | Generate quality control checklists for requirements (unit tests for specs). | Requirements Quality |
-| `spec-analysis` | Analyze consistency across Spec, Plan, and Tasks. | Consistency Check |
-| `spec-clarification` | Interactively clarify specific sections of the spec. | Ambiguity Resolution |
-
-### Planning and Design Skills
-
-| Skill | Description | Primary Use |
-|-------|-------------|---------------|
-| `brainstorming` | Generates ideas and questions decisions before implementing. Explores requirements, constraints, and success criteria. | Design and architecture |
-| `api-design-principles` | REST and GraphQL design principles: resources, endpoints, pagination, versioning, HATEOAS. | API design |
-| `interface-design` | Interface design (dashboards, admin panels, apps). NOT for landing pages/marketing. | UI design |
-
-### OpenSpec Skills (The heart of the framework)
-
-| Skill | Description | Primary Use |
-|-------|-------------|---------------|
-| `openspec-explore` | Exploration mode to investigate problems, map architecture, find integration points before implementing. | Pre-analysis |
-| `openspec-new-change` | Creates a new change with step-by-step workflow (proposal → specs → design → tasks). | Structured start |
-| `openspec-ff-change` | Fast-forward: creates all artifacts at once to start implementation quickly. | Quick start |
-| `openspec-continue-change` | Continues an existing change by creating the next artifact in the sequence. | Continue workflow |
-| `openspec-apply-change` | Implements tasks from a change (applies code according to specs and tasks). | Change execution |
-| `openspec-verify-change` | Verifies that implementation matches artifacts (specs, tasks, design). | Validation |
-| `openspec-archive-change` | Archives a completed change by moving it to `openspec/changes/archive/`. | Change closure |
-| `openspec-onboard` | Guided tutorial to learn OpenSpec with a complete example workflow. | Learning |
-| `openspec-sync-specs` | Synchronizes delta specs to main specs (intelligent merge). | Update specs |
-| `openspec-bulk-archive-change` | Archives multiple completed changes at once. | Bulk cleanup |
-
-### Documentation and Debugging Skills
-
-| Skill | Description | Primary Use |
-|-------|-------------|---------------|
-| `project-index` | Generates structured project documentation: structure analysis, domains, agent guides. | Indexing and context |
-| `sync-index` | Keep project documentation (`project-index` and sub-skills) in sync with codebase changes. | Documentation Sync |
-| `systematic-debugging` | Structured debugging in 4 phases: root cause investigation, pattern analysis, hypothesis, implementation. | Problem resolution |
-| `changelog-generator` | Creates automated changelogs from git commits, translating technical to user language. | Version history |
-| `skill-writer` | Guide to create new skills for Claude Code with correct structure and frontmatter. | Create new skills |
+If you attempt to proceed without completing a required step, you MUST STOP and complete it first.
 
 ---
 
-## 🚀 Workflow: New Project
+## Available Skills
 
-When starting a project **from scratch**, follow this mandatory workflow:
+### AC Framework Core Skills
+
+| Skill | Description | Primary Use | Required Before |
+|-------|-------------|-------------|-----------------|
+| `acfm-spec-workflow` | **START HERE - MANDATORY**. Understand spec-driven workflow, `.acfm/` vs `openspec/`, and required CLI commands. | Foundation | **ANYTHING ELSE** |
+| `acfm-memory` | **PERSISTENT MEMORY PROTOCOL**. Recall project context on session start and save reusable decisions/patterns after significant work. | Knowledge persistence | Session start and after significant work |
+
+### OpenSpec Workflow Skills
+
+| Skill | Description | Primary Use | Required Before |
+|-------|-------------|-------------|-----------------|
+| `openspec-explore` | Explore architecture, constraints, and integration points before committing implementation details. | Pre-analysis | `acfm-spec-workflow` |
+| `openspec-new-change` | Start a new change with structured artifacts. | Structured start | `brainstorming` |
+| `openspec-ff-change` | Fast-forward artifact creation when speed is needed and scope is clear. | Accelerated start | `brainstorming` |
+| `openspec-continue-change` | Continue artifact generation in sequence (proposal/specs/design/tasks). | Workflow continuation | `openspec-new-change` OR `microtask-decomposition` |
+| `openspec-apply-change` | Implement tasks from artifacts. | Implementation | `openspec-continue-change` |
+| `openspec-verify-change` | Verify implementation against artifacts. | Validation | `openspec-apply-change` |
+| `openspec-sync-specs` | Merge delta specs to main specs without archiving. | Spec synchronization | `openspec-verify-change` |
+| `openspec-archive-change` | Archive completed change. | Change closure | `openspec-verify-change` |
+| `openspec-bulk-archive-change` | Archive multiple completed changes. | Batch closure | `openspec-verify-change` |
+| `openspec-onboard` | Guided walkthrough to learn full OpenSpec lifecycle. | Learning | `acfm-spec-workflow` |
+
+### Spec and Planning Skills
+
+| Skill | Description | Primary Use | Required Before |
+|-------|-------------|-------------|-----------------|
+| `project-constitution` | Define and maintain core project principles. | Governance | **PHASE 1 START** |
+| `project-index` | Map codebase structure and document domains/agent guidance. | Context mapping | `project-constitution` |
+| `context-synthesizer` | Maintain continuity in long sessions and multi-change efforts. | Context management | `project-constitution` |
+| `research-retrieval` | Pull external references and technical docs. | Research | `openspec-explore` |
+| `brainstorming` | Generate all key questions up front to reduce hidden assumptions. | Design thinking | `openspec-explore` |
+| `spec-clarification` | Resolve ambiguity in specs with targeted clarifications. | Requirement clarity | `openspec-new-change` |
+| `spec-analysis` | Check consistency across proposal/specs/design/tasks. | Consistency check | `openspec-continue-change` |
+| `microtask-decomposition` | Split complex tasks into smaller executable microtasks (only when needed). | Advanced decomposition | `openspec-continue-change` |
+
+### Mobile Platform and Stack Skills
+
+| Skill | Description | Primary Use | Required Before |
+|-------|-------------|-------------|-----------------|
+| `mobile-design` | Mobile-first doctrine: touch, performance, offline, platform behavior. | Baseline mobile standards | `project-constitution` |
+| `mobile-ios-design` | iOS HIG-driven UI/UX guidance and SwiftUI-oriented patterns. | iOS interface design | `spec-clarification` [IF iOS UI] |
+| `mobile-android-design` | Material 3 and Android UX patterns. | Android interface design | `spec-clarification` [IF Android UI] |
+| `react-native-design` | React Native layout, animation, navigation, and mobile UX design. | RN UI design | `spec-clarification` [IF React Native] |
+| `react-native-architecture` | React Native architecture, native modules, offline/data boundaries. | RN architecture | `spec-clarification` [IF React Native] |
+| `react-state-management` | Choose and implement robust state strategy (Redux Toolkit/Zustand/Jotai/etc.). | RN/React state design | `spec-clarification` [IF complex state] |
+| `flutter-expert` | Flutter/Dart architecture and implementation guidance. | Flutter implementation | `spec-clarification` [IF Flutter] |
+| `ios-developer` | Native iOS engineering (Swift/SwiftUI/UIKit, platform integration). | Native iOS implementation | `spec-clarification` [IF native iOS] |
+
+### Delivery and Support Skills
+
+| Skill | Description | Primary Use | Required Before |
+|-------|-------------|-------------|-----------------|
+| `systematic-debugging` | Structured bug isolation and root-cause resolution. | Debugging | When bugs appear |
+| `documentation` | Generate technical docs, architecture notes, and usage guidance. | Documentation | `openspec-verify-change` |
+| `sync-index` | Keep project index and generated guidance synchronized with implementation. | Documentation sync | `openspec-apply-change` |
+| `changelog-generator` | Create user-facing release notes from implementation changes. | Release communication | `openspec-archive-change` |
+
+---
+
+## Persistent Memory Protocol (Mandatory)
+
+The AC Framework includes a persistent memory system that agents must use proactively.
+
+**Session-start requirement (always):**
+1. At the start of every new chat/session, consult the available persistent memory tool or MCP before planning or implementing.
+2. Recall project-level context first, then search for task-specific decisions, conventions, bugfixes, and architecture notes.
+3. Treat recalled memory as active project context unless current repository state or explicit user instruction supersedes it.
+4. If memory tooling is unavailable, continue with repository inspection and use AC Framework CLI fallback.
+
+**What gets saved automatically (only reusable context):**
+- Architectural decisions from proposal/design artifacts
+- Bugfix patterns and repeated solutions
+- Performance and optimization insights
+- Refactoring techniques and conventions
+- Reusable workflow constraints and team rules
+
+**Memory hygiene rules:**
+- Never save secrets, credentials, tokens, or sensitive one-off values
+- Redact content inside `<private>...</private>` before saving
+- Use concise titles, correct memory type, useful tags, realistic confidence
+
+**User communication:** `Memory saved: [brief description]`
+
+---
+
+## CRITICAL: How to Use Skills - ZERO SKIP POLICY
+
+### BLOCKING RULES - YOU CANNOT PROCEED WITHOUT THESE:
+
+**Rule 1: Phase Completion Checkpoint**
+After EACH phase, you MUST confirm completion:
+```
++------------------------------------------------------------+
+| PHASE [X] COMPLETION CHECKPOINT                            |
++------------------------------------------------------------+
+| Have you COMPLETED ALL skills in Phase [X]?                |
+| [ ] Yes - I read and executed every required skill         |
+| [ ] No  - I must go back and complete missing skills       |
++------------------------------------------------------------+
+```
+**IF NO: STOP. Go back and complete missing skills.**
+
+**Rule 2: Skill Dependency Chain**
+Each skill table above shows `Required Before`. You CANNOT use a skill before satisfying its dependency.
+
+**Rule 3: Output Verification**
+Before proceeding to next phase, verify outputs exist:
+
+| Phase | Required Outputs | Check |
+|-------|------------------|-------|
+| Phase 0 | `acfm spec status` validated + memory recall completed | [ ] |
+| Phase 1 | `project-constitution` defined + mobile baseline declared | [ ] |
+| Phase 2 | exploration notes + platform/stack decision recorded | [ ] |
+| Phase 3 | `proposal.md`, `specs/`, `design.md`, `tasks.md` + `spec-analysis` review | [ ] |
+| Phase 4 | implementation done + tasks updated + issues debugged | [ ] |
+| Phase 5 | verification passed + docs/index synced + archive/sync complete | [ ] |
+
+**Rule 4: Pre-Implementation Safety Check**
+Before `openspec-apply-change`, ALL must be TRUE:
+- [ ] `tasks.md` exists and contains actionable checkboxes
+- [ ] Target platform(s) and stack (Flutter / React Native / Native iOS) are explicit
+- [ ] Required mobile skills for selected stack/platform have been applied
+- [ ] `design.md` and `spec-analysis` were reviewed
+
+**IF ANY IS FALSE: STOP. Complete missing items.**
+
+---
+
+## Workflow: New Mobile Project
+
+When starting a mobile project **from scratch**, follow this **MANDATORY** workflow:
 
 ```
-┌─────────────────────────────────────────────────────────────────────────────────┐
-│                           WORKFLOW: NEW PROJECT                                  │
-└─────────────────────────────────────────────────────────────────────────────────┘
++--------------------------------------------------------------------------+
+| WORKFLOW: NEW MOBILE PROJECT - ZERO SKIP                                 |
++--------------------------------------------------------------------------+
 
-    ┌─────────────────┐
-    │     START       │
-    └────────┬────────┘
-             │
-             ▼
-    ┌──────────────────────────────────────────────┐
-    │  PHASE 1: FOUNDATIONS & GOVERNANCE           │
-    │  1. project-constitution                     │
-    │     └─ Define core principles                │
-    │  2. secure-coding-cybersecurity              │
-    │     └─ Establish security guidelines         │
-    │  3. code-maintainability                     │
-    │     └─ Define quality standards              │
-    └────────────────────┬─────────────────────────┘
-                         │
-                         ▼
-    ┌──────────────────────────────────────────────┐
-    │  PHASE 2: DISCOVERY & PLANNING               │
-    │  4. brainstorming                            │
-    │     └─ Architecture/Idea generation          │
-    │  5. openspec-new-change                      │
-    │     └─ Create proposal                       │
-    │  6. spec-clarification (CRITICAL)            │
-    │     └─ Refine requirements interactively     │
-    │  7. openspec-continue-change                 │
-    │     └─ Draft Specs, Design, Tasks            │
-    │  8. requirement-checklist                    │
-    │     └─ "Unit test" the specs                 │
-    │  9. spec-analysis                            │
-    │     └─ Verify Spec/Plan consistency          │
-    └────────────────────┬─────────────────────────┘
-                         │
-                         ▼
-    ┌──────────────────────────────────────────────┐
-    │  PHASE 3: IMPLEMENTATION                     │
-    │  10. test-generator                          │
-    │      └─ TDD: Write tests first               │
-    │  11. openspec-apply-change                   │
-    │      └─ Implement code to pass tests         │
-    │  12. performance-optimizer                   │
-    │      └─ Optimize critical paths              │
-    └────────────────────┬─────────────────────────┘
-                         │
-                         ▼
-    ┌──────────────────────────────────────────────┐
-    │  PHASE 4: VALIDATION & CLOSURE               │
-    │  13. systematic-debugging                    │
-    │      └─ Resolve any issues                   │
-    │  14. openspec-verify-change                  │
-    │      └─ Validate against initial specs       │
-    │  15. sync-index                              │
-    │      └─ Update project docs                  │
-    │  16. openspec-archive-change                 │
-    │      └─ Archive the change                   │
-    └──────────────────────────────────────────────┘
+  START
+    |
+    v
+  PHASE 0 - AC FRAMEWORK SETUP (BLOCKING)
+    1) acfm-spec-workflow
+       - verify initialization and workflow mode
+       - run `acfm spec init` if missing
+    2) acfm-memory
+       - perform session-start memory recall
+
+    CHECKPOINT: initialized + memory recall complete
+    |
+    v
+  PHASE 1 - FOUNDATIONS AND MOBILE BASELINE
+    3) project-constitution
+    4) mobile-design (mandatory baseline doctrine)
+    5) context-synthesizer
+    6) project-index (if not created)
+
+    CHECKPOINT: constitution + baseline mobile rules documented
+    |
+    v
+  PHASE 2 - DISCOVERY AND REQUIREMENTS
+    7) openspec-explore
+    8) research-retrieval
+    9) brainstorming (single comprehensive question set)
+    10) openspec-new-change (or openspec-ff-change if explicitly chosen)
+    11) spec-clarification
+
+    CHECKPOINT: scope clarified + platform/stack chosen
+    |
+    v
+  PHASE 3 - DESIGN AND TASK PLANNING
+    12) openspec-continue-change (proposal/specs/design/tasks)
+    13) spec-analysis
+    14) microtask-decomposition [IF tasks are still too complex]
+    15) platform/stack skills as required:
+        - mobile-ios-design [IF iOS UI]
+        - mobile-android-design [IF Android UI]
+        - react-native-design [IF RN UI]
+        - react-native-architecture [IF RN architecture]
+        - react-state-management [IF complex state]
+        - flutter-expert [IF Flutter]
+        - ios-developer [IF native iOS]
+
+    CHECKPOINT: proposal/spec/design/tasks coherent and implementation-ready
+    |
+    v
+  PHASE 4 - IMPLEMENTATION
+    16) openspec-apply-change
+    17) systematic-debugging [IF issues/regressions appear]
+    18) update tasks progress in tasks.md continuously
+
+    CHECKPOINT: implementation complete and stable
+    |
+    v
+  PHASE 5 - VALIDATION AND CLOSURE
+    19) openspec-verify-change
+    20) documentation
+    21) sync-index
+    22) openspec-sync-specs [IF syncing specs without archive]
+    23) openspec-archive-change OR openspec-bulk-archive-change
+    24) changelog-generator
+```
+
+**Conditional Skill Notes:**
+- Use only skills that match selected platform/stack and risk profile.
+- `mobile-design` is mandatory for all mobile work regardless of stack.
+- `microtask-decomposition` is only for complex tasks after tasks.md exists.
+
+---
+
+## Workflow: Existing Mobile Project
+
+When working on an **existing mobile codebase** (feature, bugfix, refactor):
+
+```
++--------------------------------------------------------------------------+
+| WORKFLOW: EXISTING MOBILE PROJECT - ZERO SKIP                            |
++--------------------------------------------------------------------------+
+
+  START CHANGE
+    |
+    v
+  PHASE 0 - SETUP (BLOCKING)
+    1) acfm-spec-workflow (status, current changes, initialization)
+    2) acfm-memory (session-start recall)
+
+  PHASE 1 - CONTEXT AND DISCOVERY
+    3) context-synthesizer
+    4) project-index [if missing/stale]
+    5) openspec-explore
+    6) research-retrieval
+    7) brainstorming
+
+  PHASE 2 - CLARIFICATION AND CHANGE INIT
+    8) openspec-new-change
+    9) spec-clarification
+
+  PHASE 3 - DESIGN, CONSISTENCY, AND PLATFORM FIT
+    10) openspec-continue-change
+    11) spec-analysis
+    12) microtask-decomposition [if needed]
+    13) apply required mobile platform/stack skills
+
+  PHASE 4 - IMPLEMENTATION
+    14) openspec-apply-change
+    15) systematic-debugging [if needed]
+
+  PHASE 5 - VALIDATION AND CLOSURE
+    16) openspec-verify-change
+    17) documentation
+    18) sync-index
+    19) openspec-sync-specs [if needed]
+    20) openspec-archive-change / openspec-bulk-archive-change
+    21) changelog-generator
 ```
 
 ---
 
-## 🔄 Workflow: Existing Project
+## Skill Loading Reference
 
-When working on an **existing codebase** (adding features, fixing bugs, refactoring):
+All skills are located in: `skills/`
 
-```
-┌─────────────────────────────────────────────────────────────────────────────────┐
-│                        WORKFLOW: EXISTING PROJECT                                │
-└─────────────────────────────────────────────────────────────────────────────────┘
+To load a skill, read its `SKILL.md` file:
+- Example: `skills/spec-clarification/SKILL.md`
+- Example: `skills/mobile-design/SKILL.md`
+- Example: `skills/react-native-architecture/SKILL.md`
 
-    ┌─────────────────┐
-    │  START CHANGE   │
-    └────────┬────────┘
-             │
-             ▼
-    ┌──────────────────────────────────────────────┐
-    │  PHASE 1: CONTEXT & ANALYSIS                 │
-    │  1. project-index (if needed)                │
-    │     └─ Map current system                    │
-    │  2. openspec-explore                         │
-    │     └─ Deep dive into relevant modules       │
-    │  3. brainstorming                            │
-    │     └─ Ideate on feature/fix                 │
-    └────────────────────┬─────────────────────────┘
-                         │
-                         ▼
-    ┌──────────────────────────────────────────────┐
-    │  PHASE 2: REQUIREMENTS & PLANNING            │
-    │  4. openspec-new-change                      │
-    │     └─ Initialize change artifact            │
-    │  5. spec-clarification                       │
-    │     └─ CLARIFY requirements first            │
-    │  6. requirement-checklist                    │
-    │     └─ Validate requirements                 │
-    │  7. openspec-continue-change                 │
-    │     └─ Draft Specs, Design, Tasks            │
-    │  8. spec-analysis                            │
-    │     └─ Check consistency with existing       │
-    └────────────────────┬─────────────────────────┘
-                         │
-                         ▼
-    ┌──────────────────────────────────────────────┐
-    │  PHASE 3: TEST-DRIVEN IMPLEMENTATION         │
-    │  9. test-generator                           │
-    │     └─ Generate tests for new feature        │
-    │  10. openspec-apply-change                   │
-    │      └─ Implement code                       │
-    │  11. secure-coding-cybersecurity             │
-    │      └─ Audit new code                       │
-    └────────────────────┬─────────────────────────┘
-                         │
-                         ▼
-    ┌──────────────────────────────────────────────┐
-    │  PHASE 4: OPTIMIZATION & VERIFICATION        │
-    │  12. systematic-debugging                    │
-    │      └─ Fix regressions                      │
-    │  13. performance-optimizer                   │
-    │      └─ Ensure no perf degradation           │
-    │  14. openspec-verify-change                  │
-    │      └─ Final verification                   │
-    │  15. sync-index (IMPORTANT)                  │
-    │      └─ Update docs with new changes         │
-    │  16. openspec-archive-change                 │
-    │      └─ Archive change                       │
-    └──────────────────────────────────────────────
+### MANDATORY SKILL EXECUTION CHECKLIST
+
+Before claiming a skill is done, verify:
+- [ ] I read the entire `SKILL.md`
+- [ ] I executed all required steps
+- [ ] I produced required artifacts/checkpoints
+- [ ] I can explain exactly what the skill produced
+
+---
+
+## VIOLATION CONSEQUENCES
+
+If you skip a skill or phase:
+1. Workflow integrity is compromised
+2. Mobile quality and consistency are no longer guaranteed
+3. You MUST return and complete the missing steps
+4. No shortcuts. No exceptions.
+
+**Quality over speed. Documentation before code. Planning before execution.**
