@@ -141,6 +141,7 @@ Each role runs in turn against a shared, accumulating context so outputs from on
 | Command | Description |
 |---|---|
 | `acfm agents setup` | Install optional dependencies (`opencode` and `tmux`) |
+| `acfm agents doctor` | Validate OpenCode/tmux/model preflight before start |
 | `acfm agents install-mcps` | Install SynapseGrid MCP server for detected assistants |
 | `acfm agents uninstall-mcps` | Remove SynapseGrid MCP server from assistants |
 | `acfm agents start --task "..." --model-coder provider/model` | Start session with optional per-role models |
@@ -164,6 +165,8 @@ Each role runs in turn against a shared, accumulating context so outputs from on
 - Inspect worker errors quickly with `acfm agents logs --role all --lines 120`.
 - MCP starts can now create tmux workers directly; if your assistant used headless steps before, start a new session and ensure worker spawning is enabled.
 - Configure role models directly at start (for example `--model-planner`, `--model-coder`) or persist defaults via `acfm agents model set`.
+- Default SynapseGrid model fallback is `opencode/minimax-m2.5-free`.
+- Run `acfm agents doctor` when panes look idle to confirm model/provider preflight health.
 
 ### Spec Workflow
 

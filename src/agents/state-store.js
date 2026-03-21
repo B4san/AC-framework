@@ -109,7 +109,6 @@ export async function saveSessionState(state) {
     updatedAt: new Date().toISOString(),
   };
   await writeFile(getSessionStatePath(updated.sessionId), JSON.stringify(updated, null, 2) + '\n', 'utf8');
-  await writeCurrentSession(updated.sessionId, updated.updatedAt);
   return updated;
 }
 

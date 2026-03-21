@@ -2,6 +2,7 @@ import { existsSync } from 'node:fs';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
+import { DEFAULT_SYNAPSE_MODEL } from './constants.js';
 import { sanitizeRoleModels, normalizeModelId } from './model-selection.js';
 
 const ACFM_DIR = join(homedir(), '.acfm');
@@ -11,7 +12,7 @@ function normalizeConfig(raw) {
   const agents = raw?.agents && typeof raw.agents === 'object' ? raw.agents : {};
   return {
     agents: {
-      defaultModel: normalizeModelId(agents.defaultModel) || null,
+      defaultModel: normalizeModelId(agents.defaultModel) || DEFAULT_SYNAPSE_MODEL,
       defaultRoleModels: sanitizeRoleModels(agents.defaultRoleModels),
     },
   };

@@ -9,8 +9,10 @@ import {
   COLLAB_SYSTEM_NAME,
   CURRENT_SESSION_FILE,
   DEFAULT_MAX_ROUNDS,
+  DEFAULT_SYNAPSE_MODEL,
   SESSION_ROOT_DIR,
 } from '../agents/constants.js';
+import { runOpenCodePrompt } from '../agents/opencode-client.js';
 import { runWorkerIteration } from '../agents/orchestrator.js';
 import {
   addUserMessage,
@@ -122,6 +124,22 @@ function printModelConfig(state) {
     const configured = state.roleModels?.[role] || '-';
     const effective = effectiveRoleModels[role] || '(opencode default)';
     console.log(chalk.dim(`  ${role.padEnd(8)} configured=${configured} effective=${effective}`));
+  }
+}
+
+async function preflightModel({ opencodeBin, model, cwd }) {
+  const selected = normalizeModelId(model) || DEFAULT_SYNAPSE_MODEL;
+  try {
+    await runOpenCodePrompt({
+      prompt: 'Reply with exactly: OK',
+      cwd,
+      model: selected,
+      binaryPath: opencodeBin,
+      timeoutMs: 45000,
+    });
+    return { ok: true, model: selected };
+  } catch (error) {
+    return { ok: false, model: selected, error: error.message };
   }
 }
 
@@ -275,6 +293,10 @@ export function agentsCommand() {
         const state = await loadSessionState(sessionId);
         if (!state.tmuxSessionName) {
           throw new Error('No tmux session registered for active collaborative session');
+        }
+        const tmuxExists = await tmuxSessionExists(state.tmuxSessionName);
+        if (!tmuxExists) {
+          throw new Error(`tmux session ${state.tmuxSessionName} no longer exists. Run: acfm agents resume`);
         }
         const args = ['attach'];
         if (opts.readonly) args.push('-r');
@@ -495,7 +517,7 @@ export function agentsCommand() {
             },
           };
           if (role === 'all') {
-            next.agents.defaultModel = null;
+            next.agents.defaultModel = DEFAULT_SYNAPSE_MODEL;
             next.agents.defaultRoleModels = {};
           } else {
             const currentRoles = { ...next.agents.defaultRoleModels };
@@ -611,7 +633,22 @@ export function agentsCommand() {
           ...defaultRoleModels,
           ...cliRoleModels,
         };
-        const globalModel = cliModel || config.agents.defaultModel || null;
+        const globalModel = cliModel || config.agents.defaultModel || DEFAULT_SYNAPSE_MODEL;
+
+        const modelsToCheck = new Set([globalModel, ...Object.values(roleModels)]);
+        for (const modelToCheck of modelsToCheck) {
+          const preflight = await preflightModel({
+            opencodeBin,
+            model: modelToCheck,
+            cwd: resolve(opts.cwd),
+          });
+          if (!preflight.ok) {
+            throw new Error(
+              `Model preflight failed for ${preflight.model}: ${preflight.error}. ` +
+              'Check OpenCode auth/providers with: opencode auth list, opencode models'
+            );
+          }
+        }
 
         const state = await createSession(opts.task, {
           roles: COLLAB_ROLES,
@@ -749,6 +786,7 @@ export function agentsCommand() {
 
       while (true) {
         try {
+          console.log(`[${role}] polling session ${opts.session}`);
           const state = await loadSessionState(opts.session);
           if (!state.roles.includes(role)) {
             console.log(`[${role}] role not configured in session. exiting.`);
@@ -759,20 +797,71 @@ export function agentsCommand() {
             process.exit(0);
           }
 
+          if (state.activeAgent === role) {
+            console.log(`[${role}] executing turn with model=${state.roleModels?.[role] || state.model || DEFAULT_SYNAPSE_MODEL}`);
+          }
           const nextState = await runWorkerIteration(opts.session, role, {
             cwd: state.workingDirectory || process.cwd(),
             model: state.model || null,
             opencodeBin: state.opencodeBin || resolveCommandPath('opencode') || undefined,
+            timeoutMs: 180000,
           });
           const latest = nextState.messages[nextState.messages.length - 1];
           if (latest?.from === role) {
             console.log(`[${role}] message emitted (${latest.content.length} chars)`);
+          } else if (nextState.activeAgent && nextState.activeAgent !== role) {
+            console.log(`[${role}] waiting for active role=${nextState.activeAgent}`);
           }
         } catch (error) {
           console.error(`[${role}] loop error: ${error.message}`);
         }
 
         await new Promise((resolvePromise) => setTimeout(resolvePromise, Number.isInteger(pollMs) ? pollMs : 1200));
+      }
+    });
+
+  agents
+    .command('doctor')
+    .description('Run diagnostics for SynapseGrid/OpenCode runtime')
+    .option('--json', 'Output as JSON')
+    .action(async (opts) => {
+      try {
+        const opencodeBin = resolveCommandPath('opencode');
+        const tmuxInstalled = hasCommand('tmux');
+        const cfg = await loadAgentsConfig();
+        const defaultModel = cfg.agents.defaultModel || DEFAULT_SYNAPSE_MODEL;
+        const result = {
+          opencodeBin,
+          tmuxInstalled,
+          defaultModel,
+          defaultRoleModels: cfg.agents.defaultRoleModels,
+          preflight: null,
+        };
+
+        if (opencodeBin) {
+          result.preflight = await preflightModel({
+            opencodeBin,
+            model: defaultModel,
+            cwd: process.cwd(),
+          });
+        } else {
+          result.preflight = { ok: false, error: 'OpenCode binary not found' };
+        }
+
+        output(result, opts.json);
+        if (!opts.json) {
+          console.log(chalk.bold('SynapseGrid doctor'));
+          console.log(chalk.dim(`opencode: ${opencodeBin || 'not found'}`));
+          console.log(chalk.dim(`tmux: ${tmuxInstalled ? 'installed' : 'not installed'}`));
+          console.log(chalk.dim(`default model: ${defaultModel}`));
+          console.log(chalk.dim(`preflight: ${result.preflight?.ok ? 'ok' : `failed - ${result.preflight?.error || 'unknown error'}`}`));
+        }
+
+        if (!result.preflight?.ok) process.exit(1);
+      } catch (error) {
+        output({ error: error.message }, opts.json);
+        if (!opts.json) console.error(chalk.red(`Error: ${error.message}`));
+        process.exit(1);
       }
     });
 

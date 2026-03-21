@@ -164,6 +164,11 @@ if ! has_cmd tmux; then
   fail "tmux not found. Install and retry, or run with --auto-setup"
 fi
 
+log "Running SynapseGrid doctor"
+run_json "$TMP_DIR/doctor.json" agents doctor --json
+DOCTOR_OK="$(extract_json_value "$TMP_DIR/doctor.json" '.preflight.ok')"
+[[ "$DOCTOR_OK" == "true" ]] || fail "Doctor preflight failed for default model"
+
 log "Starting session"
 START_ARGS=(agents start --task "$TASK" --rounds "$ROUNDS" --json)
 if [[ -n "$MODEL_PLANNER" ]]; then START_ARGS+=(--model-planner "$MODEL_PLANNER"); fi
@@ -211,6 +216,10 @@ LOG_COUNT="$(extract_json_value "$TMP_DIR/logs1.json" '.logs.length')"
 
 if node -e "const fs=require('fs');const t=fs.readFileSync(process.argv[1],'utf8');process.exit(t.includes('spawn opencode ENOENT')?0:1)" "$TMP_DIR/logs1.json"; then
   fail "Detected 'spawn opencode ENOENT' in logs"
+fi
+
+if ! node -e "const fs=require('fs');const j=JSON.parse(fs.readFileSync(process.argv[1],'utf8'));const ok=(j.logs||[]).some(l=>typeof l.content==='string' && l.content.includes('polling session'));process.exit(ok?0:1)" "$TMP_DIR/logs1.json"; then
+  fail "Worker heartbeat missing in logs"
 fi
 
 log "Sending follow-up message"

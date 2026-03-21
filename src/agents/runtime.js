@@ -44,6 +44,7 @@ export function runTmux(command, args, options = {}) {
 
 export async function spawnTmuxSession({ sessionName, sessionDir, sessionId }) {
   const role0 = COLLAB_ROLES[0];
+  const role0Log = roleLogPath(sessionDir, role0);
   await runTmux('tmux', [
     'new-session',
     '-d',
@@ -51,17 +52,18 @@ export async function spawnTmuxSession({ sessionName, sessionDir, sessionId }) {
     sessionName,
     '-n',
     role0,
-    `bash -lc 'node "${runnerPath}" agents worker --session ${sessionId} --role ${role0} >> "${roleLogPath(sessionDir, role0)}" 2>&1'`,
+    `bash -lc 'node "${runnerPath}" agents worker --session ${sessionId} --role ${role0} 2>&1 | tee -a "${role0Log}"'`,
   ]);
 
   for (let idx = 1; idx < COLLAB_ROLES.length; idx += 1) {
     const role = COLLAB_ROLES[idx];
+    const roleLog = roleLogPath(sessionDir, role);
     await runTmux('tmux', [
       'split-window',
       '-t',
       sessionName,
       '-v',
-      `bash -lc 'node "${runnerPath}" agents worker --session ${sessionId} --role ${role} >> "${roleLogPath(sessionDir, role)}" 2>&1'`,
+      `bash -lc 'node "${runnerPath}" agents worker --session ${sessionId} --role ${role} 2>&1 | tee -a "${roleLog}"'`,
     ]);
   }
 
