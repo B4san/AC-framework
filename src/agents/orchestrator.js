@@ -1,6 +1,7 @@
 import { buildAgentPrompt, ROLE_SYSTEM_PROMPTS } from './role-prompts.js';
 import { runOpenCodePrompt } from './opencode-client.js';
 import { nextRole, shouldStop } from './scheduler.js';
+import { resolveRoleModel } from './model-selection.js';
 import {
   addAgentMessage,
   loadSessionState,
@@ -42,11 +43,13 @@ export async function runTurn(sessionId, options = {}) {
     const prompt = buildRuntimePrompt({ state, role: scheduled.role });
     let content;
     try {
+      const effectiveModel = resolveRoleModel(state, scheduled.role, options.model);
       content = await runOpenCodePrompt({
         prompt,
         cwd: options.cwd || process.cwd(),
-        model: options.model,
+        model: effectiveModel,
         agent: options.agent,
+        binaryPath: options.opencodeBin,
         timeoutMs: options.timeoutMs,
       });
     } catch (error) {
@@ -105,11 +108,13 @@ export async function executeActiveTurn(sessionId, role, options = {}) {
     const prompt = buildRuntimePrompt({ state, role });
     let content;
     try {
+      const effectiveModel = resolveRoleModel(state, role, options.model);
       content = await runOpenCodePrompt({
         prompt,
         cwd: options.cwd || process.cwd(),
-        model: options.model,
+        model: effectiveModel,
         agent: options.agent,
+        binaryPath: options.opencodeBin,
         timeoutMs: options.timeoutMs,
       });
     } catch (error) {
@@ -153,11 +158,13 @@ export async function runWorkerIteration(sessionId, role, options = {}) {
     const prompt = buildRuntimePrompt({ state, role });
     let content;
     try {
+      const effectiveModel = resolveRoleModel(state, role, options.model);
       content = await runOpenCodePrompt({
         prompt,
         cwd: options.cwd || process.cwd(),
-        model: options.model,
+        model: effectiveModel,
         agent: options.agent,
+        binaryPath: options.opencodeBin,
         timeoutMs: options.timeoutMs,
       });
     } catch (error) {

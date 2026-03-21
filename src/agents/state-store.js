@@ -8,6 +8,7 @@ import {
   SESSION_ROOT_DIR,
   CURRENT_SESSION_FILE,
 } from './constants.js';
+import { sanitizeRoleModels } from './model-selection.js';
 
 function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -53,6 +54,8 @@ function initialState(task, options = {}) {
     roles: options.roles?.length ? options.roles : COLLAB_ROLES,
     workingDirectory: options.workingDirectory || process.cwd(),
     model: options.model || null,
+    roleModels: sanitizeRoleModels(options.roleModels),
+    opencodeBin: options.opencodeBin || null,
     tmuxSessionName: options.tmuxSessionName || null,
     messages: [
       {

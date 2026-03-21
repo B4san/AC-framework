@@ -1,5 +1,13 @@
 import { spawnSync } from 'node:child_process';
+import { existsSync } from 'node:fs';
+import { join } from 'node:path';
 import { platform } from 'node:os';
+
+function preferredOpenCodePath() {
+  const home = process.env.HOME;
+  if (!home) return null;
+  return join(home, '.opencode', 'bin', 'opencode');
+}
 
 function run(command, args, options = {}) {
   return spawnSync(command, args, {
@@ -10,9 +18,20 @@ function run(command, args, options = {}) {
 }
 
 export function hasCommand(command) {
+  return Boolean(resolveCommandPath(command));
+}
+
+export function resolveCommandPath(command) {
+  const preferredPath = command === 'opencode' ? preferredOpenCodePath() : null;
+  if (preferredPath && existsSync(preferredPath)) {
+    return preferredPath;
+  }
   const locator = platform() === 'win32' ? 'where' : 'which';
   const result = run(locator, [command]);
-  return result.status === 0;
+  if (result.status !== 0) return null;
+  const out = String(result.stdout || '').trim();
+  if (!out) return null;
+  return out.split('\n').map((line) => line.trim()).filter(Boolean)[0] || null;
 }
 
 export function installOpenCode() {

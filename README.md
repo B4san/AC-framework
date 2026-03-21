@@ -143,15 +143,27 @@ Each role runs in turn against a shared, accumulating context so outputs from on
 | `acfm agents setup` | Install optional dependencies (`opencode` and `tmux`) |
 | `acfm agents install-mcps` | Install SynapseGrid MCP server for detected assistants |
 | `acfm agents uninstall-mcps` | Remove SynapseGrid MCP server from assistants |
-| `acfm agents start --task "..."` | Start a SynapseGrid collaborative session |
+| `acfm agents start --task "..." --model-coder provider/model` | Start session with optional per-role models |
 | `acfm agents resume` | Resume a previous session and recreate workers if needed |
 | `acfm agents list` | List recent SynapseGrid sessions |
 | `acfm agents attach` | Attach directly to the SynapseGrid tmux session |
+| `acfm agents live` | Attach to full live tmux view (all agents) |
 | `acfm agents logs` | Show recent worker logs (all roles or one role) |
 | `acfm agents export --format md --out file.md` | Export transcript in Markdown or JSON |
 | `acfm agents send "..."` | Send a new user message into the active session |
 | `acfm agents status` | Show current collaborative session state |
+| `acfm agents model get` | Show default model config (global and per-role) |
+| `acfm agents model set --role coder provider/model` | Persist a default model for one role |
+| `acfm agents model clear --role all` | Clear persisted model defaults |
 | `acfm agents stop` | Stop the active collaborative session |
+
+### SynapseGrid troubleshooting
+
+- If transcript entries show `Agent failed: spawn opencode ENOENT`, run `acfm agents setup` to install dependencies and then retry.
+- Attach to worker panes with `acfm agents live` (or `acfm agents attach`) to see real-time role discussion.
+- Inspect worker errors quickly with `acfm agents logs --role all --lines 120`.
+- MCP starts can now create tmux workers directly; if your assistant used headless steps before, start a new session and ensure worker spawning is enabled.
+- Configure role models directly at start (for example `--model-planner`, `--model-coder`) or persist defaults via `acfm agents model set`.
 
 ### Spec Workflow
 

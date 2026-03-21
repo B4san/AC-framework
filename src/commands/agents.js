@@ -1,11 +1,9 @@
 import { Command } from 'commander';
 import chalk from 'chalk';
-import { spawn } from 'node:child_process';
 import { existsSync } from 'node:fs';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { readFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
-import { fileURLToPath } from 'node:url';
 import {
   COLLAB_ROLES,
   COLLAB_SYSTEM_NAME,
@@ -26,7 +24,15 @@ import {
   setCurrentSession,
   stopSession,
 } from '../agents/state-store.js';
-import { ensureCollabDependencies, hasCommand } from '../services/dependency-installer.js';
+import { roleLogPath, runTmux, spawnTmuxSession, tmuxSessionExists } from '../agents/runtime.js';
+import { getAgentsConfigPath, loadAgentsConfig, updateAgentsConfig } from '../agents/config-store.js';
+import {
+  buildEffectiveRoleModels,
+  isValidModelId,
+  normalizeModelId,
+  sanitizeRoleModels,
+} from '../agents/model-selection.js';
+import { ensureCollabDependencies, hasCommand, resolveCommandPath } from '../services/dependency-installer.js';
 
 function output(data, json) {
   if (json) {
@@ -34,77 +40,10 @@ function output(data, json) {
   }
 }
 
-function roleLogPath(sessionDir, role) {
-  return resolve(sessionDir, `${role}.log`);
-}
-
 function tailLines(text, maxLines) {
   const lines = text.split('\n');
   const sliced = lines.slice(Math.max(lines.length - maxLines, 0));
   return sliced.join('\n').trimEnd();
-}
-
-const __dirname = dirname(fileURLToPath(import.meta.url));
-const runnerPath = resolve(__dirname, '../../bin/acfm.js');
-
-function runTmux(command, args, options = {}) {
-  return new Promise((resolvePromise, rejectPromise) => {
-    const child = spawn(command, args, {
-      cwd: options.cwd || process.cwd(),
-      stdio: options.stdio || 'pipe',
-      env: process.env,
-    });
-
-    let stderr = '';
-    let stdout = '';
-    if (child.stderr) {
-      child.stderr.on('data', (chunk) => {
-        stderr += chunk.toString();
-      });
-    }
-    if (child.stdout) {
-      child.stdout.on('data', (chunk) => {
-        stdout += chunk.toString();
-      });
-    }
-
-    child.on('error', rejectPromise);
-    child.on('close', (code) => {
-      if (code === 0) {
-        resolvePromise({ stdout, stderr });
-        return;
-      }
-      rejectPromise(new Error(stderr.trim() || `${command} exited with code ${code}`));
-    });
-  });
-}
-
-async function spawnTmuxSession({ sessionName, sessionDir, sessionId }) {
-  const role0 = COLLAB_ROLES[0];
-  await runTmux('tmux', [
-    'new-session',
-    '-d',
-    '-s',
-    sessionName,
-    '-n',
-    role0,
-    `bash -lc 'node "${runnerPath}" agents worker --session ${sessionId} --role ${role0} >> "${roleLogPath(sessionDir, role0)}" 2>&1'`,
-  ]);
-
-  for (let idx = 1; idx < COLLAB_ROLES.length; idx += 1) {
-    const role = COLLAB_ROLES[idx];
-    await runTmux('tmux', [
-      'split-window',
-      '-t',
-      sessionName,
-      '-v',
-      `bash -lc 'node "${runnerPath}" agents worker --session ${sessionId} --role ${role} >> "${roleLogPath(sessionDir, role)}" 2>&1'`,
-    ]);
-  }
-
-  await runTmux('tmux', ['select-layout', '-t', sessionName, 'tiled']);
-  await runTmux('tmux', ['set-option', '-t', sessionName, 'pane-border-status', 'top']);
-  await runTmux('tmux', ['set-option', '-t', sessionName, 'pane-border-format', '#{pane_index}:#{pane_title}']);
 }
 
 async function ensureSessionId(required = true) {
@@ -124,18 +63,20 @@ function printStartSummary(state) {
   console.log();
   console.log(chalk.cyan('Attach with:'));
   console.log(chalk.white(`  tmux attach -t ${state.tmuxSessionName}`));
+  console.log(chalk.white('  acfm agents live'));
   console.log();
   console.log(chalk.cyan('Interact with:'));
   console.log(chalk.white('  acfm agents send "your message"'));
 }
 
 function toMarkdownTranscript(state, transcript) {
+  const displayedRound = Math.min(state.round, state.maxRounds);
   const lines = [
     `# SynapseGrid Session ${state.sessionId}`,
     '',
     `- Task: ${state.task}`,
     `- Status: ${state.status}`,
-    `- Rounds: ${state.round}/${state.maxRounds}`,
+    `- Rounds: ${displayedRound}/${state.maxRounds}`,
     `- Roles: ${state.roles.join(', ')}`,
     `- Created: ${state.createdAt}`,
     `- Updated: ${state.updatedAt}`,
@@ -153,6 +94,35 @@ function toMarkdownTranscript(state, transcript) {
   }
 
   return lines.join('\n');
+}
+
+function parseRoleModelOptions(opts) {
+  return sanitizeRoleModels({
+    planner: opts.modelPlanner,
+    critic: opts.modelCritic,
+    coder: opts.modelCoder,
+    reviewer: opts.modelReviewer,
+  });
+}
+
+function assertValidModelIdOrNull(label, value) {
+  const normalized = normalizeModelId(value);
+  if (!normalized) return null;
+  if (!isValidModelId(normalized)) {
+    throw new Error(`${label} must be in provider/model format`);
+  }
+  return normalized;
+}
+
+function printModelConfig(state) {
+  const effectiveRoleModels = buildEffectiveRoleModels(state, state.model || null);
+  console.log(chalk.bold('\nModel configuration'));
+  console.log(chalk.dim(`  Global fallback: ${state.model || '(opencode default)'}`));
+  for (const role of COLLAB_ROLES) {
+    const configured = state.roleModels?.[role] || '-';
+    const effective = effectiveRoleModels[role] || '(opencode default)';
+    console.log(chalk.dim(`  ${role.padEnd(8)} configured=${configured} effective=${effective}`));
+  }
 }
 
 export function agentsCommand() {
@@ -296,6 +266,27 @@ export function agentsCommand() {
     });
 
   agents
+    .command('live')
+    .description('Attach to live tmux collaboration view (all agent panes)')
+    .option('--readonly', 'Attach in read-only mode', false)
+    .action(async (opts) => {
+      try {
+        const sessionId = await ensureSessionId(true);
+        const state = await loadSessionState(sessionId);
+        if (!state.tmuxSessionName) {
+          throw new Error('No tmux session registered for active collaborative session');
+        }
+        const args = ['attach'];
+        if (opts.readonly) args.push('-r');
+        args.push('-t', state.tmuxSessionName);
+        await runTmux('tmux', args, { stdio: 'inherit' });
+      } catch (error) {
+        console.error(chalk.red(`Error: ${error.message}`));
+        process.exit(1);
+      }
+    });
+
+  agents
     .command('resume')
     .description('Resume a previous session and optionally recreate tmux workers')
     .option('--session <id>', 'Session ID to resume (defaults to current)')
@@ -308,15 +299,7 @@ export function agentsCommand() {
         let state = await loadSessionState(sessionId);
 
         const tmuxSessionName = state.tmuxSessionName || `acfm-synapse-${state.sessionId.slice(0, 8)}`;
-        let tmuxExists = false;
-        if (hasCommand('tmux')) {
-          try {
-            await runTmux('tmux', ['has-session', '-t', tmuxSessionName]);
-            tmuxExists = true;
-          } catch {
-            tmuxExists = false;
-          }
-        }
+        const tmuxExists = hasCommand('tmux') ? await tmuxSessionExists(tmuxSessionName) : false;
 
         if (!tmuxExists && opts.recreate) {
           if (!hasCommand('tmux')) {
@@ -410,6 +393,136 @@ export function agentsCommand() {
       }
     });
 
+  const model = agents
+    .command('model')
+    .description('Manage default SynapseGrid model configuration');
+
+  model
+    .command('get')
+    .description('Show configured default global/per-role models')
+    .option('--json', 'Output as JSON')
+    .action(async (opts) => {
+      try {
+        const config = await loadAgentsConfig();
+        const payload = {
+          configPath: getAgentsConfigPath(),
+          defaultModel: config.agents.defaultModel,
+          defaultRoleModels: config.agents.defaultRoleModels,
+        };
+        output(payload, opts.json);
+        if (!opts.json) {
+          console.log(chalk.bold('SynapseGrid default models'));
+          console.log(chalk.dim(`Config: ${payload.configPath}`));
+          console.log(chalk.dim(`Global fallback: ${payload.defaultModel || '(none)'}`));
+          for (const role of COLLAB_ROLES) {
+            console.log(chalk.dim(`- ${role}: ${payload.defaultRoleModels[role] || '(none)'}`));
+          }
+        }
+      } catch (error) {
+        output({ error: error.message }, opts.json);
+        if (!opts.json) console.error(chalk.red(`Error: ${error.message}`));
+        process.exit(1);
+      }
+    });
+
+  model
+    .command('set <modelId>')
+    .description('Set default model globally or for a specific role')
+    .option('--role <role>', 'planner|critic|coder|reviewer|all', 'all')
+    .option('--json', 'Output as JSON')
+    .action(async (modelId, opts) => {
+      try {
+        const role = String(opts.role || 'all');
+        const normalized = assertValidModelIdOrNull('model', modelId);
+        if (!normalized) throw new Error('model must be provided');
+        if (role !== 'all' && !COLLAB_ROLES.includes(role)) {
+          throw new Error('--role must be planner|critic|coder|reviewer|all');
+        }
+
+        const updated = await updateAgentsConfig((current) => {
+          const next = {
+            agents: {
+              defaultModel: current.agents.defaultModel,
+              defaultRoleModels: { ...current.agents.defaultRoleModels },
+            },
+          };
+          if (role === 'all') {
+            next.agents.defaultModel = normalized;
+          } else {
+            next.agents.defaultRoleModels = {
+              ...next.agents.defaultRoleModels,
+              [role]: normalized,
+            };
+          }
+          return next;
+        });
+
+        const payload = {
+          success: true,
+          configPath: getAgentsConfigPath(),
+          defaultModel: updated.agents.defaultModel,
+          defaultRoleModels: updated.agents.defaultRoleModels,
+        };
+        output(payload, opts.json);
+        if (!opts.json) {
+          console.log(chalk.green('✓ SynapseGrid model configuration updated'));
+          console.log(chalk.dim(`  Config: ${payload.configPath}`));
+        }
+      } catch (error) {
+        output({ error: error.message }, opts.json);
+        if (!opts.json) console.error(chalk.red(`Error: ${error.message}`));
+        process.exit(1);
+      }
+    });
+
+  model
+    .command('clear')
+    .description('Clear default model globally or for a specific role')
+    .option('--role <role>', 'planner|critic|coder|reviewer|all', 'all')
+    .option('--json', 'Output as JSON')
+    .action(async (opts) => {
+      try {
+        const role = String(opts.role || 'all');
+        if (role !== 'all' && !COLLAB_ROLES.includes(role)) {
+          throw new Error('--role must be planner|critic|coder|reviewer|all');
+        }
+
+        const updated = await updateAgentsConfig((current) => {
+          const next = {
+            agents: {
+              defaultModel: current.agents.defaultModel,
+              defaultRoleModels: { ...current.agents.defaultRoleModels },
+            },
+          };
+          if (role === 'all') {
+            next.agents.defaultModel = null;
+            next.agents.defaultRoleModels = {};
+          } else {
+            const currentRoles = { ...next.agents.defaultRoleModels };
+            delete currentRoles[role];
+            next.agents.defaultRoleModels = currentRoles;
+          }
+          return next;
+        });
+
+        const payload = {
+          success: true,
+          configPath: getAgentsConfigPath(),
+          defaultModel: updated.agents.defaultModel,
+          defaultRoleModels: updated.agents.defaultRoleModels,
+        };
+        output(payload, opts.json);
+        if (!opts.json) {
+          console.log(chalk.green('✓ SynapseGrid model configuration cleared'));
+          console.log(chalk.dim(`  Config: ${payload.configPath}`));
+        }
+      } catch (error) {
+        output({ error: error.message }, opts.json);
+        if (!opts.json) console.error(chalk.red(`Error: ${error.message}`));
+        process.exit(1);
+      }
+    });
+
   agents
     .command('export')
     .description('Export collaborative transcript')
@@ -459,6 +572,10 @@ export function agentsCommand() {
     .requiredOption('--task <text>', 'Initial task from user')
     .option('--rounds <n>', 'Maximum collaboration rounds', String(DEFAULT_MAX_ROUNDS))
     .option('--model <id>', 'Model to use (provider/model)')
+    .option('--model-planner <id>', 'Model for planner role (provider/model)')
+    .option('--model-critic <id>', 'Model for critic role (provider/model)')
+    .option('--model-coder <id>', 'Model for coder role (provider/model)')
+    .option('--model-reviewer <id>', 'Model for reviewer role (provider/model)')
     .option('--cwd <path>', 'Working directory for agents', process.cwd())
     .option('--attach', 'Attach tmux immediately after start', false)
     .option('--json', 'Output as JSON')
@@ -470,6 +587,10 @@ export function agentsCommand() {
         if (!hasCommand('tmux')) {
           throw new Error('tmux is not installed. Run: acfm agents setup');
         }
+        const opencodeBin = resolveCommandPath('opencode');
+        if (!opencodeBin) {
+          throw new Error('OpenCode binary not found. Run: acfm agents setup');
+        }
 
         await mkdir(SESSION_ROOT_DIR, { recursive: true });
         const maxRounds = Number.parseInt(opts.rounds, 10);
@@ -477,11 +598,28 @@ export function agentsCommand() {
           throw new Error('--rounds must be a positive integer');
         }
 
+        const config = await loadAgentsConfig();
+        const cliModel = assertValidModelIdOrNull('--model', opts.model || null);
+        const cliRoleModels = parseRoleModelOptions(opts);
+        for (const [role, model] of Object.entries(cliRoleModels)) {
+          if (!isValidModelId(model)) {
+            throw new Error(`--model-${role} must be in provider/model format`);
+          }
+        }
+        const defaultRoleModels = sanitizeRoleModels(config.agents.defaultRoleModels);
+        const roleModels = {
+          ...defaultRoleModels,
+          ...cliRoleModels,
+        };
+        const globalModel = cliModel || config.agents.defaultModel || null;
+
         const state = await createSession(opts.task, {
           roles: COLLAB_ROLES,
           maxRounds,
-          model: opts.model || null,
+          model: globalModel,
+          roleModels,
           workingDirectory: resolve(opts.cwd),
+          opencodeBin,
         });
         const tmuxSessionName = `acfm-synapse-${state.sessionId.slice(0, 8)}`;
         const sessionDir = getSessionDir(state.sessionId);
@@ -499,6 +637,7 @@ export function agentsCommand() {
         output({ sessionId: updated.sessionId, tmuxSessionName, status: updated.status }, opts.json);
         if (!opts.json) {
           printStartSummary(updated);
+          printModelConfig(updated);
         }
 
         if (opts.attach) {
@@ -538,14 +677,21 @@ export function agentsCommand() {
       try {
         const sessionId = await ensureSessionId(true);
         const state = await loadSessionState(sessionId);
-        output(state, opts.json);
+        const effectiveRoleModels = buildEffectiveRoleModels(state, state.model || null);
+        output({ ...state, effectiveRoleModels }, opts.json);
         if (!opts.json) {
           console.log(chalk.bold(`${COLLAB_SYSTEM_NAME} Status`));
           console.log(chalk.dim(`Session: ${state.sessionId}`));
           console.log(chalk.dim(`Status: ${state.status}`));
-          console.log(chalk.dim(`Round: ${state.round}/${state.maxRounds}`));
+          console.log(chalk.dim(`Round: ${Math.min(state.round, state.maxRounds)}/${state.maxRounds}`));
           console.log(chalk.dim(`Active agent: ${state.activeAgent || 'none'}`));
           console.log(chalk.dim(`Messages: ${state.messages.length}`));
+          console.log(chalk.dim(`Global model: ${state.model || '(opencode default)'}`));
+          for (const role of COLLAB_ROLES) {
+            const configured = state.roleModels?.[role] || '-';
+            const effective = effectiveRoleModels[role] || '(opencode default)';
+            console.log(chalk.dim(`  ${role.padEnd(8)} configured=${configured} effective=${effective}`));
+          }
           if (state.tmuxSessionName) {
             console.log(chalk.dim(`tmux: ${state.tmuxSessionName}`));
           }
@@ -616,6 +762,7 @@ export function agentsCommand() {
           const nextState = await runWorkerIteration(opts.session, role, {
             cwd: state.workingDirectory || process.cwd(),
             model: state.model || null,
+            opencodeBin: state.opencodeBin || resolveCommandPath('opencode') || undefined,
           });
           const latest = nextState.messages[nextState.messages.length - 1];
           if (latest?.from === role) {

@@ -98,6 +98,45 @@ acfm memory stats
 
 **User communication:** "Memory saved: [brief description]" when auto-saving occurs.
 
+### SynapseGrid Collaborative MCP Protocol (Optional)
+
+If SynapseGrid is enabled in `acfm init`, AC Framework installs the collaborative MCP server automatically for detected assistants.
+
+**Session-start requirement when collaboration is enabled:**
+1. Prefer the available SynapseGrid MCP tools for collaborative session control before falling back to direct CLI.
+2. Use shared session state and transcript as the source of truth for role-by-role collaboration.
+3. If collaborative MCP is unavailable, use CLI fallback commands and keep behavior equivalent.
+
+**How to use SynapseGrid collaboration:**
+```text
+Preferred: use SynapseGrid MCP tools (ac-framework-collab) for start/status/step/resume/stop.
+Fallback: use AC Framework agents CLI commands directly.
+```
+```bash
+# Install/update collaborative MCP server integrations
+acfm agents install-mcps
+
+# Start collaborative runtime with visible 4-pane tmux war-room
+acfm agents start --task "design and implement feature X" --attach --model-coder provider/model
+
+# If already running in background, attach to panes and inspect logs
+acfm agents live
+acfm agents logs --role all --lines 120
+
+# Resume/list/export operations
+acfm agents resume
+acfm agents list
+acfm agents export --format md --out synapse-session.md
+
+# Fast diagnostics for OpenCode resolution errors
+acfm agents setup
+```
+
+**Troubleshooting notes:**
+- If transcript shows `Agent failed: spawn opencode ENOENT`, run `acfm agents setup` and restart/resume session.
+- If session exists but panes are not visible, use `acfm agents live` (or `acfm agents attach`) or `tmux attach -t <session-name>`.
+- For MCP-first flows, ensure session start enables worker spawning so tmux panes are created.
+- Per-role models can be set at start (`--model-planner`, `--model-critic`, `--model-coder`, `--model-reviewer`) or persisted via `acfm agents model set`.
 
 ### OpenSpec Skills (The heart of the framework)
 

@@ -9,7 +9,10 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { z } from 'zod';
 import { COLLAB_ROLES } from '../agents/constants.js';
+import { buildEffectiveRoleModels, sanitizeRoleModels } from '../agents/model-selection.js';
 import { runWorkerIteration } from '../agents/orchestrator.js';
+import { getSessionDir } from '../agents/state-store.js';
+import { spawnTmuxSession, tmuxSessionExists } from '../agents/runtime.js';
 import {
   addUserMessage,
   createSession,
@@ -20,6 +23,7 @@ import {
   setCurrentSession,
   stopSession,
 } from '../agents/state-store.js';
+import { hasCommand, resolveCommandPath } from '../services/dependency-installer.js';
 
 class MCPCollabServer {
   constructor() {
@@ -39,20 +43,59 @@ class MCPCollabServer {
         task: z.string().describe('Initial collaborative task'),
         maxRounds: z.number().int().positive().default(3).describe('Maximum collaboration rounds'),
         model: z.string().optional().describe('Model id (provider/model) for opencode run'),
+        roleModels: z.object({
+          planner: z.string().optional(),
+          critic: z.string().optional(),
+          coder: z.string().optional(),
+          reviewer: z.string().optional(),
+        }).partial().optional().describe('Optional per-role models (provider/model)'),
+        cwd: z.string().optional().describe('Working directory for agents'),
+        spawnWorkers: z.boolean().default(true).describe('Create tmux workers and panes'),
       },
-      async ({ task, maxRounds, model }) => {
+      async ({ task, maxRounds, model, roleModels, cwd, spawnWorkers }) => {
         try {
+          const workingDirectory = cwd || process.cwd();
+          const opencodeBin = resolveCommandPath('opencode');
+          if (!opencodeBin) {
+            throw new Error('OpenCode binary not found in PATH. Run: acfm agents setup');
+          }
+
+          if (spawnWorkers && !hasCommand('tmux')) {
+            throw new Error('tmux is not installed. Run: acfm agents setup');
+          }
+
           const state = await createSession(task, {
             roles: COLLAB_ROLES,
             maxRounds,
             model: model || null,
-            workingDirectory: process.cwd(),
+            roleModels: sanitizeRoleModels(roleModels),
+            workingDirectory,
+            opencodeBin,
           });
+          let updated = state;
+          if (spawnWorkers) {
+            const tmuxSessionName = `acfm-synapse-${state.sessionId.slice(0, 8)}`;
+            const sessionDir = getSessionDir(state.sessionId);
+            await spawnTmuxSession({ sessionName: tmuxSessionName, sessionDir, sessionId: state.sessionId });
+            updated = await saveSessionState({ ...state, tmuxSessionName });
+          }
           await setCurrentSession(state.sessionId);
+
+          const tmuxSessionName = updated.tmuxSessionName || null;
+          const attachCommand = tmuxSessionName ? `tmux attach -t ${tmuxSessionName}` : null;
           return {
             content: [{
               type: 'text',
-              text: JSON.stringify({ success: true, sessionId: state.sessionId, status: state.status }, null, 2),
+              text: JSON.stringify({
+                success: true,
+                sessionId: updated.sessionId,
+                status: updated.status,
+                model: updated.model || null,
+                roleModels: updated.roleModels || {},
+                effectiveRoleModels: buildEffectiveRoleModels(updated, updated.model || null),
+                tmuxSessionName,
+                attachCommand,
+              }, null, 2),
             }],
           };
         } catch (error) {
@@ -102,9 +145,11 @@ class MCPCollabServer {
           if (!id) {
             throw new Error('No active session found');
           }
+          const loaded = await loadSessionState(id);
 
           const state = await runWorkerIteration(id, role, {
             cwd: process.cwd(),
+            opencodeBin: loaded.opencodeBin || resolveCommandPath('opencode') || undefined,
           });
 
           return {
@@ -116,7 +161,59 @@ class MCPCollabServer {
                 status: state.status,
                 round: state.round,
                 activeAgent: state.activeAgent,
+                model: state.model || null,
+                roleModels: state.roleModels || {},
+                effectiveRoleModels: buildEffectiveRoleModels(state, state.model || null),
                 messageCount: state.messages.length,
+              }, null, 2),
+            }],
+          };
+        } catch (error) {
+          return { content: [{ type: 'text', text: JSON.stringify({ error: error.message }) }], isError: true };
+        }
+      }
+    );
+
+    this.server.tool(
+      'collab_resume_session',
+      'Resume session and recreate tmux workers if needed',
+      {
+        sessionId: z.string().optional().describe('Session ID (defaults to current session)'),
+        recreateWorkers: z.boolean().default(true).describe('Recreate tmux session when missing'),
+      },
+      async ({ sessionId, recreateWorkers }) => {
+        try {
+          const id = sessionId || await loadCurrentSessionId();
+          if (!id) throw new Error('No active session found');
+          let state = await loadSessionState(id);
+
+          const tmuxSessionName = state.tmuxSessionName || `acfm-synapse-${state.sessionId.slice(0, 8)}`;
+          const tmuxExists = hasCommand('tmux') ? await tmuxSessionExists(tmuxSessionName) : false;
+
+          if (!tmuxExists && recreateWorkers) {
+            if (!hasCommand('tmux')) {
+              throw new Error('tmux is not installed. Run: acfm agents setup');
+            }
+            const sessionDir = getSessionDir(state.sessionId);
+            await spawnTmuxSession({ sessionName: tmuxSessionName, sessionDir, sessionId: state.sessionId });
+          }
+
+          state = await saveSessionState({
+            ...state,
+            status: 'running',
+            tmuxSessionName,
+          });
+          await setCurrentSession(state.sessionId);
+
+          return {
+            content: [{
+              type: 'text',
+              text: JSON.stringify({
+                success: true,
+                sessionId: state.sessionId,
+                status: state.status,
+                tmuxSessionName,
+                recreatedWorkers: !tmuxExists && recreateWorkers,
               }, null, 2),
             }],
           };
@@ -144,7 +241,11 @@ class MCPCollabServer {
           return {
             content: [{
               type: 'text',
-              text: JSON.stringify({ state, transcript }, null, 2),
+              text: JSON.stringify({
+                state,
+                effectiveRoleModels: buildEffectiveRoleModels(state, state.model || null),
+                transcript,
+              }, null, 2),
             }],
           };
         } catch (error) {

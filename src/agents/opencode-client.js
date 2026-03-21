@@ -22,7 +22,8 @@ function parseOpenCodeRunOutput(stdout) {
   return stdout.trim();
 }
 
-export async function runOpenCodePrompt({ prompt, cwd, model, agent, timeoutMs = 180000 }) {
+export async function runOpenCodePrompt({ prompt, cwd, model, agent, timeoutMs = 180000, binaryPath }) {
+  const binary = binaryPath || process.env.ACFM_OPENCODE_BIN || 'opencode';
   const args = ['run', '--format', 'json'];
   if (model) {
     args.push('--model', model);
@@ -32,7 +33,7 @@ export async function runOpenCodePrompt({ prompt, cwd, model, agent, timeoutMs =
   }
   args.push('--', prompt);
 
-  const { stdout, stderr } = await execFileAsync('opencode', args, {
+  const { stdout, stderr } = await execFileAsync(binary, args, {
     cwd,
     timeout: timeoutMs,
     maxBuffer: 10 * 1024 * 1024,
