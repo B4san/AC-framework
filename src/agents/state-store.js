@@ -8,6 +8,7 @@ import {
   SESSION_ROOT_DIR,
   CURRENT_SESSION_FILE,
 } from './constants.js';
+import { createRunState } from './run-state.js';
 import { sanitizeRoleModels } from './model-selection.js';
 
 function sleep(ms) {
@@ -57,6 +58,7 @@ function initialState(task, options = {}) {
     roleModels: sanitizeRoleModels(options.roleModels),
     opencodeBin: options.opencodeBin || null,
     tmuxSessionName: options.tmuxSessionName || null,
+    run: createRunState(options.runPolicy, Number.isInteger(options.maxRounds) ? options.maxRounds : DEFAULT_MAX_ROUNDS),
     messages: [
       {
         from: 'user',

@@ -127,6 +127,18 @@ function printModelConfig(state) {
   }
 }
 
+function runSummary(state) {
+  const run = state.run || {};
+  const events = Array.isArray(run.events) ? run.events.length : 0;
+  return {
+    status: run.status || 'idle',
+    runId: run.runId || null,
+    currentRole: run.currentRole || null,
+    lastError: run.lastError || null,
+    events,
+  };
+}
+
 async function preflightModel({ opencodeBin, model, cwd }) {
   const selected = normalizeModelId(model) || DEFAULT_SYNAPSE_MODEL;
   try {
@@ -723,6 +735,11 @@ export function agentsCommand() {
           console.log(chalk.dim(`Round: ${Math.min(state.round, state.maxRounds)}/${state.maxRounds}`));
           console.log(chalk.dim(`Active agent: ${state.activeAgent || 'none'}`));
           console.log(chalk.dim(`Messages: ${state.messages.length}`));
+          const summary = runSummary(state);
+          console.log(chalk.dim(`Run: ${summary.status}${summary.currentRole ? ` (role=${summary.currentRole})` : ''}, events=${summary.events}`));
+          if (summary.lastError?.message) {
+            console.log(chalk.dim(`Run error: ${summary.lastError.message}`));
+          }
           console.log(chalk.dim(`Global model: ${state.model || '(opencode default)'}`));
           for (const role of COLLAB_ROLES) {
             const configured = state.roleModels?.[role] || '-';
@@ -749,6 +766,21 @@ export function agentsCommand() {
         const sessionId = await ensureSessionId(true);
         let state = await loadSessionState(sessionId);
         state = await stopSession(state, 'stopped');
+        if (state.run && state.run.status === 'running') {
+          state = await saveSessionState({
+            ...state,
+            run: {
+              ...state.run,
+              status: 'cancelled',
+              finishedAt: new Date().toISOString(),
+              currentRole: null,
+              lastError: {
+                code: 'RUN_CANCELLED',
+                message: 'Run cancelled by user',
+              },
+            },
+          });
+        }
         if (state.tmuxSessionName && hasCommand('tmux')) {
           try {
             await runTmux('tmux', ['kill-session', '-t', state.tmuxSessionName]);
@@ -762,6 +794,33 @@ export function agentsCommand() {
         output({ error: error.message }, opts.json);
         if (!opts.json) console.error(chalk.red(`Error: ${error.message}`));
         process.exit(1);
+      }
+    });
+
+  agents
+    .command('autopilot')
+    .description('Internal headless collaborative driver (non-tmux)')
+    .requiredOption('--session <id>', 'Session id')
+    .option('--poll-ms <n>', 'Polling interval in ms', '900')
+    .action(async (opts) => {
+      const pollMs = Number.parseInt(opts.pollMs, 10);
+      while (true) {
+        try {
+          const state = await loadSessionState(opts.session);
+          if (state.status !== 'running') process.exit(0);
+
+          for (const role of state.roles || COLLAB_ROLES) {
+            await runWorkerIteration(opts.session, role, {
+              cwd: state.workingDirectory || process.cwd(),
+              model: state.model || null,
+              opencodeBin: state.opencodeBin || resolveCommandPath('opencode') || undefined,
+              timeoutMs: state.run?.policy?.timeoutPerRoleMs || 180000,
+            });
+          }
+        } catch (error) {
+          console.error(`[autopilot] ${error.message}`);
+        }
+        await new Promise((resolvePromise) => setTimeout(resolvePromise, Number.isInteger(pollMs) ? pollMs : 900));
       }
     });
 

@@ -158,6 +158,18 @@ Each role runs in turn against a shared, accumulating context so outputs from on
 | `acfm agents model clear --role all` | Clear persisted model defaults |
 | `acfm agents stop` | Stop the active collaborative session |
 
+### MCP collaborative run mode (recommended)
+
+When driving SynapseGrid from another agent via MCP, prefer asynchronous run tools over role-by-role stepping:
+
+- `collab_start_session` to initialize session and optional tmux workers
+- `collab_invoke_team` to launch full 4-role collaboration run
+- `collab_wait_run` to wait for completion/failure with bounded timeout
+- `collab_get_result` to fetch final consolidated output and run diagnostics
+- `collab_cancel_run` to cancel a running collaboration safely
+
+`collab_step` remains available for manual/debug control, but is less robust for long tasks.
+
 ### SynapseGrid troubleshooting
 
 - If transcript entries show `Agent failed: spawn opencode ENOENT`, run `acfm agents setup` to install dependencies and then retry.
