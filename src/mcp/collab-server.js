@@ -34,7 +34,7 @@ import {
   setCurrentSession,
   stopSession,
 } from '../agents/state-store.js';
-import { hasCommand, resolveCommandPath } from '../services/dependency-installer.js';
+import { hasCommand, resolveCommandPath, resolveManagedZellijPath } from '../services/dependency-installer.js';
 import { loadAgentsConfig } from '../agents/config-store.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -74,8 +74,18 @@ function launchAutopilot(sessionId) {
   child.unref();
 }
 
-async function muxExists(multiplexer, sessionName) {
-  if (multiplexer === 'zellij') return zellijSessionExists(sessionName);
+function resolveConfiguredZellijPath(config) {
+  const strategy = config?.agents?.zellij?.strategy || 'auto';
+  if (strategy === 'system') {
+    return resolveCommandPath('zellij');
+  }
+  const managed = resolveManagedZellijPath(config);
+  if (managed) return managed;
+  return resolveCommandPath('zellij');
+}
+
+async function muxExists(multiplexer, sessionName, zellijPath = null) {
+  if (multiplexer === 'zellij') return zellijSessionExists(sessionName, zellijPath);
   return tmuxSessionExists(sessionName);
 }
 
@@ -121,7 +131,8 @@ class MCPCollabServer {
 
           const config = await loadAgentsConfig();
           const configuredMux = config.agents.multiplexer || 'auto';
-          const multiplexer = resolveMultiplexer(configuredMux, hasCommand('tmux'), hasCommand('zellij'));
+          const zellijPath = resolveConfiguredZellijPath(config);
+          const multiplexer = resolveMultiplexer(configuredMux, hasCommand('tmux'), Boolean(zellijPath));
           if (spawnWorkers && !multiplexer) {
             throw new Error('No multiplexer found (zellij/tmux). Run: acfm agents setup');
           }
@@ -141,7 +152,7 @@ class MCPCollabServer {
             const sessionName = `acfm-synapse-${state.sessionId.slice(0, 8)}`;
             const sessionDir = getSessionDir(state.sessionId);
             if (multiplexer === 'zellij') {
-              await spawnZellijSession({ sessionName, sessionDir, sessionId: state.sessionId });
+              await spawnZellijSession({ sessionName, sessionDir, sessionId: state.sessionId, binaryPath: zellijPath });
             } else {
               await spawnTmuxSession({ sessionName, sessionDir, sessionId: state.sessionId });
             }
@@ -452,19 +463,21 @@ class MCPCollabServer {
           const id = sessionId || await loadCurrentSessionId();
           if (!id) throw new Error('No active session found');
           let state = await loadSessionState(id);
+          const config = await loadAgentsConfig();
+          const zellijPath = resolveConfiguredZellijPath(config);
 
-          const multiplexer = state.multiplexer || resolveMultiplexer('auto', hasCommand('tmux'), hasCommand('zellij'));
+          const multiplexer = state.multiplexer || resolveMultiplexer('auto', hasCommand('tmux'), Boolean(zellijPath));
           if (!multiplexer) {
             throw new Error('No multiplexer found (zellij/tmux). Run: acfm agents setup');
           }
           const sessionName = state.multiplexerSessionName || state.tmuxSessionName || `acfm-synapse-${state.sessionId.slice(0, 8)}`;
-          const sessionExists = await muxExists(multiplexer, sessionName);
+          const sessionExists = await muxExists(multiplexer, sessionName, zellijPath);
 
           if (!sessionExists && recreateWorkers) {
             const sessionDir = getSessionDir(state.sessionId);
             if (multiplexer === 'zellij') {
-              if (!hasCommand('zellij')) throw new Error('zellij is not installed. Run: acfm agents setup');
-              await spawnZellijSession({ sessionName, sessionDir, sessionId: state.sessionId });
+              if (!zellijPath) throw new Error('zellij is not installed. Run: acfm agents setup');
+              await spawnZellijSession({ sessionName, sessionDir, sessionId: state.sessionId, binaryPath: zellijPath });
             } else {
               if (!hasCommand('tmux')) throw new Error('tmux is not installed. Run: acfm agents setup');
               await spawnTmuxSession({ sessionName, sessionDir, sessionId: state.sessionId });

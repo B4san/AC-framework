@@ -147,6 +147,7 @@ Each role runs in turn against a shared, accumulating context so outputs from on
 | `acfm agents start --task "..." --model-coder provider/model` | Start session with optional per-role models |
 | `acfm agents start --task "..." --mux zellij` | Start session forcing zellij backend (`auto`/`tmux` also supported) |
 | `acfm agents runtime get` | Show configured multiplexer backend (`auto`, `zellij`, `tmux`) |
+| `acfm agents runtime install-zellij` | Download latest zellij release into `~/.acfm/tools/zellij` |
 | `acfm agents runtime set zellij` | Persist preferred multiplexer backend |
 | `acfm agents resume` | Resume a previous session and recreate workers if needed |
 | `acfm agents list` | List recent SynapseGrid sessions |
@@ -155,6 +156,7 @@ Each role runs in turn against a shared, accumulating context so outputs from on
 | `acfm agents logs` | Show recent worker logs (all roles or one role) |
 | `acfm agents transcript --role all --limit 40` | Show captured cross-agent transcript |
 | `acfm agents summary` | Show generated collaboration meeting summary |
+| `acfm agents artifacts` | Show artifact paths/existence for current session |
 | `acfm agents export --format md --out file.md` | Export transcript in Markdown or JSON |
 | `acfm agents send "..."` | Send a new user message into the active session |
 | `acfm agents status` | Show current collaborative session state |
@@ -187,12 +189,15 @@ When driving SynapseGrid from another agent via MCP, prefer asynchronous run too
 - Configure role models directly at start (for example `--model-planner`, `--model-coder`) or persist defaults via `acfm agents model choose` / `acfm agents model set`.
 - Default SynapseGrid model fallback is `opencode/mimo-v2-pro-free`.
 - Run `acfm agents doctor` when panes look idle to confirm model/provider preflight health.
+- When zellij is managed by AC Framework, its binary path is saved in `~/.acfm/config.json` and executed directly by SynapseGrid.
 
 Each collaborative session now keeps human-readable artifacts under `~/.acfm/synapsegrid/<sessionId>/`:
 - `transcript.jsonl`: full chronological message stream
 - `turns/*.json`: one file per round/role turn with captured output metadata
 - `meeting-log.md`: incremental meeting notes generated per turn
 - `meeting-summary.md`: final consolidated summary (roles, decisions, open issues, risks, action items)
+- `turns/raw/*.ndjson`: raw OpenCode event stream captured per role/round
+- `turns/raw/*.stderr.log`: stderr capture per role/round
 
 ### Spec Workflow
 

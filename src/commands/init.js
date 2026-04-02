@@ -236,13 +236,20 @@ async function setupCollaborativeSystem() {
   console.log(chalk.hex('#B2BEC3')(`  Installing ${COLLAB_SYSTEM_NAME} dependencies...`));
   console.log();
 
-  const result = ensureCollabDependencies({ installZellij: true, installTmux: true });
+  const result = await ensureCollabDependencies({
+    installZellij: true,
+    installTmux: true,
+    preferManagedZellij: true,
+  });
 
   const oColor = result.opencode.success ? chalk.hex('#00B894') : chalk.hex('#D63031');
   const zColor = result.zellij.success ? chalk.hex('#00B894') : chalk.hex('#D63031');
   const tColor = result.tmux.success ? chalk.hex('#00B894') : chalk.hex('#D63031');
   console.log(oColor(`  ◆ OpenCode: ${result.opencode.message}`));
   console.log(zColor(`  ◆ zellij: ${result.zellij.message}`));
+  if (result.zellij.binaryPath) {
+    console.log(chalk.hex('#636E72')(`    ${result.zellij.binaryPath}`));
+  }
   console.log(tColor(`  ◆ tmux: ${result.tmux.message}`));
   console.log();
 

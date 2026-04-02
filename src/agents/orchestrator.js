@@ -11,10 +11,12 @@ import {
 } from './run-state.js';
 import {
   addAgentMessage,
+  appendTurnRawCapture,
   appendMeetingTurn,
   loadSessionState,
   saveSessionState,
   stopSession,
+  updateSessionDiagnostics,
   writeMeetingSummary,
   withSessionLock,
 } from './state-store.js';
@@ -31,6 +33,21 @@ async function finalizeSessionArtifacts(state) {
     ...state,
     run: completedRun,
   });
+}
+
+async function maybeRecordNoTurnDiagnostic(state) {
+  const runState = ensureRunState(state);
+  const hasTurnEvents = Array.isArray(runState.events)
+    ? runState.events.some((event) => event?.type === 'role_succeeded' || event?.type === 'role_failed')
+    : false;
+  if (!hasTurnEvents) {
+    await updateSessionDiagnostics(state.sessionId, {
+      warning: 'Session ended before any role turn was captured',
+      runStatus: runState.status,
+      stateStatus: state.status,
+      runEventCount: Array.isArray(runState.events) ? runState.events.length : 0,
+    });
+  }
 }
 
 function buildRuntimePrompt({ state, role }) {
@@ -162,6 +179,7 @@ export async function runTurn(sessionId, options = {}) {
     if (shouldStop(state)) {
       if (state.status === 'running') {
         state = await stopSession(state, 'completed');
+        await maybeRecordNoTurnDiagnostic(state);
         state = await finalizeSessionArtifacts(state);
       }
       return state;
@@ -200,6 +218,7 @@ export async function runTurn(sessionId, options = {}) {
 
     if (shouldStop(state)) {
       state = await stopSession(state, 'completed');
+      await maybeRecordNoTurnDiagnostic(state);
       state = await finalizeSessionArtifacts(state);
     }
 
@@ -267,6 +286,7 @@ export async function executeActiveTurn(sessionId, role, options = {}) {
 
     if (shouldStop(state)) {
       state = await stopSession(state, 'completed');
+      await maybeRecordNoTurnDiagnostic(state);
       state = await finalizeSessionArtifacts(state);
     }
 
@@ -317,6 +337,8 @@ export async function runWorkerIteration(sessionId, role, options = {}) {
     const prompt = buildRuntimePrompt({ state, role });
     let content;
     let outputEvents = [];
+    let outputStdout = '';
+    let outputStderr = '';
     let effectiveModel = null;
     let failed = false;
     let errorMessage = '';
@@ -340,6 +362,8 @@ export async function runWorkerIteration(sessionId, role, options = {}) {
       });
       content = output.text;
       outputEvents = output.events || [];
+      outputStdout = output.stdout || '';
+      outputStderr = output.stderr || '';
     } catch (error) {
       failed = true;
       errorMessage = error.message;
@@ -348,15 +372,26 @@ export async function runWorkerIteration(sessionId, role, options = {}) {
 
     state = await addAgentMessage(state, role, content);
     if (failed) {
-      await appendMeetingTurn(sessionId, createTurnRecord({
+      const failedTurn = createTurnRecord({
         round: state.round,
         role,
         model: effectiveModel,
         content,
         events: outputEvents,
-      }));
+      });
+      await appendMeetingTurn(sessionId, failedTurn);
+      await appendTurnRawCapture(sessionId, failedTurn, {
+        stdout: outputStdout,
+        stderr: outputStderr,
+        events: outputEvents,
+      });
+      await updateSessionDiagnostics(sessionId, {
+        lastError: errorMessage,
+        lastFailedRole: role,
+      });
       state = await saveSessionState(applyRoleFailurePolicy(state, role, errorMessage));
       if (state.status === 'failed') {
+        await maybeRecordNoTurnDiagnostic(state);
         state = await finalizeSessionArtifacts(state);
       }
       return state;
@@ -370,6 +405,14 @@ export async function runWorkerIteration(sessionId, role, options = {}) {
       events: outputEvents,
     });
     await appendMeetingTurn(sessionId, turnRecord);
+    await appendTurnRawCapture(sessionId, turnRecord, {
+      stdout: outputStdout,
+      stderr: outputStderr,
+      events: outputEvents,
+    });
+    await updateSessionDiagnostics(sessionId, {
+      lastError: null,
+    });
 
     const updatedShared = updateSharedContext(ensureRunState(state).sharedContext, turnRecord);
     const succeededRun = appendRunEvent({
@@ -397,6 +440,7 @@ export async function runWorkerIteration(sessionId, role, options = {}) {
         ...state,
         run: finalRun,
       });
+      await maybeRecordNoTurnDiagnostic(state);
       state = await finalizeSessionArtifacts(state);
     }
 

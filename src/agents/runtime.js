@@ -120,16 +120,18 @@ async function writeZellijLayout({ layoutPath, sessionId, sessionDir }) {
   await writeFile(layoutPath, content, 'utf8');
 }
 
-export async function spawnZellijSession({ sessionName, sessionDir, sessionId }) {
+export async function spawnZellijSession({ sessionName, sessionDir, sessionId, binaryPath }) {
   const layoutPath = resolve(sessionDir, 'synapsegrid-layout.kdl');
   await writeZellijLayout({ layoutPath, sessionId, sessionDir });
-  await runCommand('zellij', ['--session', sessionName, '--layout', layoutPath, '--detach']);
+  const command = binaryPath || process.env.ACFM_ZELLIJ_BIN || 'zellij';
+  await runCommand(command, ['--session', sessionName, '--layout', layoutPath, '--detach']);
   return { layoutPath };
 }
 
-export async function zellijSessionExists(sessionName) {
+export async function zellijSessionExists(sessionName, binaryPath) {
   try {
-    const result = await runCommand('zellij', ['list-sessions']);
+    const command = binaryPath || process.env.ACFM_ZELLIJ_BIN || 'zellij';
+    const result = await runCommand(command, ['list-sessions']);
     const lines = result.stdout.split('\n').map((line) => line.trim()).filter(Boolean);
     return lines.some((line) => line === sessionName || line.startsWith(`${sessionName} `));
   } catch {
@@ -138,7 +140,8 @@ export async function zellijSessionExists(sessionName) {
 }
 
 export async function runZellij(args, options = {}) {
-  return runCommand('zellij', args, options);
+  const command = options.binaryPath || process.env.ACFM_ZELLIJ_BIN || 'zellij';
+  return runCommand(command, args, options);
 }
 
 export function resolveMultiplexer(preferred = 'auto', hasTmuxCommand = false, hasZellijCommand = false) {

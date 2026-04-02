@@ -55,6 +55,28 @@ function getMeetingSummaryPath(sessionId) {
   return join(getSessionDir(sessionId), 'meeting-summary.md');
 }
 
+function getTurnsRawDir(sessionId) {
+  return join(getTurnsDir(sessionId), 'raw');
+}
+
+function getDiagnosticsPath(sessionId) {
+  return join(getSessionDir(sessionId), 'diagnostics.json');
+}
+
+export function sessionArtifactPaths(sessionId) {
+  return {
+    sessionDir: getSessionDir(sessionId),
+    statePath: getSessionStatePath(sessionId),
+    transcriptPath: getTranscriptPath(sessionId),
+    turnsDir: getTurnsDir(sessionId),
+    turnsRawDir: getTurnsRawDir(sessionId),
+    meetingLogPath: getMeetingLogPath(sessionId),
+    meetingLogJsonlPath: getMeetingLogJsonlPath(sessionId),
+    meetingSummaryPath: getMeetingSummaryPath(sessionId),
+    diagnosticsPath: getDiagnosticsPath(sessionId),
+  };
+}
+
 function initialState(task, options = {}) {
   const sessionId = randomUUID();
   const createdAt = new Date().toISOString();
@@ -94,11 +116,96 @@ export async function createSession(task, options = {}) {
   await ensureSessionRoot();
   const state = initialState(task, options);
   const sessionDir = getSessionDir(state.sessionId);
+  const turnsDir = getTurnsDir(state.sessionId);
+  const turnsRawDir = getTurnsRawDir(state.sessionId);
+  const meetingLogPath = getMeetingLogPath(state.sessionId);
+  const meetingLogJsonlPath = getMeetingLogJsonlPath(state.sessionId);
+  const meetingSummaryPath = getMeetingSummaryPath(state.sessionId);
+  const diagnosticsPath = getDiagnosticsPath(state.sessionId);
   await mkdir(sessionDir, { recursive: true });
+  await mkdir(turnsDir, { recursive: true });
+  await mkdir(turnsRawDir, { recursive: true });
   await writeFile(getSessionStatePath(state.sessionId), JSON.stringify(state, null, 2) + '\n', 'utf8');
+  await writeFile(meetingLogPath, [
+    '# SynapseGrid Meeting Log',
+    '',
+    `Session: ${state.sessionId}`,
+    `Created: ${state.createdAt}`,
+    '',
+    '_No turns captured yet._',
+    '',
+  ].join('\n'), 'utf8');
+  await writeFile(meetingLogJsonlPath, '', 'utf8');
+  await writeFile(meetingSummaryPath, [
+    '# SynapseGrid Meeting Summary',
+    '',
+    `Session: ${state.sessionId}`,
+    'Status: running',
+    '',
+    'Summary is pending until the first turn is captured.',
+    '',
+  ].join('\n'), 'utf8');
+  await writeFile(diagnosticsPath, JSON.stringify({
+    sessionId: state.sessionId,
+    createdAt: state.createdAt,
+    turnCount: 0,
+    lastTurnAt: null,
+    lastError: null,
+  }, null, 2) + '\n', 'utf8');
   await writeCurrentSession(state.sessionId, state.updatedAt);
   await appendTranscript(state.sessionId, state.messages[0]);
   return state;
+}
+
+export async function ensureSessionArtifacts(sessionId, state = null) {
+  const paths = sessionArtifactPaths(sessionId);
+  await mkdir(paths.sessionDir, { recursive: true });
+  await mkdir(paths.turnsDir, { recursive: true });
+  await mkdir(paths.turnsRawDir, { recursive: true });
+
+  const currentState = state || (existsSync(paths.statePath)
+    ? JSON.parse(await readFile(paths.statePath, 'utf8'))
+    : null);
+
+  if (!existsSync(paths.meetingLogPath)) {
+    await writeFile(paths.meetingLogPath, [
+      '# SynapseGrid Meeting Log',
+      '',
+      `Session: ${sessionId}`,
+      `Created: ${currentState?.createdAt || new Date().toISOString()}`,
+      '',
+      '_No turns captured yet._',
+      '',
+    ].join('\n'), 'utf8');
+  }
+
+  if (!existsSync(paths.meetingLogJsonlPath)) {
+    await writeFile(paths.meetingLogJsonlPath, '', 'utf8');
+  }
+
+  if (!existsSync(paths.meetingSummaryPath)) {
+    await writeFile(paths.meetingSummaryPath, [
+      '# SynapseGrid Meeting Summary',
+      '',
+      `Session: ${sessionId}`,
+      `Status: ${currentState?.status || 'running'}`,
+      '',
+      'Summary is pending until the first turn is captured.',
+      '',
+    ].join('\n'), 'utf8');
+  }
+
+  if (!existsSync(paths.diagnosticsPath)) {
+    await writeFile(paths.diagnosticsPath, JSON.stringify({
+      sessionId,
+      createdAt: currentState?.createdAt || new Date().toISOString(),
+      turnCount: 0,
+      lastTurnAt: null,
+      lastError: null,
+    }, null, 2) + '\n', 'utf8');
+  }
+
+  return paths;
 }
 
 export async function appendTranscript(sessionId, message) {
@@ -112,18 +219,25 @@ export async function appendTranscript(sessionId, message) {
 }
 
 export async function appendMeetingTurn(sessionId, turnRecord) {
-  const sessionDir = getSessionDir(sessionId);
-  const turnsDir = getTurnsDir(sessionId);
+  const {
+    sessionDir,
+    turnsDir,
+    turnsRawDir,
+    meetingLogPath,
+    meetingLogJsonlPath,
+    diagnosticsPath,
+  } = sessionArtifactPaths(sessionId);
   await mkdir(sessionDir, { recursive: true });
   await mkdir(turnsDir, { recursive: true });
+  await mkdir(turnsRawDir, { recursive: true });
 
   const safeRole = String(turnRecord?.role || 'unknown').replace(/[^a-z0-9_-]/gi, '_');
   const safeRound = Number.isInteger(turnRecord?.round) ? turnRecord.round : 0;
   const turnFilePath = join(turnsDir, `${String(safeRound).padStart(3, '0')}-${safeRole}.json`);
   await writeFile(turnFilePath, JSON.stringify(turnRecord, null, 2) + '\n', 'utf8');
 
-  const mdPath = getMeetingLogPath(sessionId);
-  const jsonlPath = getMeetingLogJsonlPath(sessionId);
+  const mdPath = meetingLogPath;
+  const jsonlPath = meetingLogJsonlPath;
   const snippet = (turnRecord?.snippet || '').trim() || '(empty output)';
   const keyPoints = Array.isArray(turnRecord?.keyPoints) ? turnRecord.keyPoints : [];
 
@@ -149,11 +263,62 @@ export async function appendMeetingTurn(sessionId, turnRecord) {
   }
 
   await appendFile(jsonlPath, JSON.stringify(turnRecord) + '\n', 'utf8');
+
+  const diagnostics = existsSync(diagnosticsPath)
+    ? JSON.parse(await readFile(diagnosticsPath, 'utf8'))
+    : { sessionId, turnCount: 0 };
+  diagnostics.turnCount = Number.isInteger(diagnostics.turnCount) ? diagnostics.turnCount + 1 : 1;
+  diagnostics.lastTurnAt = turnRecord?.timestamp || new Date().toISOString();
+  diagnostics.lastRole = safeRole;
+  diagnostics.lastRound = safeRound;
+  await writeFile(diagnosticsPath, JSON.stringify(diagnostics, null, 2) + '\n', 'utf8');
+
   return {
     turnFilePath,
     meetingLogPath: mdPath,
     meetingJsonlPath: jsonlPath,
   };
+}
+
+export async function appendTurnRawCapture(sessionId, turnRecord, capture = {}) {
+  const { turnsRawDir } = sessionArtifactPaths(sessionId);
+  await mkdir(turnsRawDir, { recursive: true });
+
+  const safeRole = String(turnRecord?.role || 'unknown').replace(/[^a-z0-9_-]/gi, '_');
+  const safeRound = Number.isInteger(turnRecord?.round) ? turnRecord.round : 0;
+  const baseName = `${String(safeRound).padStart(3, '0')}-${safeRole}`;
+  const ndjsonPath = join(turnsRawDir, `${baseName}.ndjson`);
+  const stderrPath = join(turnsRawDir, `${baseName}.stderr.log`);
+  const metaPath = join(turnsRawDir, `${baseName}.meta.json`);
+
+  await writeFile(ndjsonPath, String(capture.stdout || ''), 'utf8');
+  await writeFile(stderrPath, String(capture.stderr || ''), 'utf8');
+  await writeFile(metaPath, JSON.stringify({
+    round: safeRound,
+    role: safeRole,
+    model: turnRecord?.model || null,
+    capturedAt: new Date().toISOString(),
+    stdoutBytes: Buffer.byteLength(String(capture.stdout || ''), 'utf8'),
+    stderrBytes: Buffer.byteLength(String(capture.stderr || ''), 'utf8'),
+    eventCount: Array.isArray(capture.events) ? capture.events.length : 0,
+  }, null, 2) + '\n', 'utf8');
+
+  return { ndjsonPath, stderrPath, metaPath };
+}
+
+export async function updateSessionDiagnostics(sessionId, patch = {}) {
+  const { diagnosticsPath, sessionDir } = sessionArtifactPaths(sessionId);
+  await mkdir(sessionDir, { recursive: true });
+  const current = existsSync(diagnosticsPath)
+    ? JSON.parse(await readFile(diagnosticsPath, 'utf8'))
+    : { sessionId, turnCount: 0, lastTurnAt: null };
+  const next = {
+    ...current,
+    ...patch,
+    updatedAt: new Date().toISOString(),
+  };
+  await writeFile(diagnosticsPath, JSON.stringify(next, null, 2) + '\n', 'utf8');
+  return next;
 }
 
 export async function writeMeetingSummary(sessionId, summaryMarkdown) {

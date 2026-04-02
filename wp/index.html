@@ -615,6 +615,147 @@
       left: 0;
       top: 8px;
     }
+
+    /* SynapseGrid Updates Section */
+    .synapse-updates {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 120px;
+      background: linear-gradient(180deg, var(--color-surface) 0%, var(--color-bg) 100%);
+      gap: 24px;
+    }
+
+    .updates-subtitle {
+      font-size: 18px;
+      color: var(--color-text-secondary);
+      text-align: center;
+      max-width: 800px;
+    }
+
+    .updates-grid {
+      margin-top: 28px;
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 24px;
+      width: 100%;
+      max-width: 1200px;
+    }
+
+    .update-card {
+      background: rgba(10, 10, 10, 0.84);
+      border: 1px solid var(--color-border-light);
+      border-radius: 16px;
+      padding: 28px;
+      transition: all 0.3s ease;
+    }
+
+    .update-card:hover {
+      transform: translateY(-6px);
+      border-color: var(--color-primary);
+      box-shadow: 0 16px 40px rgba(16, 185, 129, 0.14);
+    }
+
+    .update-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+
+    .update-badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      border: 1px solid transparent;
+    }
+
+    .update-badge.green {
+      color: #34d399;
+      background: rgba(16, 185, 129, 0.12);
+      border-color: rgba(16, 185, 129, 0.35);
+    }
+
+    .update-badge.blue {
+      color: #60a5fa;
+      background: rgba(59, 130, 246, 0.12);
+      border-color: rgba(59, 130, 246, 0.35);
+    }
+
+    .update-badge.orange {
+      color: #fbbf24;
+      background: rgba(245, 158, 11, 0.12);
+      border-color: rgba(245, 158, 11, 0.35);
+    }
+
+    .update-title {
+      font-size: 24px;
+      font-weight: 700;
+      margin-bottom: 10px;
+    }
+
+    .update-desc {
+      font-size: 15px;
+      color: var(--color-text-secondary);
+      line-height: 1.65;
+      margin-bottom: 16px;
+    }
+
+    .update-list {
+      list-style: none;
+      display: grid;
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+
+    .update-list li {
+      color: #c9c9c9;
+      font-size: 14px;
+      line-height: 1.45;
+      position: relative;
+      padding-left: 16px;
+    }
+
+    .update-list li::before {
+      content: '';
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--color-primary);
+      position: absolute;
+      left: 0;
+      top: 8px;
+    }
+
+    .update-terminal {
+      display: block;
+      width: 100%;
+      margin-top: 8px;
+      padding: 12px 14px;
+      border-radius: 10px;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      background: rgba(0, 0, 0, 0.35);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 13px;
+      line-height: 1.55;
+      color: #d4d4d8;
+      overflow-x: auto;
+      white-space: pre;
+    }
+
+    .updates-note {
+      margin-top: 10px;
+      font-size: 13px;
+      color: var(--color-text-muted);
+      text-align: center;
+      max-width: 840px;
+    }
     
     /* Assistants Section with Infinite Carousel */
     .assistants {
@@ -1030,6 +1171,14 @@
         padding: 100px 40px;
       }
 
+      .synapse-updates {
+        padding: 100px 40px;
+      }
+
+      .updates-grid {
+        grid-template-columns: 1fr;
+      }
+
       .modes-grid {
         grid-template-columns: 1fr;
       }
@@ -1062,6 +1211,10 @@
       }
 
       .modes {
+        padding: 80px 20px;
+      }
+
+      .synapse-updates {
         padding: 80px 20px;
       }
       
@@ -1129,8 +1282,8 @@
       AC Framework
     </a>
     <nav class="nav">
-      <a href="https://github.com/b4san/AC-framework#readme" target="_blank">Documentation</a>
-      <a href="https://github.com/b4san/AC-framework" target="_blank" class="github-link">
+      <a href="https://github.com/b4san/AC-framework#readme" target="_blank" rel="noopener noreferrer">Documentation</a>
+      <a href="https://github.com/b4san/AC-framework" target="_blank" rel="noopener noreferrer" class="github-link">
         <svg class="github-logo" viewBox="0 0 24 24">
           <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
         </svg>
@@ -1267,6 +1420,85 @@
         </ul>
       </article>
     </div>
+  </section>
+
+  <!-- SynapseGrid Updates Section -->
+  <section class="synapse-updates" id="synapsegrid-updates">
+    <h2 class="section-title scroll-animate">New in SynapseGrid Collaboration</h2>
+    <p class="updates-subtitle scroll-animate">
+      SynapseGrid now exposes collaborative agent behavior end-to-end: artifact tracking, per-turn raw captures, meeting summaries, and managed zellij runtime installation with safe defaults.
+    </p>
+
+    <div class="updates-grid">
+      <article class="update-card scroll-animate">
+        <div class="update-header">
+          <span class="update-badge green">Visibility</span>
+        </div>
+        <h3 class="update-title">Artifact Observability</h3>
+        <p class="update-desc">
+          Sessions now bootstrap artifact files immediately, even before the first turn, so users never face a black-box run.
+        </p>
+        <ul class="update-list">
+          <li>Auto-creates <code>meeting-log.md</code>, <code>meeting-summary.md</code>, and diagnostics files.</li>
+          <li>Provides <code>acfm agents artifacts</code> and live watch mode for runtime verification.</li>
+          <li>Backfills missing artifacts for older sessions safely and idempotently.</li>
+        </ul>
+        <code class="update-terminal">acfm agents artifacts --watch --interval 1200</code>
+      </article>
+
+      <article class="update-card scroll-animate">
+        <div class="update-header">
+          <span class="update-badge blue">Traceability</span>
+        </div>
+        <h3 class="update-title">Per-Turn Raw Capture</h3>
+        <p class="update-desc">
+          Each agent turn now stores both summarized output and raw OpenCode streams for deterministic audits and post-run analysis.
+        </p>
+        <ul class="update-list">
+          <li>Stores raw <code>ndjson</code>, <code>stderr</code>, and metadata per role/round.</li>
+          <li>Improves debugging on failed runs and partial collaboration states.</li>
+          <li>Keeps collaboration history explainable across planner/critic/coder/reviewer.</li>
+        </ul>
+        <code class="update-terminal">~/.acfm/synapsegrid/&lt;sessionId&gt;/turns/raw/001-planner.ndjson</code>
+      </article>
+
+      <article class="update-card scroll-animate">
+        <div class="update-header">
+          <span class="update-badge orange">Runtime</span>
+        </div>
+        <h3 class="update-title">Managed Zellij Integration</h3>
+        <p class="update-desc">
+          SynapseGrid supports managed zellij binaries with latest-release installation and explicit path control, while preserving tmux fallback.
+        </p>
+        <ul class="update-list">
+          <li>Installs latest zellij release into <code>~/.acfm/tools/zellij</code>.</li>
+          <li>Persists runtime strategy and binary path in <code>~/.acfm/config.json</code>.</li>
+          <li>Uses zellij-first auto resolution with safe fallback behavior.</li>
+        </ul>
+        <code class="update-terminal">acfm agents runtime install-zellij</code>
+      </article>
+
+      <article class="update-card scroll-animate">
+        <div class="update-header">
+          <span class="update-badge green">UX</span>
+        </div>
+        <h3 class="update-title">Model & Runtime Control</h3>
+        <p class="update-desc">
+          Operators can now select role/global models interactively and configure multiplexer backends directly from CLI help-driven flows.
+        </p>
+        <ul class="update-list">
+          <li>Interactive provider/model selector with role targeting.</li>
+          <li>Runtime commands integrated into <code>acfm agents --help</code>.</li>
+          <li>Expanded doctor/status output for preflight and artifact health.</li>
+        </ul>
+        <code class="update-terminal">acfm agents model choose
+acfm agents runtime set zellij</code>
+      </article>
+    </div>
+
+    <p class="updates-note scroll-animate">
+      Security & reliability: artifact creation is orchestrator-owned (not prompt-dependent), files are generated with deterministic paths, and diagnostics are preserved across completed, failed, and stopped sessions.
+    </p>
   </section>
 
   <!-- Assistants Section with Marquee -->
@@ -1619,9 +1851,9 @@
         <div class="footer-tagline">Better AI programming with SDD. Built for the agentic coding era.</div>
       </div>
       <div class="footer-right">
-        <a href="https://github.com/b4san/AC-framework#readme" target="_blank">Documentation</a>
-        <a href="https://github.com/b4san/AC-framework" target="_blank">GitHub</a>
-        <a href="https://www.npmjs.com/package/ac-framework" target="_blank">npm</a>
+        <a href="https://github.com/b4san/AC-framework#readme" target="_blank" rel="noopener noreferrer">Documentation</a>
+        <a href="https://github.com/b4san/AC-framework" target="_blank" rel="noopener noreferrer">GitHub</a>
+        <a href="https://www.npmjs.com/package/ac-framework" target="_blank" rel="noopener noreferrer">npm</a>
       </div>
     </div>
     <div class="footer-bottom">

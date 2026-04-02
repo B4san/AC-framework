@@ -18,6 +18,7 @@ import { runWorkerIteration } from '../agents/orchestrator.js';
 import {
   addUserMessage,
   createSession,
+  ensureSessionArtifacts,
   getSessionDir,
   loadCurrentSessionId,
   loadSessionState,
@@ -26,6 +27,7 @@ import {
   saveSessionState,
   setCurrentSession,
   stopSession,
+  sessionArtifactPaths,
   writeMeetingSummary,
 } from '../agents/state-store.js';
 import {
@@ -45,7 +47,13 @@ import {
   normalizeModelId,
   sanitizeRoleModels,
 } from '../agents/model-selection.js';
-import { ensureCollabDependencies, hasCommand, resolveCommandPath } from '../services/dependency-installer.js';
+import {
+  ensureCollabDependencies,
+  hasCommand,
+  resolveCommandPath,
+  resolveManagedZellijPath,
+  installManagedZellijLatest,
+} from '../services/dependency-installer.js';
 
 function output(data, json) {
   if (json) {
@@ -101,14 +109,42 @@ function sessionMuxName(state) {
   return state.multiplexerSessionName || state.tmuxSessionName || `acfm-synapse-${state.sessionId.slice(0, 8)}`;
 }
 
-async function sessionExistsForMux(multiplexer, sessionName) {
-  if (multiplexer === 'zellij') return zellijSessionExists(sessionName);
+async function sessionExistsForMux(multiplexer, sessionName, zellijPath = null) {
+  if (multiplexer === 'zellij') return zellijSessionExists(sessionName, zellijPath);
   return tmuxSessionExists(sessionName);
 }
 
-async function attachToMux(multiplexer, sessionName, readonly = false) {
+function resolveConfiguredZellijPath(config) {
+  const strategy = config?.agents?.zellij?.strategy || 'auto';
+  if (strategy === 'system') {
+    return resolveCommandPath('zellij');
+  }
+  const managed = resolveManagedZellijPath(config);
+  if (managed) return managed;
+  return resolveCommandPath('zellij');
+}
+
+function shouldUseManagedZellij(config) {
+  const strategy = config?.agents?.zellij?.strategy || 'auto';
+  if (strategy === 'managed') return true;
+  if (strategy === 'system') return false;
+  return true;
+}
+
+function resolveMultiplexerWithPaths(config, requestedMux = 'auto') {
+  const zellijPath = resolveConfiguredZellijPath(config);
+  const tmuxPath = resolveCommandPath('tmux');
+  const selected = resolveMultiplexer(requestedMux, Boolean(tmuxPath), Boolean(zellijPath));
+  return {
+    selected,
+    zellijPath,
+    tmuxPath,
+  };
+}
+
+async function attachToMux(multiplexer, sessionName, readonly = false, zellijPath = null) {
   if (multiplexer === 'zellij') {
-    await runZellij(['attach', sessionName], { stdio: 'inherit' });
+    await runZellij(['attach', sessionName], { stdio: 'inherit', binaryPath: zellijPath });
     return;
   }
   const args = ['attach'];
@@ -206,6 +242,18 @@ async function readSessionArtifact(sessionId, filename) {
   return readFile(path, 'utf8');
 }
 
+async function collectArtifactStatus(sessionId) {
+  await ensureSessionArtifacts(sessionId);
+  const paths = sessionArtifactPaths(sessionId);
+  return {
+    sessionId,
+    checkedAt: new Date().toISOString(),
+    artifacts: Object.fromEntries(
+      Object.entries(paths).map(([key, value]) => [key, { path: value, exists: existsSync(value) }])
+    ),
+  };
+}
+
 async function preflightModel({ opencodeBin, model, cwd }) {
   const selected = normalizeModelId(model) || DEFAULT_SYNAPSE_MODEL;
   try {
@@ -230,7 +278,9 @@ export function agentsCommand() {
 Examples:
   acfm agents start --task "Implement auth flow" --mux auto
   acfm agents setup
+  acfm agents artifacts
   acfm agents runtime get
+  acfm agents runtime install-zellij
   acfm agents runtime set zellij
   acfm agents model choose
   acfm agents model list
@@ -270,28 +320,50 @@ Examples:
       const result = ensureCollabDependencies({
         installZellij,
         installTmux,
+        preferManagedZellij: installZellij,
       });
+      const awaited = await result;
       let collabMcp = null;
 
-      if (result.success) {
+      if (awaited.success) {
         const { detectAndInstallMCPs } = await import('../services/mcp-installer.js');
         collabMcp = detectAndInstallMCPs({ target: 'collab' });
       }
 
-      const payload = { ...result, collabMcp };
+      const payload = { ...awaited, collabMcp };
       output(payload, opts.json);
       if (!opts.json) {
-        const oLabel = result.opencode.success ? chalk.green('ok') : chalk.red('failed');
-        const tLabel = result.tmux.success ? chalk.green('ok') : chalk.red('failed');
-        const zLabel = result.zellij.success ? chalk.green('ok') : chalk.red('failed');
-        console.log(`OpenCode: ${oLabel} - ${result.opencode.message}`);
-        console.log(`zellij:   ${zLabel} - ${result.zellij.message}`);
-        console.log(`tmux:     ${tLabel} - ${result.tmux.message}`);
+        const oLabel = awaited.opencode.success ? chalk.green('ok') : chalk.red('failed');
+        const tLabel = awaited.tmux.success ? chalk.green('ok') : chalk.red('failed');
+        const zLabel = awaited.zellij.success ? chalk.green('ok') : chalk.red('failed');
+        console.log(`OpenCode: ${oLabel} - ${awaited.opencode.message}`);
+        console.log(`zellij:   ${zLabel} - ${awaited.zellij.message}`);
+        if (awaited.zellij.binaryPath) {
+          console.log(chalk.dim(`          ${awaited.zellij.binaryPath}`));
+        }
+        console.log(`tmux:     ${tLabel} - ${awaited.tmux.message}`);
         if (collabMcp) {
           console.log(`Collab MCP: ${chalk.green('ok')} - installed ${collabMcp.success}/${collabMcp.installed} on detected assistants`);
         }
       }
-      if (!result.success) process.exit(1);
+
+      if (awaited.zellij.success && awaited.zellij.source === 'managed' && awaited.zellij.binaryPath) {
+        await updateAgentsConfig((current) => ({
+          agents: {
+            defaultModel: current.agents.defaultModel,
+            defaultRoleModels: { ...current.agents.defaultRoleModels },
+            multiplexer: current.agents.multiplexer || 'auto',
+            zellij: {
+              strategy: 'managed',
+              binaryPath: awaited.zellij.binaryPath,
+              version: awaited.zellij.version || null,
+              source: 'managed',
+            },
+          },
+        }));
+      }
+
+      if (!awaited.success) process.exit(1);
     });
 
   agents
@@ -393,12 +465,14 @@ Examples:
       try {
         const sessionId = await ensureSessionId(true);
         const state = await loadSessionState(sessionId);
+        const cfg = await loadAgentsConfig();
+        const zellijPath = resolveConfiguredZellijPath(cfg);
         const multiplexer = state.multiplexer || 'tmux';
         const muxSessionName = sessionMuxName(state);
         if (!muxSessionName) {
           throw new Error('No multiplexer session registered for active collaborative session');
         }
-        await attachToMux(multiplexer, muxSessionName, false);
+        await attachToMux(multiplexer, muxSessionName, false, zellijPath);
       } catch (error) {
         console.error(chalk.red(`Error: ${error.message}`));
         process.exit(1);
@@ -413,16 +487,18 @@ Examples:
       try {
         const sessionId = await ensureSessionId(true);
         const state = await loadSessionState(sessionId);
+        const cfg = await loadAgentsConfig();
+        const zellijPath = resolveConfiguredZellijPath(cfg);
         const multiplexer = state.multiplexer || 'tmux';
         const muxSessionName = sessionMuxName(state);
         if (!muxSessionName) {
           throw new Error('No multiplexer session registered for active collaborative session');
         }
-        const sessionExists = await sessionExistsForMux(multiplexer, muxSessionName);
+        const sessionExists = await sessionExistsForMux(multiplexer, muxSessionName, zellijPath);
         if (!sessionExists) {
           throw new Error(`${multiplexer} session ${muxSessionName} no longer exists. Run: acfm agents resume`);
         }
-        await attachToMux(multiplexer, muxSessionName, Boolean(opts.readonly));
+        await attachToMux(multiplexer, muxSessionName, Boolean(opts.readonly), zellijPath);
       } catch (error) {
         console.error(chalk.red(`Error: ${error.message}`));
         process.exit(1);
@@ -441,21 +517,29 @@ Examples:
         const sessionId = opts.session || await ensureSessionId(true);
         let state = await loadSessionState(sessionId);
         const multiplexer = state.multiplexer || 'tmux';
+        const cfg = await loadAgentsConfig();
+        const zellijPath = resolveConfiguredZellijPath(cfg);
+        const tmuxPath = resolveCommandPath('tmux');
 
-        if (multiplexer === 'zellij' && !hasCommand('zellij')) {
+        if (multiplexer === 'zellij' && !zellijPath) {
           throw new Error('zellij is not installed. Run: acfm agents setup');
         }
-        if (multiplexer === 'tmux' && !hasCommand('tmux')) {
+        if (multiplexer === 'tmux' && !tmuxPath) {
           throw new Error('tmux is not installed. Run: acfm agents setup');
         }
 
         const muxSessionName = sessionMuxName(state);
-        const muxExists = await sessionExistsForMux(multiplexer, muxSessionName);
+        const muxExists = await sessionExistsForMux(multiplexer, muxSessionName, zellijPath);
 
         if (!muxExists && opts.recreate) {
           const sessionDir = getSessionDir(state.sessionId);
           if (multiplexer === 'zellij') {
-            await spawnZellijSession({ sessionName: muxSessionName, sessionDir, sessionId: state.sessionId });
+            await spawnZellijSession({
+              sessionName: muxSessionName,
+              sessionDir,
+              sessionId: state.sessionId,
+              binaryPath: zellijPath,
+            });
           } else {
             await spawnTmuxSession({ sessionName: muxSessionName, sessionDir, sessionId: state.sessionId });
           }
@@ -484,7 +568,7 @@ Examples:
         }
 
         if (opts.attach) {
-          await attachToMux(multiplexer, muxSessionName, false);
+          await attachToMux(multiplexer, muxSessionName, false, zellijPath);
         }
       } catch (error) {
         output({ error: error.message }, opts.json);
@@ -564,15 +648,19 @@ Examples:
       try {
         const cfg = await loadAgentsConfig();
         const configured = validateMultiplexer(cfg.agents.multiplexer || 'auto');
-        const resolved = resolveMultiplexer(configured, hasCommand('tmux'), hasCommand('zellij'));
+        const zellijPath = resolveConfiguredZellijPath(cfg);
+        const tmuxPath = resolveCommandPath('tmux');
+        const resolved = resolveMultiplexer(configured, Boolean(tmuxPath), Boolean(zellijPath));
         const payload = {
           configPath: getAgentsConfigPath(),
           multiplexer: configured,
           resolved,
           available: {
-            zellij: hasCommand('zellij'),
-            tmux: hasCommand('tmux'),
+            zellij: Boolean(zellijPath),
+            tmux: Boolean(tmuxPath),
           },
+          zellij: cfg.agents.zellij,
+          zellijPath,
         };
         output(payload, opts.json);
         if (!opts.json) {
@@ -581,6 +669,9 @@ Examples:
           console.log(chalk.dim(`Configured: ${configured}`));
           console.log(chalk.dim(`Resolved: ${resolved || 'none'}`));
           console.log(chalk.dim(`zellij=${payload.available.zellij} tmux=${payload.available.tmux}`));
+          if (payload.zellijPath) {
+            console.log(chalk.dim(`zellij path: ${payload.zellijPath}`));
+          }
         }
       } catch (error) {
         output({ error: error.message }, opts.json);
@@ -601,9 +692,14 @@ Examples:
             defaultModel: current.agents.defaultModel,
             defaultRoleModels: { ...current.agents.defaultRoleModels },
             multiplexer: selected,
+            zellij: {
+              ...(current.agents.zellij || { strategy: 'auto', binaryPath: null, version: null, source: null }),
+            },
           },
         }));
-        const resolved = resolveMultiplexer(updated.agents.multiplexer, hasCommand('tmux'), hasCommand('zellij'));
+        const zellijPath = resolveConfiguredZellijPath(updated);
+        const tmuxPath = resolveCommandPath('tmux');
+        const resolved = resolveMultiplexer(updated.agents.multiplexer, Boolean(tmuxPath), Boolean(zellijPath));
         const payload = {
           success: true,
           configPath: getAgentsConfigPath(),
@@ -615,6 +711,46 @@ Examples:
           console.log(chalk.green('✓ SynapseGrid runtime backend updated'));
           console.log(chalk.dim(`  Configured: ${payload.multiplexer}`));
           console.log(chalk.dim(`  Resolved: ${payload.resolved || 'none'}`));
+        }
+      } catch (error) {
+        output({ error: error.message }, opts.json);
+        if (!opts.json) console.error(chalk.red(`Error: ${error.message}`));
+        process.exit(1);
+      }
+    });
+
+  runtime
+    .command('install-zellij')
+    .description('Install latest zellij release managed by AC Framework')
+    .option('--json', 'Output as JSON')
+    .action(async (opts) => {
+      try {
+        const result = await installManagedZellijLatest();
+        if (!result.success) {
+          output(result, opts.json);
+          if (!opts.json) console.error(chalk.red(`Error: ${result.message}`));
+          process.exit(1);
+        }
+
+        await updateAgentsConfig((current) => ({
+          agents: {
+            defaultModel: current.agents.defaultModel,
+            defaultRoleModels: { ...current.agents.defaultRoleModels },
+            multiplexer: current.agents.multiplexer || 'auto',
+            zellij: {
+              strategy: result.source === 'system' ? 'system' : 'managed',
+              binaryPath: result.binaryPath,
+              version: result.version || null,
+              source: result.source || 'managed',
+            },
+          },
+        }));
+
+        output(result, opts.json);
+        if (!opts.json) {
+          console.log(chalk.green('✓ Managed zellij ready'));
+          console.log(chalk.dim(`  Version: ${result.version || 'unknown'}`));
+          console.log(chalk.dim(`  Binary: ${result.binaryPath}`));
         }
       } catch (error) {
         output({ error: error.message }, opts.json);
@@ -767,6 +903,9 @@ Examples:
               defaultModel: current.agents.defaultModel,
               defaultRoleModels: { ...current.agents.defaultRoleModels },
               multiplexer: current.agents.multiplexer || 'auto',
+              zellij: {
+                ...(current.agents.zellij || { strategy: 'auto', binaryPath: null, version: null, source: null }),
+              },
             },
           };
 
@@ -828,6 +967,9 @@ Examples:
               defaultModel: current.agents.defaultModel,
               defaultRoleModels: { ...current.agents.defaultRoleModels },
               multiplexer: current.agents.multiplexer || 'auto',
+              zellij: {
+                ...(current.agents.zellij || { strategy: 'auto', binaryPath: null, version: null, source: null }),
+              },
             },
           };
           if (role === 'all') {
@@ -877,6 +1019,9 @@ Examples:
               defaultModel: current.agents.defaultModel,
               defaultRoleModels: { ...current.agents.defaultRoleModels },
               multiplexer: current.agents.multiplexer || 'auto',
+              zellij: {
+                ...(current.agents.zellij || { strategy: 'auto', binaryPath: null, version: null, source: null }),
+              },
             },
           };
           if (role === 'all') {
@@ -986,6 +1131,66 @@ Examples:
     });
 
   agents
+    .command('artifacts')
+    .description('Show SynapseGrid artifact paths and existence status')
+    .option('--session <id>', 'Session ID (defaults to current)')
+    .option('--watch', 'Continuously watch artifact status', false)
+    .option('--interval <ms>', 'Polling interval in milliseconds for --watch', '1500')
+    .option('--json', 'Output as JSON')
+    .action(async (opts) => {
+      try {
+        const sessionId = opts.session || await ensureSessionId(true);
+        const intervalMs = Number.parseInt(opts.interval, 10);
+        if (!Number.isInteger(intervalMs) || intervalMs <= 0) {
+          throw new Error('--interval must be a positive integer');
+        }
+
+        const printSnapshot = async () => {
+          const snapshot = await collectArtifactStatus(sessionId);
+          if (opts.json) {
+            process.stdout.write(JSON.stringify(snapshot) + '\n');
+            return;
+          }
+
+          console.log(chalk.bold('SynapseGrid artifacts'));
+          console.log(chalk.dim(`Session: ${snapshot.sessionId}`));
+          console.log(chalk.dim(`Checked: ${snapshot.checkedAt}`));
+          for (const [key, meta] of Object.entries(snapshot.artifacts)) {
+            console.log(chalk.dim(`${key}: ${meta.exists ? 'ok' : 'missing'} -> ${meta.path}`));
+          }
+        };
+
+        if (!opts.watch) {
+          const snapshot = await collectArtifactStatus(sessionId);
+          output(snapshot, opts.json);
+          if (!opts.json) {
+            console.log(chalk.bold('SynapseGrid artifacts'));
+            for (const [key, meta] of Object.entries(snapshot.artifacts)) {
+              console.log(chalk.dim(`${key}: ${meta.exists ? 'ok' : 'missing'} -> ${meta.path}`));
+            }
+          }
+          return;
+        }
+
+        if (!opts.json) {
+          console.log(chalk.cyan('Watching artifacts (Ctrl+C to stop)\n'));
+        }
+
+        while (true) {
+          if (!opts.json) {
+            process.stdout.write('\x1Bc');
+          }
+          await printSnapshot();
+          await new Promise((resolvePromise) => setTimeout(resolvePromise, intervalMs));
+        }
+      } catch (error) {
+        output({ error: error.message }, opts.json);
+        if (!opts.json) console.error(chalk.red(`Error: ${error.message}`));
+        process.exit(1);
+      }
+    });
+
+  agents
     .command('export')
     .description('Export collaborative transcript')
     .option('--session <id>', 'Session ID to export (defaults to current)')
@@ -1062,7 +1267,31 @@ Examples:
 
         const config = await loadAgentsConfig();
         const configuredMux = validateMultiplexer(opts.mux || config.agents.multiplexer || 'auto');
-        const selectedMux = resolveMultiplexer(configuredMux, hasCommand('tmux'), hasCommand('zellij'));
+        const muxResolution = resolveMultiplexerWithPaths(config, configuredMux);
+        let selectedMux = muxResolution.selected;
+        let zellijPath = muxResolution.zellijPath;
+        if (!selectedMux) {
+          if (configuredMux !== 'tmux' && shouldUseManagedZellij(config)) {
+            const installResult = await installManagedZellijLatest();
+            if (installResult.success && installResult.binaryPath) {
+              await updateAgentsConfig((current) => ({
+                agents: {
+                  defaultModel: current.agents.defaultModel,
+                  defaultRoleModels: { ...current.agents.defaultRoleModels },
+                  multiplexer: current.agents.multiplexer || 'auto',
+                  zellij: {
+                    strategy: 'managed',
+                    binaryPath: installResult.binaryPath,
+                    version: installResult.version || null,
+                    source: 'managed',
+                  },
+                },
+              }));
+              zellijPath = installResult.binaryPath;
+              selectedMux = resolveMultiplexer(configuredMux, Boolean(resolveCommandPath('tmux')), Boolean(zellijPath));
+            }
+          }
+        }
         if (!selectedMux) {
           throw new Error('No multiplexer found. Install zellij or tmux with: acfm agents setup');
         }
@@ -1112,6 +1341,7 @@ Examples:
             sessionName: muxSessionName,
             sessionDir,
             sessionId: state.sessionId,
+            binaryPath: zellijPath,
           });
         } else {
           await spawnTmuxSession({
@@ -1140,7 +1370,7 @@ Examples:
         }
 
         if (opts.attach) {
-          await attachToMux(selectedMux, muxSessionName, false);
+          await attachToMux(selectedMux, muxSessionName, false, zellijPath);
         }
       } catch (error) {
         output({ error: error.message }, opts.json);
@@ -1176,6 +1406,7 @@ Examples:
       try {
         const sessionId = await ensureSessionId(true);
         const state = await loadSessionState(sessionId);
+        await ensureSessionArtifacts(sessionId, state);
         const effectiveRoleModels = buildEffectiveRoleModels(state, state.model || null);
         output({ ...state, effectiveRoleModels }, opts.json);
         if (!opts.json) {
@@ -1199,8 +1430,12 @@ Examples:
           }
           const meetingLogPath = resolve(getSessionDir(state.sessionId), 'meeting-log.md');
           const meetingSummaryPath = resolve(getSessionDir(state.sessionId), 'meeting-summary.md');
+          const turnsDirPath = resolve(getSessionDir(state.sessionId), 'turns');
+          const rawDirPath = resolve(getSessionDir(state.sessionId), 'turns', 'raw');
           console.log(chalk.dim(`meeting-log: ${existsSync(meetingLogPath) ? meetingLogPath : 'not generated yet'}`));
           console.log(chalk.dim(`meeting-summary: ${existsSync(meetingSummaryPath) ? meetingSummaryPath : 'not generated yet'}`));
+          console.log(chalk.dim(`turns: ${existsSync(turnsDirPath) ? turnsDirPath : 'not generated yet'}`));
+          console.log(chalk.dim(`turns/raw: ${existsSync(rawDirPath) ? rawDirPath : 'not generated yet'}`));
         }
       } catch (error) {
         output({ error: error.message }, opts.json);
@@ -1262,9 +1497,11 @@ Examples:
 
         const multiplexer = state.multiplexer || 'tmux';
         const muxSessionName = sessionMuxName(state);
-        if (multiplexer === 'zellij' && muxSessionName && hasCommand('zellij')) {
+        const cfg = await loadAgentsConfig();
+        const zellijPath = resolveConfiguredZellijPath(cfg);
+        if (multiplexer === 'zellij' && muxSessionName && zellijPath) {
           try {
-            await runZellij(['delete-session', muxSessionName]);
+            await runZellij(['delete-session', muxSessionName], { binaryPath: zellijPath });
           } catch {
             // ignore if already closed
           }
@@ -1376,8 +1613,9 @@ Examples:
       try {
         const opencodeBin = resolveCommandPath('opencode');
         const tmuxInstalled = hasCommand('tmux');
-        const zellijInstalled = hasCommand('zellij');
         const cfg = await loadAgentsConfig();
+        const zellijPath = resolveConfiguredZellijPath(cfg);
+        const zellijInstalled = Boolean(zellijPath);
         const defaultModel = cfg.agents.defaultModel || DEFAULT_SYNAPSE_MODEL;
         const configuredMux = validateMultiplexer(cfg.agents.multiplexer || 'auto');
         const resolvedMux = resolveMultiplexer(configuredMux, tmuxInstalled, zellijInstalled);
@@ -1385,6 +1623,8 @@ Examples:
           opencodeBin,
           tmuxInstalled,
           zellijInstalled,
+          zellijPath,
+          zellijConfig: cfg.agents.zellij,
           configuredMultiplexer: configuredMux,
           resolvedMultiplexer: resolvedMux,
           defaultModel,
@@ -1407,6 +1647,7 @@ Examples:
           console.log(chalk.bold('SynapseGrid doctor'));
           console.log(chalk.dim(`opencode: ${opencodeBin || 'not found'}`));
           console.log(chalk.dim(`zellij: ${zellijInstalled ? 'installed' : 'not installed'}`));
+          if (zellijPath) console.log(chalk.dim(`zellij path: ${zellijPath}`));
           console.log(chalk.dim(`tmux: ${tmuxInstalled ? 'installed' : 'not installed'}`));
           console.log(chalk.dim(`multiplexer: configured=${configuredMux} resolved=${resolvedMux || 'none'}`));
           console.log(chalk.dim(`default model: ${defaultModel}`));

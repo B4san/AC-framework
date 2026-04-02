@@ -12,11 +12,24 @@ function normalizeConfig(raw) {
   const agents = raw?.agents && typeof raw.agents === 'object' ? raw.agents : {};
   const configuredMultiplexer = typeof agents.multiplexer === 'string' ? agents.multiplexer.trim().toLowerCase() : '';
   const multiplexer = ['auto', 'zellij', 'tmux'].includes(configuredMultiplexer) ? configuredMultiplexer : 'auto';
+  const zellij = agents?.zellij && typeof agents.zellij === 'object' ? agents.zellij : {};
+  const zellijStrategy = typeof zellij.strategy === 'string' ? zellij.strategy.trim().toLowerCase() : 'auto';
+  const strategy = ['auto', 'managed', 'system'].includes(zellijStrategy) ? zellijStrategy : 'auto';
+  const binaryPath = typeof zellij.binaryPath === 'string' && zellij.binaryPath.trim() ? zellij.binaryPath.trim() : null;
+  const version = typeof zellij.version === 'string' && zellij.version.trim() ? zellij.version.trim() : null;
+  const source = typeof zellij.source === 'string' && zellij.source.trim() ? zellij.source.trim() : null;
+
   return {
     agents: {
       defaultModel: normalizeModelId(agents.defaultModel) || DEFAULT_SYNAPSE_MODEL,
       defaultRoleModels: sanitizeRoleModels(agents.defaultRoleModels),
       multiplexer,
+      zellij: {
+        strategy,
+        binaryPath,
+        version,
+        source,
+      },
     },
   };
 }
