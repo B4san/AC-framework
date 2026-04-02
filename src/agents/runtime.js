@@ -43,6 +43,10 @@ function runCommand(command, args, options = {}) {
   });
 }
 
+function sleep(ms) {
+  return new Promise((resolvePromise) => setTimeout(resolvePromise, ms));
+}
+
 function workerCommand(sessionId, role, roleLog) {
   return `bash -lc 'node "${runnerPath}" agents worker --session ${sessionId} --role ${role} 2>&1 | tee -a "${roleLog}"'`;
 }
@@ -120,18 +124,53 @@ async function writeZellijLayout({ layoutPath, sessionId, sessionDir }) {
   await writeFile(layoutPath, content, 'utf8');
 }
 
-export async function spawnZellijSession({ sessionName, sessionDir, sessionId, binaryPath }) {
+export async function spawnZellijSession({
+  sessionName,
+  sessionDir,
+  sessionId,
+  binaryPath,
+  waitForSessionMs = 10000,
+  pollIntervalMs = 250,
+  runCommandImpl,
+  spawnImpl,
+}) {
   const layoutPath = resolve(sessionDir, 'synapsegrid-layout.kdl');
   await writeZellijLayout({ layoutPath, sessionId, sessionDir });
   const command = binaryPath || process.env.ACFM_ZELLIJ_BIN || 'zellij';
-  await runCommand(command, ['--session', sessionName, '--layout', layoutPath, '--detach']);
-  return { layoutPath };
+
+  const spawnFn = spawnImpl || spawn;
+  const child = spawnFn(command, ['--session', sessionName, '--layout', layoutPath], {
+    cwd: sessionDir,
+    env: process.env,
+    detached: true,
+    stdio: 'ignore',
+  });
+  if (typeof child.unref === 'function') {
+    child.unref();
+  }
+
+  const startedAt = Date.now();
+  while ((Date.now() - startedAt) < waitForSessionMs) {
+    // eslint-disable-next-line no-await-in-loop
+    const exists = await zellijSessionExists(sessionName, binaryPath, { runCommandImpl });
+    if (exists) {
+      return { layoutPath };
+    }
+    // eslint-disable-next-line no-await-in-loop
+    await sleep(pollIntervalMs);
+  }
+
+  throw new Error(
+    `Timed out waiting for zellij session '${sessionName}' to start (binary: ${command}). ` +
+    'Try `acfm agents doctor` or fallback with `acfm agents start --mux tmux ...`'
+  );
 }
 
-export async function zellijSessionExists(sessionName, binaryPath) {
+export async function zellijSessionExists(sessionName, binaryPath, options = {}) {
   try {
+    const runner = options.runCommandImpl || runCommand;
     const command = binaryPath || process.env.ACFM_ZELLIJ_BIN || 'zellij';
-    const result = await runCommand(command, ['list-sessions']);
+    const result = await runner(command, ['list-sessions']);
     const lines = result.stdout.split('\n').map((line) => line.trim()).filter(Boolean);
     return lines.some((line) => line === sessionName || line.startsWith(`${sessionName} `));
   } catch {
