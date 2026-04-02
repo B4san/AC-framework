@@ -6,7 +6,7 @@ It combines three layers in one CLI:
 - template-based assistant configurations for multiple IDEs and AI CLIs
 - a built-in spec-driven workflow inspired by OpenSpec / spec-driven development
 - a persistent local memory system with MCP integration for supported assistants
-- an optional collaborative multi-agent runtime powered by OpenCode + tmux
+- an optional collaborative multi-agent runtime powered by OpenCode + zellij (tmux fallback)
 
 ## Why AC Framework
 
@@ -26,7 +26,7 @@ The goal is simple: help AI write better code, with more context, more disciplin
 - `Spec-driven workflow` - use `acfm spec` to initialize, create, validate, continue, and archive structured changes.
 - `Persistent memory` - store architectural decisions, bugfixes, refactors, conventions, and context in a local SQLite memory database.
 - `MCP integration` - connect the memory system to supported assistants through MCP so they can recall and save context directly.
-- `Collaborative agents (optional)` - enable SynapseGrid to run planner/critic/coder/reviewer in coordinated tmux panes with shared context.
+- `Collaborative agents (optional)` - enable SynapseGrid to run planner/critic/coder/reviewer in coordinated zellij panes (tmux fallback) with shared context.
 - `GitHub sync` - use `acfm init --latest` or `acfm update` to pull the latest framework content from GitHub.
 - `Legacy compatibility` - `.acfm/` is the new default, but existing `openspec/` directories still work.
 
@@ -57,7 +57,7 @@ The CLI now guides you through:
 2. choose one or more assistants from that template
 3. install the matching root instruction files like `AGENTS.md`, `CLAUDE.md`, `GEMINI.md`, or `copilot-instructions.md`
 4. optionally initialize NexusVault persistent memory and MCP connections
-5. optionally enable SynapseGrid collaborative agents (auto-installs OpenCode + tmux)
+5. optionally enable SynapseGrid collaborative agents (auto-installs OpenCode + zellij/tmux)
 
 If enabled, `acfm init` also auto-installs the optional SynapseGrid MCP server into detected assistants.
 
@@ -130,7 +130,7 @@ Some assistants include bundled companions automatically:
 
 ### Collaborative Agents (Optional)
 
-SynapseGrid is an optional collaborative runtime that coordinates 4 OpenCode-backed roles in tmux panes:
+SynapseGrid is an optional collaborative runtime that coordinates 4 OpenCode-backed roles in multiplexer panes (zellij preferred, tmux fallback):
 - planner
 - critic
 - coder
@@ -140,15 +140,18 @@ Each role runs in turn against a shared, accumulating context so outputs from on
 
 | Command | Description |
 |---|---|
-| `acfm agents setup` | Install optional dependencies (`opencode` and `tmux`) |
-| `acfm agents doctor` | Validate OpenCode/tmux/model preflight before start |
+| `acfm agents setup` | Install optional dependencies (`opencode` and `zellij`/`tmux`) |
+| `acfm agents doctor` | Validate OpenCode/multiplexer/model preflight before start |
 | `acfm agents install-mcps` | Install SynapseGrid MCP server for detected assistants |
 | `acfm agents uninstall-mcps` | Remove SynapseGrid MCP server from assistants |
 | `acfm agents start --task "..." --model-coder provider/model` | Start session with optional per-role models |
+| `acfm agents start --task "..." --mux zellij` | Start session forcing zellij backend (`auto`/`tmux` also supported) |
+| `acfm agents runtime get` | Show configured multiplexer backend (`auto`, `zellij`, `tmux`) |
+| `acfm agents runtime set zellij` | Persist preferred multiplexer backend |
 | `acfm agents resume` | Resume a previous session and recreate workers if needed |
 | `acfm agents list` | List recent SynapseGrid sessions |
-| `acfm agents attach` | Attach directly to the SynapseGrid tmux session |
-| `acfm agents live` | Attach to full live tmux view (all agents) |
+| `acfm agents attach` | Attach directly to the active SynapseGrid multiplexer session |
+| `acfm agents live` | Attach to full live multiplexer view (all agents) |
 | `acfm agents logs` | Show recent worker logs (all roles or one role) |
 | `acfm agents transcript --role all --limit 40` | Show captured cross-agent transcript |
 | `acfm agents summary` | Show generated collaboration meeting summary |
@@ -166,7 +169,7 @@ Each role runs in turn against a shared, accumulating context so outputs from on
 
 When driving SynapseGrid from another agent via MCP, prefer asynchronous run tools over role-by-role stepping:
 
-- `collab_start_session` to initialize session and optional tmux workers
+- `collab_start_session` to initialize session and optional zellij/tmux workers
 - `collab_invoke_team` to launch full 4-role collaboration run
 - `collab_wait_run` to wait for completion/failure with bounded timeout
 - `collab_get_result` to fetch final consolidated output and run diagnostics
@@ -180,7 +183,7 @@ When driving SynapseGrid from another agent via MCP, prefer asynchronous run too
 - Attach to worker panes with `acfm agents live` (or `acfm agents attach`) to see real-time role discussion.
 - Inspect worker errors quickly with `acfm agents logs --role all --lines 120`.
 - Inspect collaborative discussion with `acfm agents transcript` and `acfm agents summary`.
-- MCP starts can now create tmux workers directly; if your assistant used headless steps before, start a new session and ensure worker spawning is enabled.
+- MCP starts can now create zellij/tmux workers directly; if your assistant used headless steps before, start a new session and ensure worker spawning is enabled.
 - Configure role models directly at start (for example `--model-planner`, `--model-coder`) or persist defaults via `acfm agents model choose` / `acfm agents model set`.
 - Default SynapseGrid model fallback is `opencode/mimo-v2-pro-free`.
 - Run `acfm agents doctor` when panes look idle to confirm model/provider preflight health.

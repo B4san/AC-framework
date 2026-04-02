@@ -10,10 +10,13 @@ const CONFIG_PATH = join(ACFM_DIR, 'config.json');
 
 function normalizeConfig(raw) {
   const agents = raw?.agents && typeof raw.agents === 'object' ? raw.agents : {};
+  const configuredMultiplexer = typeof agents.multiplexer === 'string' ? agents.multiplexer.trim().toLowerCase() : '';
+  const multiplexer = ['auto', 'zellij', 'tmux'].includes(configuredMultiplexer) ? configuredMultiplexer : 'auto';
   return {
     agents: {
       defaultModel: normalizeModelId(agents.defaultModel) || DEFAULT_SYNAPSE_MODEL,
       defaultRoleModels: sanitizeRoleModels(agents.defaultRoleModels),
+      multiplexer,
     },
   };
 }

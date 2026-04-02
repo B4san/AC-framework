@@ -17,7 +17,13 @@ import { COLLAB_ROLES } from '../agents/constants.js';
 import { buildEffectiveRoleModels, sanitizeRoleModels } from '../agents/model-selection.js';
 import { runWorkerIteration } from '../agents/orchestrator.js';
 import { getSessionDir } from '../agents/state-store.js';
-import { spawnTmuxSession, tmuxSessionExists } from '../agents/runtime.js';
+import {
+  spawnTmuxSession,
+  spawnZellijSession,
+  tmuxSessionExists,
+  zellijSessionExists,
+  resolveMultiplexer,
+} from '../agents/runtime.js';
 import {
   addUserMessage,
   createSession,
@@ -29,6 +35,7 @@ import {
   stopSession,
 } from '../agents/state-store.js';
 import { hasCommand, resolveCommandPath } from '../services/dependency-installer.js';
+import { loadAgentsConfig } from '../agents/config-store.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const runnerPath = resolve(__dirname, '../../bin/acfm.js');
@@ -67,6 +74,11 @@ function launchAutopilot(sessionId) {
   child.unref();
 }
 
+async function muxExists(multiplexer, sessionName) {
+  if (multiplexer === 'zellij') return zellijSessionExists(sessionName);
+  return tmuxSessionExists(sessionName);
+}
+
 class MCPCollabServer {
   constructor() {
     this.server = new McpServer({
@@ -92,7 +104,7 @@ class MCPCollabServer {
           reviewer: z.string().optional(),
         }).partial().optional().describe('Optional per-role models (provider/model)'),
         cwd: z.string().optional().describe('Working directory for agents'),
-        spawnWorkers: z.boolean().default(true).describe('Create tmux workers and panes'),
+        spawnWorkers: z.boolean().default(true).describe('Create multiplexer workers and panes'),
         runPolicy: z.object({
           timeoutPerRoleMs: z.number().int().positive().optional(),
           retryOnTimeout: z.number().int().min(0).optional(),
@@ -107,8 +119,11 @@ class MCPCollabServer {
             throw new Error('OpenCode binary not found in PATH. Run: acfm agents setup');
           }
 
-          if (spawnWorkers && !hasCommand('tmux')) {
-            throw new Error('tmux is not installed. Run: acfm agents setup');
+          const config = await loadAgentsConfig();
+          const configuredMux = config.agents.multiplexer || 'auto';
+          const multiplexer = resolveMultiplexer(configuredMux, hasCommand('tmux'), hasCommand('zellij'));
+          if (spawnWorkers && !multiplexer) {
+            throw new Error('No multiplexer found (zellij/tmux). Run: acfm agents setup');
           }
 
           const state = await createSession(task, {
@@ -119,18 +134,31 @@ class MCPCollabServer {
             workingDirectory,
             opencodeBin,
             runPolicy,
+            multiplexer: multiplexer || configuredMux,
           });
           let updated = state;
           if (spawnWorkers) {
-            const tmuxSessionName = `acfm-synapse-${state.sessionId.slice(0, 8)}`;
+            const sessionName = `acfm-synapse-${state.sessionId.slice(0, 8)}`;
             const sessionDir = getSessionDir(state.sessionId);
-            await spawnTmuxSession({ sessionName: tmuxSessionName, sessionDir, sessionId: state.sessionId });
-            updated = await saveSessionState({ ...state, tmuxSessionName });
+            if (multiplexer === 'zellij') {
+              await spawnZellijSession({ sessionName, sessionDir, sessionId: state.sessionId });
+            } else {
+              await spawnTmuxSession({ sessionName, sessionDir, sessionId: state.sessionId });
+            }
+            updated = await saveSessionState({
+              ...state,
+              multiplexer,
+              multiplexerSessionName: sessionName,
+              tmuxSessionName: multiplexer === 'tmux' ? sessionName : null,
+            });
           }
           await setCurrentSession(state.sessionId);
 
-          const tmuxSessionName = updated.tmuxSessionName || null;
-          const attachCommand = tmuxSessionName ? `tmux attach -t ${tmuxSessionName}` : null;
+          const mux = updated.multiplexer || null;
+          const muxSessionName = updated.multiplexerSessionName || updated.tmuxSessionName || null;
+          const attachCommand = muxSessionName
+            ? (mux === 'zellij' ? `zellij attach ${muxSessionName}` : `tmux attach -t ${muxSessionName}`)
+            : null;
           return {
             content: [{
               type: 'text',
@@ -142,7 +170,8 @@ class MCPCollabServer {
                 roleModels: updated.roleModels || {},
                 effectiveRoleModels: buildEffectiveRoleModels(updated, updated.model || null),
                 run: summarizeRun(updated),
-                tmuxSessionName,
+                multiplexer: mux,
+                multiplexerSessionName: muxSessionName,
                 attachCommand,
               }, null, 2),
             }],
@@ -169,7 +198,7 @@ class MCPCollabServer {
             throw new Error(`Session is ${state.status}. Resume/start before invoking.`);
           }
 
-          if (!state.tmuxSessionName) {
+          if (!state.multiplexerSessionName && !state.tmuxSessionName) {
             launchAutopilot(state.sessionId);
           }
 
@@ -193,8 +222,13 @@ class MCPCollabServer {
                 status: state.status,
                 run: summarizeRun(state),
                 latestEvent: latestRunEvent(state),
-                tmuxSessionName: state.tmuxSessionName || null,
-                attachCommand: state.tmuxSessionName ? `tmux attach -t ${state.tmuxSessionName}` : null,
+                multiplexer: state.multiplexer || null,
+                multiplexerSessionName: state.multiplexerSessionName || state.tmuxSessionName || null,
+                attachCommand: state.multiplexerSessionName
+                  ? (state.multiplexer === 'zellij'
+                    ? `zellij attach ${state.multiplexerSessionName}`
+                    : `tmux attach -t ${state.multiplexerSessionName}`)
+                  : (state.tmuxSessionName ? `tmux attach -t ${state.tmuxSessionName}` : null),
               }, null, 2),
             }],
           };
@@ -408,10 +442,10 @@ class MCPCollabServer {
 
     this.server.tool(
       'collab_resume_session',
-      'Resume session and recreate tmux workers if needed',
+      'Resume session and recreate workers if needed',
       {
         sessionId: z.string().optional().describe('Session ID (defaults to current session)'),
-        recreateWorkers: z.boolean().default(true).describe('Recreate tmux session when missing'),
+        recreateWorkers: z.boolean().default(true).describe('Recreate multiplexer session when missing'),
       },
       async ({ sessionId, recreateWorkers }) => {
         try {
@@ -419,23 +453,36 @@ class MCPCollabServer {
           if (!id) throw new Error('No active session found');
           let state = await loadSessionState(id);
 
-          const tmuxSessionName = state.tmuxSessionName || `acfm-synapse-${state.sessionId.slice(0, 8)}`;
-          const tmuxExists = hasCommand('tmux') ? await tmuxSessionExists(tmuxSessionName) : false;
+          const multiplexer = state.multiplexer || resolveMultiplexer('auto', hasCommand('tmux'), hasCommand('zellij'));
+          if (!multiplexer) {
+            throw new Error('No multiplexer found (zellij/tmux). Run: acfm agents setup');
+          }
+          const sessionName = state.multiplexerSessionName || state.tmuxSessionName || `acfm-synapse-${state.sessionId.slice(0, 8)}`;
+          const sessionExists = await muxExists(multiplexer, sessionName);
 
-          if (!tmuxExists && recreateWorkers) {
-            if (!hasCommand('tmux')) {
-              throw new Error('tmux is not installed. Run: acfm agents setup');
-            }
+          if (!sessionExists && recreateWorkers) {
             const sessionDir = getSessionDir(state.sessionId);
-            await spawnTmuxSession({ sessionName: tmuxSessionName, sessionDir, sessionId: state.sessionId });
+            if (multiplexer === 'zellij') {
+              if (!hasCommand('zellij')) throw new Error('zellij is not installed. Run: acfm agents setup');
+              await spawnZellijSession({ sessionName, sessionDir, sessionId: state.sessionId });
+            } else {
+              if (!hasCommand('tmux')) throw new Error('tmux is not installed. Run: acfm agents setup');
+              await spawnTmuxSession({ sessionName, sessionDir, sessionId: state.sessionId });
+            }
           }
 
           state = await saveSessionState({
             ...state,
             status: 'running',
-            tmuxSessionName,
+            multiplexer,
+            multiplexerSessionName: sessionName,
+            tmuxSessionName: multiplexer === 'tmux' ? sessionName : state.tmuxSessionName || null,
           });
           await setCurrentSession(state.sessionId);
+
+          const attachCommand = multiplexer === 'zellij'
+            ? `zellij attach ${sessionName}`
+            : `tmux attach -t ${sessionName}`;
 
           return {
             content: [{
@@ -444,8 +491,10 @@ class MCPCollabServer {
                 success: true,
                 sessionId: state.sessionId,
                 status: state.status,
-                tmuxSessionName,
-                recreatedWorkers: !tmuxExists && recreateWorkers,
+                multiplexer,
+                multiplexerSessionName: sessionName,
+                recreatedWorkers: !sessionExists && recreateWorkers,
+                attachCommand,
               }, null, 2),
             }],
           };

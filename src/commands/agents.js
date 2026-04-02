@@ -26,8 +26,18 @@ import {
   saveSessionState,
   setCurrentSession,
   stopSession,
+  writeMeetingSummary,
 } from '../agents/state-store.js';
-import { roleLogPath, runTmux, spawnTmuxSession, tmuxSessionExists } from '../agents/runtime.js';
+import {
+  roleLogPath,
+  runTmux,
+  runZellij,
+  spawnTmuxSession,
+  spawnZellijSession,
+  tmuxSessionExists,
+  zellijSessionExists,
+  resolveMultiplexer,
+} from '../agents/runtime.js';
 import { getAgentsConfigPath, loadAgentsConfig, updateAgentsConfig } from '../agents/config-store.js';
 import {
   buildEffectiveRoleModels,
@@ -60,16 +70,51 @@ async function ensureSessionId(required = true) {
 function printStartSummary(state) {
   console.log(chalk.green(`✓ ${COLLAB_SYSTEM_NAME} session started`));
   console.log(chalk.dim(`  Session: ${state.sessionId}`));
-  console.log(chalk.dim(`  tmux: ${state.tmuxSessionName}`));
+  const multiplexer = state.multiplexer || 'auto';
+  const muxSessionName = state.multiplexerSessionName || state.tmuxSessionName || '-';
+  console.log(chalk.dim(`  Multiplexer: ${multiplexer}`));
+  console.log(chalk.dim(`  Session name: ${muxSessionName}`));
   console.log(chalk.dim(`  Task: ${state.task}`));
   console.log(chalk.dim(`  Roles: ${state.roles.join(', ')}`));
   console.log();
   console.log(chalk.cyan('Attach with:'));
-  console.log(chalk.white(`  tmux attach -t ${state.tmuxSessionName}`));
+  if (multiplexer === 'zellij') {
+    console.log(chalk.white(`  zellij attach ${muxSessionName}`));
+  } else {
+    console.log(chalk.white(`  tmux attach -t ${muxSessionName}`));
+  }
   console.log(chalk.white('  acfm agents live'));
   console.log();
   console.log(chalk.cyan('Interact with:'));
   console.log(chalk.white('  acfm agents send "your message"'));
+}
+
+function validateMultiplexer(value) {
+  const normalized = String(value || '').trim().toLowerCase();
+  if (!['auto', 'zellij', 'tmux'].includes(normalized)) {
+    throw new Error('--mux must be one of: auto|zellij|tmux');
+  }
+  return normalized;
+}
+
+function sessionMuxName(state) {
+  return state.multiplexerSessionName || state.tmuxSessionName || `acfm-synapse-${state.sessionId.slice(0, 8)}`;
+}
+
+async function sessionExistsForMux(multiplexer, sessionName) {
+  if (multiplexer === 'zellij') return zellijSessionExists(sessionName);
+  return tmuxSessionExists(sessionName);
+}
+
+async function attachToMux(multiplexer, sessionName, readonly = false) {
+  if (multiplexer === 'zellij') {
+    await runZellij(['attach', sessionName], { stdio: 'inherit' });
+    return;
+  }
+  const args = ['attach'];
+  if (readonly) args.push('-r');
+  args.push('-t', sessionName);
+  await runTmux('tmux', args, { stdio: 'inherit' });
 }
 
 function toMarkdownTranscript(state, transcript) {
@@ -181,12 +226,51 @@ export function agentsCommand() {
   const agents = new Command('agents')
     .description(`${COLLAB_SYSTEM_NAME} — collaborative multi-agent system powered by OpenCode`);
 
+  agents.addHelpText('after', `
+Examples:
+  acfm agents start --task "Implement auth flow" --mux auto
+  acfm agents setup
+  acfm agents runtime get
+  acfm agents runtime set zellij
+  acfm agents model choose
+  acfm agents model list
+  acfm agents transcript --role all --limit 40
+  acfm agents summary
+  acfm agents export --format md --out ./session.md
+`);
+
   agents
     .command('setup')
-    .description('Install optional collaboration dependencies (OpenCode + tmux)')
+    .description('Install optional collaboration dependencies (OpenCode + zellij/tmux)')
+    .option('--yes', 'Install dependencies without interactive confirmation', false)
     .option('--json', 'Output as JSON')
     .action(async (opts) => {
-      const result = ensureCollabDependencies();
+      let installZellij = true;
+      let installTmux = true;
+
+      if (!opts.yes && !opts.json) {
+        const answers = await inquirer.prompt([
+          {
+            type: 'confirm',
+            name: 'installZellij',
+            message: 'Install zellij (recommended, multiplatform backend)?',
+            default: true,
+          },
+          {
+            type: 'confirm',
+            name: 'installTmux',
+            message: 'Install tmux as fallback backend?',
+            default: true,
+          },
+        ]);
+        installZellij = Boolean(answers.installZellij);
+        installTmux = Boolean(answers.installTmux);
+      }
+
+      const result = ensureCollabDependencies({
+        installZellij,
+        installTmux,
+      });
       let collabMcp = null;
 
       if (result.success) {
@@ -199,7 +283,9 @@ export function agentsCommand() {
       if (!opts.json) {
         const oLabel = result.opencode.success ? chalk.green('ok') : chalk.red('failed');
         const tLabel = result.tmux.success ? chalk.green('ok') : chalk.red('failed');
+        const zLabel = result.zellij.success ? chalk.green('ok') : chalk.red('failed');
         console.log(`OpenCode: ${oLabel} - ${result.opencode.message}`);
+        console.log(`zellij:   ${zLabel} - ${result.zellij.message}`);
         console.log(`tmux:     ${tLabel} - ${result.tmux.message}`);
         if (collabMcp) {
           console.log(`Collab MCP: ${chalk.green('ok')} - installed ${collabMcp.success}/${collabMcp.installed} on detected assistants`);
@@ -286,10 +372,10 @@ export function agentsCommand() {
           }
           console.log(chalk.bold('SynapseGrid Sessions'));
           for (const item of sessions) {
-            console.log(
+          console.log(
               `${chalk.cyan(item.sessionId.slice(0, 8))}  ${item.status.padEnd(10)}  ` +
               `round ${String(item.round).padStart(2)}/${String(item.maxRounds).padEnd(2)}  ` +
-              `${item.tmuxSessionName || '-'}  ${item.task}`
+              `${item.multiplexer || 'auto'}:${item.multiplexerSessionName || item.tmuxSessionName || '-'}  ${item.task}`
             );
           }
         }
@@ -302,15 +388,17 @@ export function agentsCommand() {
 
   agents
     .command('attach')
-    .description('Attach terminal to active SynapseGrid tmux session')
+    .description('Attach terminal to active SynapseGrid multiplexer session')
     .action(async () => {
       try {
         const sessionId = await ensureSessionId(true);
         const state = await loadSessionState(sessionId);
-        if (!state.tmuxSessionName) {
-          throw new Error('No tmux session registered for active collaborative session');
+        const multiplexer = state.multiplexer || 'tmux';
+        const muxSessionName = sessionMuxName(state);
+        if (!muxSessionName) {
+          throw new Error('No multiplexer session registered for active collaborative session');
         }
-        await runTmux('tmux', ['attach', '-t', state.tmuxSessionName], { stdio: 'inherit' });
+        await attachToMux(multiplexer, muxSessionName, false);
       } catch (error) {
         console.error(chalk.red(`Error: ${error.message}`));
         process.exit(1);
@@ -319,23 +407,22 @@ export function agentsCommand() {
 
   agents
     .command('live')
-    .description('Attach to live tmux collaboration view (all agent panes)')
+    .description('Attach to live collaboration view (all agent panes)')
     .option('--readonly', 'Attach in read-only mode', false)
     .action(async (opts) => {
       try {
         const sessionId = await ensureSessionId(true);
         const state = await loadSessionState(sessionId);
-        if (!state.tmuxSessionName) {
-          throw new Error('No tmux session registered for active collaborative session');
+        const multiplexer = state.multiplexer || 'tmux';
+        const muxSessionName = sessionMuxName(state);
+        if (!muxSessionName) {
+          throw new Error('No multiplexer session registered for active collaborative session');
         }
-        const tmuxExists = await tmuxSessionExists(state.tmuxSessionName);
-        if (!tmuxExists) {
-          throw new Error(`tmux session ${state.tmuxSessionName} no longer exists. Run: acfm agents resume`);
+        const sessionExists = await sessionExistsForMux(multiplexer, muxSessionName);
+        if (!sessionExists) {
+          throw new Error(`${multiplexer} session ${muxSessionName} no longer exists. Run: acfm agents resume`);
         }
-        const args = ['attach'];
-        if (opts.readonly) args.push('-r');
-        args.push('-t', state.tmuxSessionName);
-        await runTmux('tmux', args, { stdio: 'inherit' });
+        await attachToMux(multiplexer, muxSessionName, Boolean(opts.readonly));
       } catch (error) {
         console.error(chalk.red(`Error: ${error.message}`));
         process.exit(1);
@@ -344,48 +431,60 @@ export function agentsCommand() {
 
   agents
     .command('resume')
-    .description('Resume a previous session and optionally recreate tmux workers')
+    .description('Resume a previous session and optionally recreate multiplexer workers')
     .option('--session <id>', 'Session ID to resume (defaults to current)')
-    .option('--no-recreate', 'Do not recreate tmux session/workers when missing')
-    .option('--no-attach', 'Do not attach tmux after resume')
+    .option('--no-recreate', 'Do not recreate multiplexer session/workers when missing')
+    .option('--no-attach', 'Do not attach multiplexer after resume')
     .option('--json', 'Output as JSON')
     .action(async (opts) => {
       try {
         const sessionId = opts.session || await ensureSessionId(true);
         let state = await loadSessionState(sessionId);
+        const multiplexer = state.multiplexer || 'tmux';
 
-        const tmuxSessionName = state.tmuxSessionName || `acfm-synapse-${state.sessionId.slice(0, 8)}`;
-        const tmuxExists = hasCommand('tmux') ? await tmuxSessionExists(tmuxSessionName) : false;
+        if (multiplexer === 'zellij' && !hasCommand('zellij')) {
+          throw new Error('zellij is not installed. Run: acfm agents setup');
+        }
+        if (multiplexer === 'tmux' && !hasCommand('tmux')) {
+          throw new Error('tmux is not installed. Run: acfm agents setup');
+        }
 
-        if (!tmuxExists && opts.recreate) {
-          if (!hasCommand('tmux')) {
-            throw new Error('tmux is not installed. Run: acfm agents setup');
-          }
+        const muxSessionName = sessionMuxName(state);
+        const muxExists = await sessionExistsForMux(multiplexer, muxSessionName);
+
+        if (!muxExists && opts.recreate) {
           const sessionDir = getSessionDir(state.sessionId);
-          await spawnTmuxSession({ sessionName: tmuxSessionName, sessionDir, sessionId: state.sessionId });
+          if (multiplexer === 'zellij') {
+            await spawnZellijSession({ sessionName: muxSessionName, sessionDir, sessionId: state.sessionId });
+          } else {
+            await spawnTmuxSession({ sessionName: muxSessionName, sessionDir, sessionId: state.sessionId });
+          }
         }
 
         state = await saveSessionState({
           ...state,
           status: 'running',
-          tmuxSessionName,
+          multiplexer,
+          multiplexerSessionName: muxSessionName,
+          tmuxSessionName: multiplexer === 'tmux' ? muxSessionName : (state.tmuxSessionName || null),
         });
         await setCurrentSession(state.sessionId);
 
         output({
           sessionId: state.sessionId,
           status: state.status,
-          tmuxSessionName,
-          recreatedTmux: !tmuxExists && Boolean(opts.recreate),
+          multiplexer,
+          multiplexerSessionName: muxSessionName,
+          recreatedSession: !muxExists && Boolean(opts.recreate),
         }, opts.json);
 
         if (!opts.json) {
           console.log(chalk.green(`✓ Resumed session ${state.sessionId}`));
-          console.log(chalk.dim(`  tmux: ${tmuxSessionName}`));
+          console.log(chalk.dim(`  ${multiplexer}: ${muxSessionName}`));
         }
 
         if (opts.attach) {
-          await runTmux('tmux', ['attach', '-t', tmuxSessionName], { stdio: 'inherit' });
+          await attachToMux(multiplexer, muxSessionName, false);
         }
       } catch (error) {
         output({ error: error.message }, opts.json);
@@ -453,6 +552,77 @@ export function agentsCommand() {
     .command('model')
     .description('Manage default SynapseGrid model configuration');
 
+  const runtime = agents
+    .command('runtime')
+    .description('Manage SynapseGrid runtime backend settings');
+
+  runtime
+    .command('get')
+    .description('Show configured multiplexer backend')
+    .option('--json', 'Output as JSON')
+    .action(async (opts) => {
+      try {
+        const cfg = await loadAgentsConfig();
+        const configured = validateMultiplexer(cfg.agents.multiplexer || 'auto');
+        const resolved = resolveMultiplexer(configured, hasCommand('tmux'), hasCommand('zellij'));
+        const payload = {
+          configPath: getAgentsConfigPath(),
+          multiplexer: configured,
+          resolved,
+          available: {
+            zellij: hasCommand('zellij'),
+            tmux: hasCommand('tmux'),
+          },
+        };
+        output(payload, opts.json);
+        if (!opts.json) {
+          console.log(chalk.bold('SynapseGrid runtime backend'));
+          console.log(chalk.dim(`Config: ${payload.configPath}`));
+          console.log(chalk.dim(`Configured: ${configured}`));
+          console.log(chalk.dim(`Resolved: ${resolved || 'none'}`));
+          console.log(chalk.dim(`zellij=${payload.available.zellij} tmux=${payload.available.tmux}`));
+        }
+      } catch (error) {
+        output({ error: error.message }, opts.json);
+        if (!opts.json) console.error(chalk.red(`Error: ${error.message}`));
+        process.exit(1);
+      }
+    });
+
+  runtime
+    .command('set <mux>')
+    .description('Set multiplexer backend: auto|zellij|tmux')
+    .option('--json', 'Output as JSON')
+    .action(async (mux, opts) => {
+      try {
+        const selected = validateMultiplexer(mux);
+        const updated = await updateAgentsConfig((current) => ({
+          agents: {
+            defaultModel: current.agents.defaultModel,
+            defaultRoleModels: { ...current.agents.defaultRoleModels },
+            multiplexer: selected,
+          },
+        }));
+        const resolved = resolveMultiplexer(updated.agents.multiplexer, hasCommand('tmux'), hasCommand('zellij'));
+        const payload = {
+          success: true,
+          configPath: getAgentsConfigPath(),
+          multiplexer: updated.agents.multiplexer,
+          resolved,
+        };
+        output(payload, opts.json);
+        if (!opts.json) {
+          console.log(chalk.green('✓ SynapseGrid runtime backend updated'));
+          console.log(chalk.dim(`  Configured: ${payload.multiplexer}`));
+          console.log(chalk.dim(`  Resolved: ${payload.resolved || 'none'}`));
+        }
+      } catch (error) {
+        output({ error: error.message }, opts.json);
+        if (!opts.json) console.error(chalk.red(`Error: ${error.message}`));
+        process.exit(1);
+      }
+    });
+
   model
     .command('list')
     .description('List available OpenCode models grouped by provider')
@@ -510,6 +680,7 @@ export function agentsCommand() {
           configPath: getAgentsConfigPath(),
           defaultModel: config.agents.defaultModel,
           defaultRoleModels: config.agents.defaultRoleModels,
+          multiplexer: config.agents.multiplexer,
         };
         output(payload, opts.json);
         if (!opts.json) {
@@ -519,6 +690,7 @@ export function agentsCommand() {
           for (const role of COLLAB_ROLES) {
             console.log(chalk.dim(`- ${role}: ${payload.defaultRoleModels[role] || '(none)'}`));
           }
+          console.log(chalk.dim(`Multiplexer: ${payload.multiplexer || 'auto'}`));
         }
       } catch (error) {
         output({ error: error.message }, opts.json);
@@ -594,6 +766,7 @@ export function agentsCommand() {
             agents: {
               defaultModel: current.agents.defaultModel,
               defaultRoleModels: { ...current.agents.defaultRoleModels },
+              multiplexer: current.agents.multiplexer || 'auto',
             },
           };
 
@@ -654,6 +827,7 @@ export function agentsCommand() {
             agents: {
               defaultModel: current.agents.defaultModel,
               defaultRoleModels: { ...current.agents.defaultRoleModels },
+              multiplexer: current.agents.multiplexer || 'auto',
             },
           };
           if (role === 'all') {
@@ -702,6 +876,7 @@ export function agentsCommand() {
             agents: {
               defaultModel: current.agents.defaultModel,
               defaultRoleModels: { ...current.agents.defaultRoleModels },
+              multiplexer: current.agents.multiplexer || 'auto',
             },
           };
           if (role === 'all') {
@@ -865,16 +1040,14 @@ export function agentsCommand() {
     .option('--model-critic <id>', 'Model for critic role (provider/model)')
     .option('--model-coder <id>', 'Model for coder role (provider/model)')
     .option('--model-reviewer <id>', 'Model for reviewer role (provider/model)')
+    .option('--mux <name>', 'Multiplexer backend: auto|zellij|tmux')
     .option('--cwd <path>', 'Working directory for agents', process.cwd())
-    .option('--attach', 'Attach tmux immediately after start', false)
+    .option('--attach', 'Attach multiplexer immediately after start', false)
     .option('--json', 'Output as JSON')
     .action(async (opts) => {
       try {
         if (!hasCommand('opencode')) {
           throw new Error('OpenCode is not installed. Run: acfm agents setup');
-        }
-        if (!hasCommand('tmux')) {
-          throw new Error('tmux is not installed. Run: acfm agents setup');
         }
         const opencodeBin = resolveCommandPath('opencode');
         if (!opencodeBin) {
@@ -888,6 +1061,11 @@ export function agentsCommand() {
         }
 
         const config = await loadAgentsConfig();
+        const configuredMux = validateMultiplexer(opts.mux || config.agents.multiplexer || 'auto');
+        const selectedMux = resolveMultiplexer(configuredMux, hasCommand('tmux'), hasCommand('zellij'));
+        if (!selectedMux) {
+          throw new Error('No multiplexer found. Install zellij or tmux with: acfm agents setup');
+        }
         const cliModel = assertValidModelIdOrNull('--model', opts.model || null);
         const cliRoleModels = parseRoleModelOptions(opts);
         for (const [role, model] of Object.entries(cliRoleModels)) {
@@ -922,30 +1100,47 @@ export function agentsCommand() {
           maxRounds,
           model: globalModel,
           roleModels,
+          multiplexer: selectedMux,
           workingDirectory: resolve(opts.cwd),
           opencodeBin,
         });
-        const tmuxSessionName = `acfm-synapse-${state.sessionId.slice(0, 8)}`;
+        const muxSessionName = `acfm-synapse-${state.sessionId.slice(0, 8)}`;
         const sessionDir = getSessionDir(state.sessionId);
+
+        if (selectedMux === 'zellij') {
+          await spawnZellijSession({
+            sessionName: muxSessionName,
+            sessionDir,
+            sessionId: state.sessionId,
+          });
+        } else {
+          await spawnTmuxSession({
+            sessionName: muxSessionName,
+            sessionDir,
+            sessionId: state.sessionId,
+          });
+        }
+
         const updated = await saveSessionState({
           ...state,
-          tmuxSessionName,
+          multiplexer: selectedMux,
+          multiplexerSessionName: muxSessionName,
+          tmuxSessionName: selectedMux === 'tmux' ? muxSessionName : null,
         });
 
-        await spawnTmuxSession({
-          sessionName: tmuxSessionName,
-          sessionDir,
-          sessionId: state.sessionId,
-        });
-
-        output({ sessionId: updated.sessionId, tmuxSessionName, status: updated.status }, opts.json);
+        output({
+          sessionId: updated.sessionId,
+          multiplexer: selectedMux,
+          multiplexerSessionName: muxSessionName,
+          status: updated.status,
+        }, opts.json);
         if (!opts.json) {
           printStartSummary(updated);
           printModelConfig(updated);
         }
 
         if (opts.attach) {
-          await runTmux('tmux', ['attach', '-t', tmuxSessionName], { stdio: 'inherit' });
+          await attachToMux(selectedMux, muxSessionName, false);
         }
       } catch (error) {
         output({ error: error.message }, opts.json);
@@ -996,14 +1191,16 @@ export function agentsCommand() {
             console.log(chalk.dim(`Run error: ${summary.lastError.message}`));
           }
           console.log(chalk.dim(`Global model: ${state.model || '(opencode default)'}`));
+          console.log(chalk.dim(`Multiplexer: ${state.multiplexer || 'auto'} (${sessionMuxName(state)})`));
           for (const role of COLLAB_ROLES) {
             const configured = state.roleModels?.[role] || '-';
             const effective = effectiveRoleModels[role] || '(opencode default)';
             console.log(chalk.dim(`  ${role.padEnd(8)} configured=${configured} effective=${effective}`));
           }
-          if (state.tmuxSessionName) {
-            console.log(chalk.dim(`tmux: ${state.tmuxSessionName}`));
-          }
+          const meetingLogPath = resolve(getSessionDir(state.sessionId), 'meeting-log.md');
+          const meetingSummaryPath = resolve(getSessionDir(state.sessionId), 'meeting-summary.md');
+          console.log(chalk.dim(`meeting-log: ${existsSync(meetingLogPath) ? meetingLogPath : 'not generated yet'}`));
+          console.log(chalk.dim(`meeting-summary: ${existsSync(meetingSummaryPath) ? meetingSummaryPath : 'not generated yet'}`));
         }
       } catch (error) {
         output({ error: error.message }, opts.json);
@@ -1020,6 +1217,7 @@ export function agentsCommand() {
       try {
         const sessionId = await ensureSessionId(true);
         let state = await loadSessionState(sessionId);
+        const meetingSummaryPath = resolve(getSessionDir(state.sessionId), 'meeting-summary.md');
         state = await stopSession(state, 'stopped');
         if (state.run && state.run.status === 'running') {
           state = await saveSessionState({
@@ -1036,15 +1234,51 @@ export function agentsCommand() {
             },
           });
         }
-        if (state.tmuxSessionName && hasCommand('tmux')) {
+
+        if (!existsSync(meetingSummaryPath)) {
+          const fallbackSummary = [
+            '# SynapseGrid Meeting Summary',
+            '',
+            `Session: ${state.sessionId}`,
+            `Status: ${state.status}`,
+            '',
+            'This summary was auto-generated at stop time because the run did not complete normally.',
+            '',
+            '## Last message',
+            state.messages?.[state.messages.length - 1]?.content || '(none)',
+            '',
+          ].join('\n');
+          await writeMeetingSummary(state.sessionId, fallbackSummary);
+          if (state.run && !state.run.finalSummary) {
+            state = await saveSessionState({
+              ...state,
+              run: {
+                ...state.run,
+                finalSummary: fallbackSummary,
+              },
+            });
+          }
+        }
+
+        const multiplexer = state.multiplexer || 'tmux';
+        const muxSessionName = sessionMuxName(state);
+        if (multiplexer === 'zellij' && muxSessionName && hasCommand('zellij')) {
           try {
-            await runTmux('tmux', ['kill-session', '-t', state.tmuxSessionName]);
+            await runZellij(['delete-session', muxSessionName]);
+          } catch {
+            // ignore if already closed
+          }
+        }
+        if (multiplexer === 'tmux' && muxSessionName && hasCommand('tmux')) {
+          try {
+            await runTmux('tmux', ['kill-session', '-t', muxSessionName]);
           } catch {
             // ignore if already closed
           }
         }
         output({ sessionId: state.sessionId, status: state.status }, opts.json);
         if (!opts.json) console.log(chalk.green('✓ Collaborative session stopped'));
+
       } catch (error) {
         output({ error: error.message }, opts.json);
         if (!opts.json) console.error(chalk.red(`Error: ${error.message}`));
@@ -1142,11 +1376,17 @@ export function agentsCommand() {
       try {
         const opencodeBin = resolveCommandPath('opencode');
         const tmuxInstalled = hasCommand('tmux');
+        const zellijInstalled = hasCommand('zellij');
         const cfg = await loadAgentsConfig();
         const defaultModel = cfg.agents.defaultModel || DEFAULT_SYNAPSE_MODEL;
+        const configuredMux = validateMultiplexer(cfg.agents.multiplexer || 'auto');
+        const resolvedMux = resolveMultiplexer(configuredMux, tmuxInstalled, zellijInstalled);
         const result = {
           opencodeBin,
           tmuxInstalled,
+          zellijInstalled,
+          configuredMultiplexer: configuredMux,
+          resolvedMultiplexer: resolvedMux,
           defaultModel,
           defaultRoleModels: cfg.agents.defaultRoleModels,
           preflight: null,
@@ -1166,12 +1406,14 @@ export function agentsCommand() {
         if (!opts.json) {
           console.log(chalk.bold('SynapseGrid doctor'));
           console.log(chalk.dim(`opencode: ${opencodeBin || 'not found'}`));
+          console.log(chalk.dim(`zellij: ${zellijInstalled ? 'installed' : 'not installed'}`));
           console.log(chalk.dim(`tmux: ${tmuxInstalled ? 'installed' : 'not installed'}`));
+          console.log(chalk.dim(`multiplexer: configured=${configuredMux} resolved=${resolvedMux || 'none'}`));
           console.log(chalk.dim(`default model: ${defaultModel}`));
           console.log(chalk.dim(`preflight: ${result.preflight?.ok ? 'ok' : `failed - ${result.preflight?.error || 'unknown error'}`}`));
         }
 
-        if (!result.preflight?.ok) process.exit(1);
+        if (!result.preflight?.ok || !result.resolvedMultiplexer) process.exit(1);
       } catch (error) {
         output({ error: error.message }, opts.json);
         if (!opts.json) console.error(chalk.red(`Error: ${error.message}`));

@@ -19,6 +19,20 @@ import {
   withSessionLock,
 } from './state-store.js';
 
+async function finalizeSessionArtifacts(state) {
+  const runState = ensureRunState(state);
+  const summaryMd = buildMeetingSummary(state.messages, runState, runState.sharedContext);
+  await writeMeetingSummary(state.sessionId, summaryMd);
+  const completedRun = {
+    ...runState,
+    finalSummary: extractFinalSummary(state.messages, runState),
+  };
+  return saveSessionState({
+    ...state,
+    run: completedRun,
+  });
+}
+
 function buildRuntimePrompt({ state, role }) {
   const roleContext = ROLE_SYSTEM_PROMPTS[role] || '';
   const collaborativePrompt = buildAgentPrompt({
@@ -63,6 +77,13 @@ function ensureRunState(state) {
     round: state.round || 1,
     events: [],
     finalSummary: null,
+    sharedContext: {
+      decisions: [],
+      openIssues: [],
+      risks: [],
+      actionItems: [],
+      notes: [],
+    },
     lastError: null,
     policy: {
       timeoutPerRoleMs: 180000,
@@ -141,6 +162,7 @@ export async function runTurn(sessionId, options = {}) {
     if (shouldStop(state)) {
       if (state.status === 'running') {
         state = await stopSession(state, 'completed');
+        state = await finalizeSessionArtifacts(state);
       }
       return state;
     }
@@ -178,6 +200,7 @@ export async function runTurn(sessionId, options = {}) {
 
     if (shouldStop(state)) {
       state = await stopSession(state, 'completed');
+      state = await finalizeSessionArtifacts(state);
     }
 
     return state;
@@ -244,6 +267,7 @@ export async function executeActiveTurn(sessionId, role, options = {}) {
 
     if (shouldStop(state)) {
       state = await stopSession(state, 'completed');
+      state = await finalizeSessionArtifacts(state);
     }
 
     return state;
@@ -332,6 +356,9 @@ export async function runWorkerIteration(sessionId, role, options = {}) {
         events: outputEvents,
       }));
       state = await saveSessionState(applyRoleFailurePolicy(state, role, errorMessage));
+      if (state.status === 'failed') {
+        state = await finalizeSessionArtifacts(state);
+      }
       return state;
     }
 
@@ -360,8 +387,6 @@ export async function runWorkerIteration(sessionId, role, options = {}) {
 
     if (shouldStop(state)) {
       state = await stopSession(state, 'completed');
-      const summaryMd = buildMeetingSummary(state.messages, ensureRunState(state), ensureRunState(state).sharedContext);
-      await writeMeetingSummary(sessionId, summaryMd);
       const finalRun = appendRunEvent({
         ...ensureRunState(state),
         status: 'completed',
@@ -372,6 +397,7 @@ export async function runWorkerIteration(sessionId, role, options = {}) {
         ...state,
         run: finalRun,
       });
+      state = await finalizeSessionArtifacts(state);
     }
 
     return state;

@@ -1,6 +1,6 @@
 {
   "name": "ac-framework",
-  "version": "1.9.8",
+  "version": "1.9.9",
   "description": "Agentic Coding Framework - Multi-assistant configuration system with OpenSpec workflows",
   "main": "src/index.js",
   "exports": {

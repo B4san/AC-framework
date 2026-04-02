@@ -17,6 +17,13 @@ function run(command, args, options = {}) {
   });
 }
 
+function runInstallCommand(command) {
+  if (platform() === 'win32') {
+    return run('cmd.exe', ['/c', command], { stdio: 'inherit' });
+  }
+  return run('bash', ['-lc', command], { stdio: 'inherit' });
+}
+
 export function hasCommand(command) {
   return Boolean(resolveCommandPath(command));
 }
@@ -78,6 +85,29 @@ function resolveTmuxInstallCommand() {
   return null;
 }
 
+function resolveZellijInstallCommand() {
+  if (platform() === 'darwin') {
+    if (hasCommand('brew')) return 'brew install zellij';
+    return null;
+  }
+
+  if (platform() === 'linux') {
+    if (hasCommand('apt-get')) return 'sudo apt-get update && sudo apt-get install -y zellij';
+    if (hasCommand('dnf')) return 'sudo dnf install -y zellij';
+    if (hasCommand('yum')) return 'sudo yum install -y zellij';
+    if (hasCommand('pacman')) return 'sudo pacman -S --noconfirm zellij';
+    if (hasCommand('zypper')) return 'sudo zypper --non-interactive install zellij';
+  }
+
+  if (platform() === 'win32') {
+    if (hasCommand('winget')) return 'winget install --id zellij-org.zellij -e';
+    if (hasCommand('choco')) return 'choco install zellij -y';
+    if (hasCommand('scoop')) return 'scoop install zellij';
+  }
+
+  return null;
+}
+
 export function installTmux() {
   if (hasCommand('tmux')) {
     return { success: true, installed: false, message: 'tmux already installed' };
@@ -92,7 +122,7 @@ export function installTmux() {
     };
   }
 
-  const result = run('bash', ['-lc', installCommand], { stdio: 'inherit' });
+  const result = runInstallCommand(installCommand);
   if (result.status !== 0) {
     return { success: false, installed: false, message: 'tmux installation command failed' };
   }
@@ -106,12 +136,50 @@ export function installTmux() {
   };
 }
 
-export function ensureCollabDependencies() {
+export function installZellij() {
+  if (hasCommand('zellij')) {
+    return { success: true, installed: false, message: 'zellij already installed' };
+  }
+
+  const installCommand = resolveZellijInstallCommand();
+  if (!installCommand) {
+    return {
+      success: false,
+      installed: false,
+      message: 'No supported package manager detected for automatic zellij installation',
+    };
+  }
+
+  const result = runInstallCommand(installCommand);
+  if (result.status !== 0) {
+    return { success: false, installed: false, message: 'zellij installation command failed' };
+  }
+
+  return {
+    success: hasCommand('zellij'),
+    installed: true,
+    message: hasCommand('zellij')
+      ? 'zellij installed successfully'
+      : 'zellij installer finished but binary is not available in PATH yet',
+  };
+}
+
+export function ensureCollabDependencies(options = {}) {
+  const installTmuxEnabled = options.installTmux ?? true;
+  const installZellijEnabled = options.installZellij ?? true;
   const opencode = installOpenCode();
-  const tmux = installTmux();
+  const tmux = installTmuxEnabled
+    ? installTmux()
+    : { success: hasCommand('tmux'), installed: false, message: hasCommand('tmux') ? 'tmux already installed' : 'tmux installation skipped' };
+  const zellij = installZellijEnabled
+    ? installZellij()
+    : { success: hasCommand('zellij'), installed: false, message: hasCommand('zellij') ? 'zellij already installed' : 'zellij installation skipped' };
+
+  const hasMultiplexer = tmux.success || zellij.success;
   return {
     opencode,
     tmux,
-    success: opencode.success && tmux.success,
+    zellij,
+    success: opencode.success && hasMultiplexer,
   };
 }

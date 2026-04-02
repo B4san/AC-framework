@@ -156,7 +156,8 @@ async function setupPersistentMemory() {
 async function setupCollaborativeSystem() {
   const hasOpenCode = hasCommand('opencode');
   const hasTmux = hasCommand('tmux');
-  const alreadyReady = hasOpenCode && hasTmux;
+  const hasZellij = hasCommand('zellij');
+  const alreadyReady = hasOpenCode && (hasZellij || hasTmux);
 
   console.log();
   await animatedSeparator(60);
@@ -168,10 +169,10 @@ async function setupCollaborativeSystem() {
   console.log(
     chalk.hex('#636E72')(
       `  ${COLLAB_SYSTEM_NAME} launches a real-time collaborative agent war-room with\n` +
-      '  4 coordinated roles (planner, critic, coder, reviewer) in tmux panes.\n\n' +
+      '  4 coordinated roles (planner, critic, coder, reviewer) in multiplexer panes.\n\n' +
       '  Each round is turn-based with shared incremental context, so every\n' +
       '  contribution from one agent is fed to the next, not isolated fan-out.\n\n' +
-      `  Dependencies: ${chalk.hex('#DFE6E9')('OpenCode')} + ${chalk.hex('#DFE6E9')('tmux')}`
+      `  Dependencies: ${chalk.hex('#DFE6E9')('OpenCode')} + ${chalk.hex('#DFE6E9')('zellij')} (${chalk.hex('#DFE6E9')('tmux')} fallback)`
     )
   );
   console.log();
@@ -223,7 +224,8 @@ async function setupCollaborativeSystem() {
 
   if (alreadyReady) {
     console.log();
-    console.log(chalk.hex('#00B894')('  ◆ OpenCode and tmux are already available.'));
+    const mux = hasZellij ? 'zellij' : 'tmux';
+    console.log(chalk.hex('#00B894')(`  ◆ OpenCode and ${mux} are already available.`));
     await installCollabMcpConnections();
     console.log(chalk.hex('#636E72')('  Run `acfm agents start --task "..."` to launch collaboration.'));
     console.log();
@@ -234,11 +236,13 @@ async function setupCollaborativeSystem() {
   console.log(chalk.hex('#B2BEC3')(`  Installing ${COLLAB_SYSTEM_NAME} dependencies...`));
   console.log();
 
-  const result = ensureCollabDependencies();
+  const result = ensureCollabDependencies({ installZellij: true, installTmux: true });
 
   const oColor = result.opencode.success ? chalk.hex('#00B894') : chalk.hex('#D63031');
+  const zColor = result.zellij.success ? chalk.hex('#00B894') : chalk.hex('#D63031');
   const tColor = result.tmux.success ? chalk.hex('#00B894') : chalk.hex('#D63031');
   console.log(oColor(`  ◆ OpenCode: ${result.opencode.message}`));
+  console.log(zColor(`  ◆ zellij: ${result.zellij.message}`));
   console.log(tColor(`  ◆ tmux: ${result.tmux.message}`));
   console.log();
 

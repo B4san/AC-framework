@@ -73,6 +73,8 @@ function initialState(task, options = {}) {
     model: options.model || null,
     roleModels: sanitizeRoleModels(options.roleModels),
     opencodeBin: options.opencodeBin || null,
+    multiplexer: options.multiplexer || 'auto',
+    multiplexerSessionName: options.multiplexerSessionName || null,
     tmuxSessionName: options.tmuxSessionName || null,
     run: createRunState(options.runPolicy, Number.isInteger(options.maxRounds) ? options.maxRounds : DEFAULT_MAX_ROUNDS),
     messages: [
@@ -208,6 +210,8 @@ export async function listSessions(limit = 20) {
         round: state.round,
         maxRounds: state.maxRounds,
         tmuxSessionName: state.tmuxSessionName || null,
+        multiplexer: state.multiplexer || 'auto',
+        multiplexerSessionName: state.multiplexerSessionName || null,
         createdAt: state.createdAt,
         updatedAt: state.updatedAt,
         mtime: stateStats.mtimeMs,
