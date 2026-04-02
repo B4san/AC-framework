@@ -756,6 +756,36 @@
       text-align: center;
       max-width: 840px;
     }
+
+    .updates-highlights {
+      width: 100%;
+      max-width: 1200px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      justify-content: center;
+      margin-top: 6px;
+    }
+
+    .highlight-pill {
+      padding: 8px 12px;
+      border-radius: 999px;
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      background: rgba(255, 255, 255, 0.04);
+      color: #e4e4e7;
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+    }
+
+    .updates-command-grid {
+      width: 100%;
+      max-width: 1200px;
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 16px;
+      margin-top: 8px;
+    }
     
     /* Assistants Section with Infinite Carousel */
     .assistants {
@@ -1179,6 +1209,10 @@
         grid-template-columns: 1fr;
       }
 
+      .updates-command-grid {
+        grid-template-columns: 1fr;
+      }
+
       .modes-grid {
         grid-template-columns: 1fr;
       }
@@ -1422,82 +1456,103 @@
     </div>
   </section>
 
-  <!-- SynapseGrid Updates Section -->
+  <!-- Platform Section -->
   <section class="synapse-updates" id="synapsegrid-updates">
-    <h2 class="section-title scroll-animate">New in SynapseGrid Collaboration</h2>
+    <h2 class="section-title scroll-animate">AI Collaboration Platform, Not Just Prompts</h2>
     <p class="updates-subtitle scroll-animate">
-      SynapseGrid now exposes collaborative agent behavior end-to-end: artifact tracking, per-turn raw captures, meeting summaries, and managed zellij runtime installation with safe defaults.
+      AC Framework combines structured implementation workflows, collaborative multi-agent execution, and persistent memory with MCP integrations so your assistants behave like a coordinated engineering team.
     </p>
+
+    <div class="updates-highlights scroll-animate" aria-label="Platform highlights">
+      <span class="highlight-pill">Spec-Driven Development</span>
+      <span class="highlight-pill">SynapseGrid Multi-Agent Runtime</span>
+      <span class="highlight-pill">NexusVault Persistent Memory</span>
+      <span class="highlight-pill">MCP-Native Integrations</span>
+      <span class="highlight-pill">24+ Assistant Packs</span>
+      <span class="highlight-pill">OpenSpec Compatible</span>
+    </div>
 
     <div class="updates-grid">
       <article class="update-card scroll-animate">
         <div class="update-header">
-          <span class="update-badge green">Visibility</span>
+          <span class="update-badge green">SynapseGrid</span>
         </div>
-        <h3 class="update-title">Artifact Observability</h3>
+        <h3 class="update-title">Collaborative Agent Team</h3>
         <p class="update-desc">
-          Sessions now bootstrap artifact files immediately, even before the first turn, so users never face a black-box run.
+          SynapseGrid runs a real role-based engineering loop with planner, critic, coder, and reviewer in coordinated rounds, where each role sees accumulated context.
         </p>
         <ul class="update-list">
-          <li>Auto-creates <code>meeting-log.md</code>, <code>meeting-summary.md</code>, and diagnostics files.</li>
-          <li>Provides <code>acfm agents artifacts</code> and live watch mode for runtime verification.</li>
-          <li>Backfills missing artifacts for older sessions safely and idempotently.</li>
+          <li>Turn-by-turn collaboration instead of isolated fan-out responses.</li>
+          <li>Per-role model control and interactive model selection from providers.</li>
+          <li>Zellij-first runtime with tmux fallback and managed installer support.</li>
+        </ul>
+        <code class="update-terminal">acfm agents start --task "Implement secure auth" --mux auto</code>
+      </article>
+
+      <article class="update-card scroll-animate">
+        <div class="update-header">
+          <span class="update-badge blue">Transparency</span>
+        </div>
+        <h3 class="update-title">No Black Box Execution</h3>
+        <p class="update-desc">
+          Every session is persisted with readable logs, summaries, diagnostics, and raw captures, so users can inspect what each agent said and did.
+        </p>
+        <ul class="update-list">
+          <li>Automatic artifacts: transcript, meeting log, final summary, diagnostics.</li>
+          <li>Raw per-turn OpenCode stream captures for audits and debugging.</li>
+          <li>Live artifact monitoring from CLI.</li>
         </ul>
         <code class="update-terminal">acfm agents artifacts --watch --interval 1200</code>
       </article>
 
       <article class="update-card scroll-animate">
         <div class="update-header">
-          <span class="update-badge blue">Traceability</span>
+          <span class="update-badge orange">NexusVault</span>
         </div>
-        <h3 class="update-title">Per-Turn Raw Capture</h3>
+        <h3 class="update-title">Persistent Memory: Built-In AI Brain</h3>
         <p class="update-desc">
-          Each agent turn now stores both summarized output and raw OpenCode streams for deterministic audits and post-run analysis.
+          NexusVault gives your assistants long-lived memory so architecture decisions, bugfix patterns, conventions, and context survive across sessions.
         </p>
         <ul class="update-list">
-          <li>Stores raw <code>ndjson</code>, <code>stderr</code>, and metadata per role/round.</li>
-          <li>Improves debugging on failed runs and partial collaboration states.</li>
-          <li>Keeps collaboration history explainable across planner/critic/coder/reviewer.</li>
+          <li>SQLite local-first memory database at <code>~/.acfm/memory.db</code>.</li>
+          <li>Recall, search, timeline, patterns, anticipate, and export/import tools.</li>
+          <li>Privacy-aware redaction for sensitive blocks before memory save.</li>
         </ul>
-        <code class="update-terminal">~/.acfm/synapsegrid/&lt;sessionId&gt;/turns/raw/001-planner.ndjson</code>
+        <code class="update-terminal">acfm memory init
+acfm memory recall
+acfm memory search "authentication refresh token"</code>
       </article>
 
       <article class="update-card scroll-animate">
         <div class="update-header">
-          <span class="update-badge orange">Runtime</span>
+          <span class="update-badge green">MCP + Workflow</span>
         </div>
-        <h3 class="update-title">Managed Zellij Integration</h3>
+        <h3 class="update-title">MCP Integrations and Structured Delivery</h3>
         <p class="update-desc">
-          SynapseGrid supports managed zellij binaries with latest-release installation and explicit path control, while preserving tmux fallback.
+          AC Framework exposes both memory and collaborative runtimes through MCP servers, while keeping implementation disciplined with spec-driven workflows.
         </p>
         <ul class="update-list">
-          <li>Installs latest zellij release into <code>~/.acfm/tools/zellij</code>.</li>
-          <li>Persists runtime strategy and binary path in <code>~/.acfm/config.json</code>.</li>
-          <li>Uses zellij-first auto resolution with safe fallback behavior.</li>
+          <li>MCP servers: <code>ac-framework-memory</code> and <code>ac-framework-collab</code>.</li>
+          <li>Recommended async collab run mode for robust end-to-end sessions.</li>
+          <li>OpenSpec compatibility: supports both <code>.acfm/</code> and legacy <code>openspec/</code>.</li>
         </ul>
-        <code class="update-terminal">acfm agents runtime install-zellij</code>
-      </article>
-
-      <article class="update-card scroll-animate">
-        <div class="update-header">
-          <span class="update-badge green">UX</span>
-        </div>
-        <h3 class="update-title">Model & Runtime Control</h3>
-        <p class="update-desc">
-          Operators can now select role/global models interactively and configure multiplexer backends directly from CLI help-driven flows.
-        </p>
-        <ul class="update-list">
-          <li>Interactive provider/model selector with role targeting.</li>
-          <li>Runtime commands integrated into <code>acfm agents --help</code>.</li>
-          <li>Expanded doctor/status output for preflight and artifact health.</li>
-        </ul>
-        <code class="update-terminal">acfm agents model choose
-acfm agents runtime set zellij</code>
+        <code class="update-terminal">acfm spec init
+acfm spec new add-rate-limiting
+acfm agents model choose</code>
       </article>
     </div>
 
+    <div class="updates-command-grid scroll-animate" aria-label="Quick command packs">
+      <code class="update-terminal">acfm agents runtime install-zellij
+acfm agents runtime set zellij
+acfm agents doctor</code>
+      <code class="update-terminal">acfm agents transcript --role all --limit 40
+acfm agents summary
+acfm agents export --format md --out session.md</code>
+    </div>
+
     <p class="updates-note scroll-animate">
-      Security & reliability: artifact creation is orchestrator-owned (not prompt-dependent), files are generated with deterministic paths, and diagnostics are preserved across completed, failed, and stopped sessions.
+      Security and reliability by design: artifact creation is runtime-owned (not prompt-dependent), external links are isolated with safe target attributes, and session observability is deterministic across running, failed, and stopped states.
     </p>
   </section>
 
