@@ -31,6 +31,7 @@ import {
   writeMeetingSummary,
 } from '../agents/state-store.js';
 import {
+  probeZellijCapabilities,
   roleLogPath,
   runTmux,
   runZellij,
@@ -151,6 +152,16 @@ async function attachToMux(multiplexer, sessionName, readonly = false, zellijPat
   if (readonly) args.push('-r');
   args.push('-t', sessionName);
   await runTmux('tmux', args, { stdio: 'inherit' });
+}
+
+async function readZellijCapabilities(config) {
+  const zellijPath = resolveConfiguredZellijPath(config);
+  if (!zellijPath) return null;
+  try {
+    return await probeZellijCapabilities(zellijPath);
+  } catch {
+    return null;
+  }
 }
 
 function toMarkdownTranscript(state, transcript) {
@@ -1338,9 +1349,10 @@ Examples:
         const sessionDir = getSessionDir(state.sessionId);
 
         let activeMux = selectedMux;
+        let startupDiagnostics = null;
         try {
           if (selectedMux === 'zellij') {
-            await spawnZellijSession({
+            startupDiagnostics = await spawnZellijSession({
               sessionName: muxSessionName,
               sessionDir,
               sessionId: state.sessionId,
@@ -1382,9 +1394,13 @@ Examples:
           multiplexer: activeMux,
           multiplexerSessionName: muxSessionName,
           status: updated.status,
+          startupDiagnostics,
         }, opts.json);
         if (!opts.json) {
           printStartSummary(updated);
+          if (startupDiagnostics?.strategy) {
+            console.log(chalk.dim(`  zellij strategy: ${startupDiagnostics.strategy}`));
+          }
           printModelConfig(updated);
         }
 
@@ -1635,6 +1651,7 @@ Examples:
   agents
     .command('doctor')
     .description('Run diagnostics for SynapseGrid/OpenCode runtime')
+    .option('--verbose', 'Include backend capability details', false)
     .option('--json', 'Output as JSON')
     .action(async (opts) => {
       try {
@@ -1657,7 +1674,12 @@ Examples:
           defaultModel,
           defaultRoleModels: cfg.agents.defaultRoleModels,
           preflight: null,
+          zellijCapabilities: null,
         };
+
+        if (opts.verbose && zellijPath) {
+          result.zellijCapabilities = await readZellijCapabilities(cfg);
+        }
 
         if (opencodeBin) {
           result.preflight = await preflightModel({

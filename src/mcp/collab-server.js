@@ -18,6 +18,7 @@ import { buildEffectiveRoleModels, sanitizeRoleModels } from '../agents/model-se
 import { runWorkerIteration } from '../agents/orchestrator.js';
 import { getSessionDir } from '../agents/state-store.js';
 import {
+  probeZellijCapabilities,
   spawnTmuxSession,
   spawnZellijSession,
   tmuxSessionExists,
@@ -82,6 +83,16 @@ function resolveConfiguredZellijPath(config) {
   const managed = resolveManagedZellijPath(config);
   if (managed) return managed;
   return resolveCommandPath('zellij');
+}
+
+async function readZellijCapabilities(config) {
+  const zellijPath = resolveConfiguredZellijPath(config);
+  if (!zellijPath) return null;
+  try {
+    return await probeZellijCapabilities(zellijPath);
+  } catch {
+    return null;
+  }
 }
 
 async function muxExists(multiplexer, sessionName, zellijPath = null) {
@@ -152,7 +163,13 @@ class MCPCollabServer {
             const sessionName = `acfm-synapse-${state.sessionId.slice(0, 8)}`;
             const sessionDir = getSessionDir(state.sessionId);
             if (multiplexer === 'zellij') {
-              await spawnZellijSession({ sessionName, sessionDir, sessionId: state.sessionId, binaryPath: zellijPath });
+              await spawnZellijSession({
+                sessionName,
+                sessionDir,
+                sessionId: state.sessionId,
+                binaryPath: zellijPath,
+                capabilities: await readZellijCapabilities(config),
+              });
             } else {
               await spawnTmuxSession({ sessionName, sessionDir, sessionId: state.sessionId });
             }
@@ -477,7 +494,13 @@ class MCPCollabServer {
             const sessionDir = getSessionDir(state.sessionId);
             if (multiplexer === 'zellij') {
               if (!zellijPath) throw new Error('zellij is not installed. Run: acfm agents setup');
-              await spawnZellijSession({ sessionName, sessionDir, sessionId: state.sessionId, binaryPath: zellijPath });
+              await spawnZellijSession({
+                sessionName,
+                sessionDir,
+                sessionId: state.sessionId,
+                binaryPath: zellijPath,
+                capabilities: await readZellijCapabilities(config),
+              });
             } else {
               if (!hasCommand('tmux')) throw new Error('tmux is not installed. Run: acfm agents setup');
               await spawnTmuxSession({ sessionName, sessionDir, sessionId: state.sessionId });

@@ -142,6 +142,7 @@ Each role runs in turn against a shared, accumulating context so outputs from on
 |---|---|
 | `acfm agents setup` | Install optional dependencies (`opencode` and `zellij`/`tmux`) |
 | `acfm agents doctor` | Validate OpenCode/multiplexer/model preflight before start |
+| `acfm agents doctor --verbose` | Include zellij capability probe details for strategy diagnostics |
 | `acfm agents install-mcps` | Install SynapseGrid MCP server for detected assistants |
 | `acfm agents uninstall-mcps` | Remove SynapseGrid MCP server from assistants |
 | `acfm agents start --task "..." --model-coder provider/model` | Start session with optional per-role models |
@@ -190,6 +191,7 @@ When driving SynapseGrid from another agent via MCP, prefer asynchronous run too
 - Default SynapseGrid model fallback is `opencode/mimo-v2-pro-free`.
 - Run `acfm agents doctor` when panes look idle to confirm model/provider preflight health.
 - When zellij is managed by AC Framework, its binary path is saved in `~/.acfm/config.json` and executed directly by SynapseGrid.
+- `acfm agents start --json` now includes startup strategy diagnostics for zellij (`attach_with_layout`, fallbacks, and per-strategy errors).
 
 Each collaborative session now keeps human-readable artifacts under `~/.acfm/synapsegrid/<sessionId>/`:
 - `transcript.jsonl`: full chronological message stream
