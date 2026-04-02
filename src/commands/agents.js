@@ -1270,6 +1270,7 @@ Examples:
         const muxResolution = resolveMultiplexerWithPaths(config, configuredMux);
         let selectedMux = muxResolution.selected;
         let zellijPath = muxResolution.zellijPath;
+        const tmuxPath = muxResolution.tmuxPath;
         if (!selectedMux) {
           if (configuredMux !== 'tmux' && shouldUseManagedZellij(config)) {
             const installResult = await installManagedZellijLatest();
@@ -1336,31 +1337,49 @@ Examples:
         const muxSessionName = `acfm-synapse-${state.sessionId.slice(0, 8)}`;
         const sessionDir = getSessionDir(state.sessionId);
 
-        if (selectedMux === 'zellij') {
-          await spawnZellijSession({
-            sessionName: muxSessionName,
-            sessionDir,
-            sessionId: state.sessionId,
-            binaryPath: zellijPath,
-          });
-        } else {
+        let activeMux = selectedMux;
+        try {
+          if (selectedMux === 'zellij') {
+            await spawnZellijSession({
+              sessionName: muxSessionName,
+              sessionDir,
+              sessionId: state.sessionId,
+              binaryPath: zellijPath,
+            });
+          } else {
+            await spawnTmuxSession({
+              sessionName: muxSessionName,
+              sessionDir,
+              sessionId: state.sessionId,
+            });
+          }
+        } catch (muxError) {
+          const canFallbackToTmux = configuredMux === 'auto' && selectedMux === 'zellij' && Boolean(tmuxPath);
+          if (!canFallbackToTmux) {
+            throw muxError;
+          }
+
+          if (!opts.json) {
+            console.log(chalk.yellow(`zellij startup failed, falling back to tmux: ${muxError.message}`));
+          }
           await spawnTmuxSession({
             sessionName: muxSessionName,
             sessionDir,
             sessionId: state.sessionId,
           });
+          activeMux = 'tmux';
         }
 
         const updated = await saveSessionState({
           ...state,
-          multiplexer: selectedMux,
+          multiplexer: activeMux,
           multiplexerSessionName: muxSessionName,
-          tmuxSessionName: selectedMux === 'tmux' ? muxSessionName : null,
+          tmuxSessionName: activeMux === 'tmux' ? muxSessionName : null,
         });
 
         output({
           sessionId: updated.sessionId,
-          multiplexer: selectedMux,
+          multiplexer: activeMux,
           multiplexerSessionName: muxSessionName,
           status: updated.status,
         }, opts.json);
@@ -1370,7 +1389,7 @@ Examples:
         }
 
         if (opts.attach) {
-          await attachToMux(selectedMux, muxSessionName, false, zellijPath);
+          await attachToMux(activeMux, muxSessionName, false, zellijPath);
         }
       } catch (error) {
         output({ error: error.message }, opts.json);

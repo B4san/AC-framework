@@ -177,7 +177,10 @@ export async function zellijSessionExists(sessionName, binaryPath, options = {})
       .split('\n')
       .map((line) => line.trim())
       .filter(Boolean);
-    return lines.some((line) => line === sessionName || line.startsWith(`${sessionName} `));
+    return lines.some((line) => {
+      if (line === sessionName || line.startsWith(`${sessionName} `)) return true;
+      return line.includes(sessionName);
+    });
   } catch {
     return false;
   }

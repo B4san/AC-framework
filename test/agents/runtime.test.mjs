@@ -100,3 +100,13 @@ test('zellijSessionExists parses list-sessions output robustly with ANSI', async
   assert.equal(exists, true);
   assert.equal(missing, false);
 });
+
+test('zellijSessionExists matches session names even with extra markers', async () => {
+  const runCommandImpl = async () => ({
+    stdout: '* my-session (EXITED - attach to resurrect)\n',
+    stderr: '',
+  });
+
+  const exists = await zellijSessionExists('my-session', '/tmp/fake-zellij', { runCommandImpl });
+  assert.equal(exists, true);
+});
