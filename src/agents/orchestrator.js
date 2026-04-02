@@ -1,7 +1,8 @@
 import { buildAgentPrompt, ROLE_SYSTEM_PROMPTS } from './role-prompts.js';
-import { runOpenCodePrompt } from './opencode-client.js';
+import { runOpenCodePromptDetailed } from './opencode-client.js';
 import { nextRole, shouldStop } from './scheduler.js';
 import { resolveRoleModel } from './model-selection.js';
+import { buildMeetingSummary, createTurnRecord, updateSharedContext } from './collab-summary.js';
 import {
   appendRunEvent,
   extractFinalSummary,
@@ -10,9 +11,11 @@ import {
 } from './run-state.js';
 import {
   addAgentMessage,
+  appendMeetingTurn,
   loadSessionState,
   saveSessionState,
   stopSession,
+  writeMeetingSummary,
   withSessionLock,
 } from './state-store.js';
 
@@ -23,13 +26,33 @@ function buildRuntimePrompt({ state, role }) {
     task: state.task,
     round: state.round,
     messages: state.messages,
+    sharedContext: state.run?.sharedContext || null,
   });
 
   return [roleContext, '', collaborativePrompt].join('\n');
 }
 
 function ensureRunState(state) {
-  if (state.run && typeof state.run === 'object') return state.run;
+  if (state.run && typeof state.run === 'object') {
+    return {
+      ...state.run,
+      sharedContext: state.run.sharedContext && typeof state.run.sharedContext === 'object'
+        ? {
+            decisions: Array.isArray(state.run.sharedContext.decisions) ? state.run.sharedContext.decisions : [],
+            openIssues: Array.isArray(state.run.sharedContext.openIssues) ? state.run.sharedContext.openIssues : [],
+            risks: Array.isArray(state.run.sharedContext.risks) ? state.run.sharedContext.risks : [],
+            actionItems: Array.isArray(state.run.sharedContext.actionItems) ? state.run.sharedContext.actionItems : [],
+            notes: Array.isArray(state.run.sharedContext.notes) ? state.run.sharedContext.notes : [],
+          }
+        : {
+            decisions: [],
+            openIssues: [],
+            risks: [],
+            actionItems: [],
+            notes: [],
+          },
+    };
+  }
   return {
     runId: null,
     status: 'idle',
@@ -134,7 +157,7 @@ export async function runTurn(sessionId, options = {}) {
     let content;
     try {
       const effectiveModel = resolveRoleModel(state, scheduled.role, options.model);
-      content = await runOpenCodePrompt({
+      const output = await runOpenCodePromptDetailed({
         prompt,
         cwd: options.cwd || process.cwd(),
         model: effectiveModel,
@@ -142,6 +165,7 @@ export async function runTurn(sessionId, options = {}) {
         binaryPath: options.opencodeBin,
         timeoutMs: options.timeoutMs,
       });
+      content = output.text;
     } catch (error) {
       content = `Agent failed: ${error.message}`;
     }
@@ -199,7 +223,7 @@ export async function executeActiveTurn(sessionId, role, options = {}) {
     let content;
     try {
       const effectiveModel = resolveRoleModel(state, role, options.model);
-      content = await runOpenCodePrompt({
+      const output = await runOpenCodePromptDetailed({
         prompt,
         cwd: options.cwd || process.cwd(),
         model: effectiveModel,
@@ -207,6 +231,7 @@ export async function executeActiveTurn(sessionId, role, options = {}) {
         binaryPath: options.opencodeBin,
         timeoutMs: options.timeoutMs,
       });
+      content = output.text;
     } catch (error) {
       content = `Agent failed: ${error.message}`;
     }
@@ -267,10 +292,12 @@ export async function runWorkerIteration(sessionId, role, options = {}) {
 
     const prompt = buildRuntimePrompt({ state, role });
     let content;
+    let outputEvents = [];
+    let effectiveModel = null;
     let failed = false;
     let errorMessage = '';
     try {
-      const effectiveModel = resolveRoleModel(state, role, options.model);
+      effectiveModel = resolveRoleModel(state, role, options.model);
       state = await saveSessionState({
         ...state,
         run: appendRunEvent({
@@ -279,7 +306,7 @@ export async function runWorkerIteration(sessionId, role, options = {}) {
           status: 'running',
         }, 'role_started', { role, model: effectiveModel }),
       });
-      content = await runOpenCodePrompt({
+      const output = await runOpenCodePromptDetailed({
         prompt,
         cwd: options.cwd || process.cwd(),
         model: effectiveModel,
@@ -287,6 +314,8 @@ export async function runWorkerIteration(sessionId, role, options = {}) {
         binaryPath: options.opencodeBin,
         timeoutMs: options.timeoutMs || ensureRunState(state).policy?.timeoutPerRoleMs || 180000,
       });
+      content = output.text;
+      outputEvents = output.events || [];
     } catch (error) {
       failed = true;
       errorMessage = error.message;
@@ -295,15 +324,33 @@ export async function runWorkerIteration(sessionId, role, options = {}) {
 
     state = await addAgentMessage(state, role, content);
     if (failed) {
+      await appendMeetingTurn(sessionId, createTurnRecord({
+        round: state.round,
+        role,
+        model: effectiveModel,
+        content,
+        events: outputEvents,
+      }));
       state = await saveSessionState(applyRoleFailurePolicy(state, role, errorMessage));
       return state;
     }
 
+    const turnRecord = createTurnRecord({
+      round: state.round,
+      role,
+      model: effectiveModel,
+      content,
+      events: outputEvents,
+    });
+    await appendMeetingTurn(sessionId, turnRecord);
+
+    const updatedShared = updateSharedContext(ensureRunState(state).sharedContext, turnRecord);
     const succeededRun = appendRunEvent({
       ...ensureRunState(state),
       currentRole: null,
       lastError: null,
-    }, 'role_succeeded', { role, chars: content.length });
+      sharedContext: updatedShared,
+    }, 'role_succeeded', { role, chars: content.length, events: outputEvents.length });
 
     state = await saveSessionState({
       ...state,
@@ -313,11 +360,13 @@ export async function runWorkerIteration(sessionId, role, options = {}) {
 
     if (shouldStop(state)) {
       state = await stopSession(state, 'completed');
+      const summaryMd = buildMeetingSummary(state.messages, ensureRunState(state), ensureRunState(state).sharedContext);
+      await writeMeetingSummary(sessionId, summaryMd);
       const finalRun = appendRunEvent({
         ...ensureRunState(state),
         status: 'completed',
         finishedAt: new Date().toISOString(),
-        finalSummary: extractFinalSummary(state.messages),
+        finalSummary: extractFinalSummary(state.messages, ensureRunState(state)),
       }, 'run_completed', { round: state.round });
       state = await saveSessionState({
         ...state,

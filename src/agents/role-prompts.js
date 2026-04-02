@@ -25,17 +25,50 @@ export const ROLE_SYSTEM_PROMPTS = {
   ].join(' '),
 };
 
-export function buildAgentPrompt({ role, task, round, messages, maxMessages = 24 }) {
+function formatSharedContext(sharedContext) {
+  if (!sharedContext || typeof sharedContext !== 'object') {
+    return 'No shared summary yet.';
+  }
+
+  const sections = [
+    ['Decisions', sharedContext.decisions],
+    ['Open issues', sharedContext.openIssues],
+    ['Risks', sharedContext.risks],
+    ['Action items', sharedContext.actionItems],
+    ['Notes', sharedContext.notes],
+  ];
+
+  const lines = [];
+  for (const [name, list] of sections) {
+    const items = Array.isArray(list) ? list.slice(-6) : [];
+    lines.push(`${name}:`);
+    if (items.length === 0) {
+      lines.push('- (none)');
+    } else {
+      for (const item of items) {
+        lines.push(`- ${item}`);
+      }
+    }
+  }
+
+  return lines.join('\n');
+}
+
+export function buildAgentPrompt({ role, task, round, messages, sharedContext = null, maxMessages = 18 }) {
   const recent = messages.slice(-maxMessages);
   const transcript = recent.length
     ? recent.map((msg, idx) => `${idx + 1}. [${msg.from}] ${msg.content}`).join('\n')
     : 'No previous messages.';
+  const shared = formatSharedContext(sharedContext);
 
   return [
     `ROLE: ${role}`,
     `ROUND: ${round}`,
     '',
     `TASK: ${task}`,
+    '',
+    'SHARED CONTEXT SUMMARY:',
+    shared,
     '',
     'TEAM TRANSCRIPT (latest first-order history):',
     transcript,

@@ -1,7 +1,8 @@
 import { Command } from 'commander';
 import chalk from 'chalk';
+import inquirer from 'inquirer';
 import { existsSync } from 'node:fs';
-import { mkdir, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { readFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import {
@@ -12,7 +13,7 @@ import {
   DEFAULT_SYNAPSE_MODEL,
   SESSION_ROOT_DIR,
 } from '../agents/constants.js';
-import { runOpenCodePrompt } from '../agents/opencode-client.js';
+import { listOpenCodeModels, runOpenCodePrompt } from '../agents/opencode-client.js';
 import { runWorkerIteration } from '../agents/orchestrator.js';
 import {
   addUserMessage,
@@ -127,6 +128,21 @@ function printModelConfig(state) {
   }
 }
 
+function groupModelsByProvider(models) {
+  const grouped = new Map();
+  for (const model of models) {
+    const [provider, ...rest] = model.split('/');
+    if (!provider || rest.length === 0) continue;
+    const modelName = rest.join('/');
+    if (!grouped.has(provider)) grouped.set(provider, []);
+    grouped.get(provider).push(modelName);
+  }
+  for (const [provider, modelNames] of grouped.entries()) {
+    grouped.set(provider, [...new Set(modelNames)].sort((a, b) => a.localeCompare(b)));
+  }
+  return grouped;
+}
+
 function runSummary(state) {
   const run = state.run || {};
   const events = Array.isArray(run.events) ? run.events.length : 0;
@@ -137,6 +153,12 @@ function runSummary(state) {
     lastError: run.lastError || null,
     events,
   };
+}
+
+async function readSessionArtifact(sessionId, filename) {
+  const path = resolve(getSessionDir(sessionId), filename);
+  if (!existsSync(path)) return null;
+  return readFile(path, 'utf8');
 }
 
 async function preflightModel({ opencodeBin, model, cwd }) {
@@ -432,6 +454,52 @@ export function agentsCommand() {
     .description('Manage default SynapseGrid model configuration');
 
   model
+    .command('list')
+    .description('List available OpenCode models grouped by provider')
+    .option('--refresh', 'Refresh model cache from providers', false)
+    .option('--json', 'Output as JSON')
+    .action(async (opts) => {
+      try {
+        const opencodeBin = resolveCommandPath('opencode');
+        if (!opencodeBin) {
+          throw new Error('OpenCode binary not found. Run: acfm agents setup');
+        }
+
+        const models = await listOpenCodeModels({
+          binaryPath: opencodeBin,
+          refresh: Boolean(opts.refresh),
+        });
+        const grouped = groupModelsByProvider(models);
+        const providers = [...grouped.keys()].sort((a, b) => a.localeCompare(b));
+
+        const payload = {
+          count: models.length,
+          providers: providers.map((provider) => ({
+            provider,
+            models: grouped.get(provider).map((name) => `${provider}/${name}`),
+          })),
+        };
+
+        output(payload, opts.json);
+        if (!opts.json) {
+          console.log(chalk.bold('Available OpenCode models'));
+          console.log(chalk.dim(`Total: ${models.length}`));
+          for (const provider of providers) {
+            const providerModels = grouped.get(provider) || [];
+            console.log(chalk.cyan(`\n${provider}`));
+            for (const modelName of providerModels) {
+              console.log(chalk.dim(`- ${provider}/${modelName}`));
+            }
+          }
+        }
+      } catch (error) {
+        output({ error: error.message }, opts.json);
+        if (!opts.json) console.error(chalk.red(`Error: ${error.message}`));
+        process.exit(1);
+      }
+    });
+
+  model
     .command('get')
     .description('Show configured default global/per-role models')
     .option('--json', 'Output as JSON')
@@ -451,6 +519,114 @@ export function agentsCommand() {
           for (const role of COLLAB_ROLES) {
             console.log(chalk.dim(`- ${role}: ${payload.defaultRoleModels[role] || '(none)'}`));
           }
+        }
+      } catch (error) {
+        output({ error: error.message }, opts.json);
+        if (!opts.json) console.error(chalk.red(`Error: ${error.message}`));
+        process.exit(1);
+      }
+    });
+
+  model
+    .command('choose')
+    .description('Interactively choose a default model by provider and role')
+    .option('--refresh', 'Refresh model cache from providers', false)
+    .option('--json', 'Output as JSON')
+    .action(async (opts) => {
+      try {
+        const opencodeBin = resolveCommandPath('opencode');
+        if (!opencodeBin) {
+          throw new Error('OpenCode binary not found. Run: acfm agents setup');
+        }
+
+        const models = await listOpenCodeModels({
+          binaryPath: opencodeBin,
+          refresh: Boolean(opts.refresh),
+        });
+        if (models.length === 0) {
+          throw new Error('No models returned by OpenCode. Run: opencode auth list, opencode models --refresh');
+        }
+
+        const grouped = groupModelsByProvider(models);
+        const providerChoices = [...grouped.keys()]
+          .sort((a, b) => a.localeCompare(b))
+          .map((provider) => ({
+            name: `${provider} (${(grouped.get(provider) || []).length})`,
+            value: provider,
+          }));
+
+        const { provider } = await inquirer.prompt([
+          {
+            type: 'list',
+            name: 'provider',
+            message: 'Select model provider',
+            choices: providerChoices,
+          },
+        ]);
+
+        const selectedProviderModels = grouped.get(provider) || [];
+        const { modelName } = await inquirer.prompt([
+          {
+            type: 'list',
+            name: 'modelName',
+            message: `Select model from ${provider}`,
+            pageSize: 20,
+            choices: selectedProviderModels.map((name) => ({ name, value: name })),
+          },
+        ]);
+
+        const roleChoices = [
+          { name: 'Global fallback (all roles)', value: 'all' },
+          ...COLLAB_ROLES.map((role) => ({ name: `Role: ${role}`, value: role })),
+        ];
+        const { role } = await inquirer.prompt([
+          {
+            type: 'list',
+            name: 'role',
+            message: 'Apply model to',
+            choices: roleChoices,
+          },
+        ]);
+
+        const modelId = `${provider}/${modelName}`;
+        const updated = await updateAgentsConfig((current) => {
+          const next = {
+            agents: {
+              defaultModel: current.agents.defaultModel,
+              defaultRoleModels: { ...current.agents.defaultRoleModels },
+            },
+          };
+
+          if (role === 'all') {
+            next.agents.defaultModel = modelId;
+          } else {
+            next.agents.defaultRoleModels = {
+              ...next.agents.defaultRoleModels,
+              [role]: modelId,
+            };
+          }
+
+          return next;
+        });
+
+        const payload = {
+          success: true,
+          selected: {
+            role,
+            provider,
+            model: modelId,
+          },
+          configPath: getAgentsConfigPath(),
+          defaultModel: updated.agents.defaultModel,
+          defaultRoleModels: updated.agents.defaultRoleModels,
+        };
+
+        output(payload, opts.json);
+        if (!opts.json) {
+          console.log(chalk.green('✓ SynapseGrid model selected and saved'));
+          console.log(chalk.dim(`  Target: ${role === 'all' ? 'global fallback' : `role ${role}`}`));
+          console.log(chalk.dim(`  Model: ${modelId}`));
+          console.log(chalk.dim(`  Config: ${payload.configPath}`));
         }
       } catch (error) {
         output({ error: error.message }, opts.json);
@@ -558,6 +734,83 @@ export function agentsCommand() {
     });
 
   agents
+    .command('transcript')
+    .description('Show collaborative transcript (optionally filtered by role)')
+    .option('--session <id>', 'Session ID (defaults to current)')
+    .option('--role <role>', 'Role filter (planner|critic|coder|reviewer|all)', 'all')
+    .option('--limit <n>', 'Max messages to display', '40')
+    .option('--json', 'Output as JSON')
+    .action(async (opts) => {
+      try {
+        const sessionId = opts.session || await ensureSessionId(true);
+        const role = String(opts.role || 'all');
+        const limit = Number.parseInt(opts.limit, 10);
+        if (!Number.isInteger(limit) || limit <= 0) {
+          throw new Error('--limit must be a positive integer');
+        }
+        if (role !== 'all' && !COLLAB_ROLES.includes(role)) {
+          throw new Error('--role must be planner|critic|coder|reviewer|all');
+        }
+
+        const transcript = await loadTranscript(sessionId);
+        const filtered = transcript
+          .filter((msg) => role === 'all' || msg.from === role)
+          .slice(-limit);
+
+        output({ sessionId, count: filtered.length, transcript: filtered }, opts.json);
+        if (!opts.json) {
+          console.log(chalk.bold(`SynapseGrid transcript (${filtered.length})`));
+          for (const msg of filtered) {
+            console.log(chalk.cyan(`\n[${msg.from}] ${msg.timestamp || ''}`));
+            console.log(String(msg.content || '').trim() || chalk.dim('(empty)'));
+          }
+        }
+      } catch (error) {
+        output({ error: error.message }, opts.json);
+        if (!opts.json) console.error(chalk.red(`Error: ${error.message}`));
+        process.exit(1);
+      }
+    });
+
+  agents
+    .command('summary')
+    .description('Show meeting summary generated from collaborative run')
+    .option('--session <id>', 'Session ID (defaults to current)')
+    .option('--json', 'Output as JSON')
+    .action(async (opts) => {
+      try {
+        const sessionId = opts.session || await ensureSessionId(true);
+        const state = await loadSessionState(sessionId);
+        const summaryFile = await readSessionArtifact(sessionId, 'meeting-summary.md');
+        const meetingLogFile = await readSessionArtifact(sessionId, 'meeting-log.md');
+        const payload = {
+          sessionId,
+          status: state.status,
+          finalSummary: state.run?.finalSummary || null,
+          sharedContext: state.run?.sharedContext || null,
+          summaryFile,
+          meetingLogFile,
+        };
+
+        output(payload, opts.json);
+        if (!opts.json) {
+          console.log(chalk.bold('SynapseGrid meeting summary'));
+          if (summaryFile) {
+            process.stdout.write(summaryFile.endsWith('\n') ? summaryFile : `${summaryFile}\n`);
+          } else if (payload.finalSummary) {
+            process.stdout.write(`${payload.finalSummary}\n`);
+          } else {
+            console.log(chalk.dim('No summary generated yet.'));
+          }
+        }
+      } catch (error) {
+        output({ error: error.message }, opts.json);
+        if (!opts.json) console.error(chalk.red(`Error: ${error.message}`));
+        process.exit(1);
+      }
+    });
+
+  agents
     .command('export')
     .description('Export collaborative transcript')
     .option('--session <id>', 'Session ID to export (defaults to current)')
@@ -574,9 +827,11 @@ export function agentsCommand() {
           throw new Error('--format must be md or json');
         }
 
+        const meetingSummary = await readSessionArtifact(sessionId, 'meeting-summary.md');
+        const meetingLog = await readSessionArtifact(sessionId, 'meeting-log.md');
         const payload = format === 'json'
-          ? JSON.stringify({ state, transcript }, null, 2) + '\n'
-          : toMarkdownTranscript(state, transcript) + '\n';
+          ? JSON.stringify({ state, transcript, meetingSummary, meetingLog }, null, 2) + '\n'
+          : `${toMarkdownTranscript(state, transcript)}\n\n## Meeting Summary\n\n${meetingSummary || state.run?.finalSummary || 'No summary generated yet.'}\n\n## Meeting Log\n\n${meetingLog || 'No meeting log generated yet.'}\n`;
 
         if (opts.out) {
           const outputPath = resolve(opts.out);

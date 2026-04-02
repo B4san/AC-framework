@@ -8,6 +8,8 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { spawn } from 'node:child_process';
+import { existsSync } from 'node:fs';
+import { readFile } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { z } from 'zod';
@@ -48,6 +50,12 @@ function latestRunEvent(state) {
   const events = state?.run?.events;
   if (!Array.isArray(events) || events.length === 0) return null;
   return events[events.length - 1];
+}
+
+async function readSessionArtifact(sessionId, filename) {
+  const path = resolve(getSessionDir(sessionId), filename);
+  if (!existsSync(path)) return null;
+  return readFile(path, 'utf8');
 }
 
 function launchAutopilot(sessionId) {
@@ -260,6 +268,9 @@ class MCPCollabServer {
                 run,
                 latestEvent: latestRunEvent(state),
                 finalSummary: state.run?.finalSummary || null,
+                sharedContext: state.run?.sharedContext || null,
+                meetingSummary: await readSessionArtifact(id, 'meeting-summary.md'),
+                meetingLog: await readSessionArtifact(id, 'meeting-log.md'),
                 lastMessage: state.messages?.[state.messages.length - 1] || null,
                 transcriptCount: transcript.length,
               }, null, 2),
@@ -467,7 +478,73 @@ class MCPCollabServer {
                 effectiveRoleModels: buildEffectiveRoleModels(state, state.model || null),
                 run: summarizeRun(state),
                 latestEvent: latestRunEvent(state),
+                sharedContext: state.run?.sharedContext || null,
                 transcript,
+              }, null, 2),
+            }],
+          };
+        } catch (error) {
+          return { content: [{ type: 'text', text: JSON.stringify({ error: error.message }) }], isError: true };
+        }
+      }
+    );
+
+    this.server.tool(
+      'collab_get_transcript',
+      'Get transcript messages with optional role filtering',
+      {
+        sessionId: z.string().optional().describe('Session ID (defaults to current session)'),
+        role: z.enum(['planner', 'critic', 'coder', 'reviewer', 'all']).default('all').describe('Role filter'),
+        limit: z.number().int().positive().max(500).default(100).describe('Max messages to return'),
+      },
+      async ({ sessionId, role, limit }) => {
+        try {
+          const id = sessionId || await loadCurrentSessionId();
+          if (!id) throw new Error('No active session found');
+          const transcript = await loadTranscript(id);
+          const filtered = transcript
+            .filter((msg) => role === 'all' || msg.from === role)
+            .slice(-limit);
+
+          return {
+            content: [{
+              type: 'text',
+              text: JSON.stringify({
+                sessionId: id,
+                role,
+                count: filtered.length,
+                transcript: filtered,
+              }, null, 2),
+            }],
+          };
+        } catch (error) {
+          return { content: [{ type: 'text', text: JSON.stringify({ error: error.message }) }], isError: true };
+        }
+      }
+    );
+
+    this.server.tool(
+      'collab_get_meeting_log',
+      'Get generated meeting log and summary artifacts',
+      {
+        sessionId: z.string().optional().describe('Session ID (defaults to current session)'),
+      },
+      async ({ sessionId }) => {
+        try {
+          const id = sessionId || await loadCurrentSessionId();
+          if (!id) throw new Error('No active session found');
+          const state = await loadSessionState(id);
+
+          return {
+            content: [{
+              type: 'text',
+              text: JSON.stringify({
+                sessionId: id,
+                status: state.status,
+                finalSummary: state.run?.finalSummary || null,
+                sharedContext: state.run?.sharedContext || null,
+                meetingSummary: await readSessionArtifact(id, 'meeting-summary.md'),
+                meetingLog: await readSessionArtifact(id, 'meeting-log.md'),
               }, null, 2),
             }],
           };

@@ -150,9 +150,13 @@ Each role runs in turn against a shared, accumulating context so outputs from on
 | `acfm agents attach` | Attach directly to the SynapseGrid tmux session |
 | `acfm agents live` | Attach to full live tmux view (all agents) |
 | `acfm agents logs` | Show recent worker logs (all roles or one role) |
+| `acfm agents transcript --role all --limit 40` | Show captured cross-agent transcript |
+| `acfm agents summary` | Show generated collaboration meeting summary |
 | `acfm agents export --format md --out file.md` | Export transcript in Markdown or JSON |
 | `acfm agents send "..."` | Send a new user message into the active session |
 | `acfm agents status` | Show current collaborative session state |
+| `acfm agents model list` | List available models grouped by provider |
+| `acfm agents model choose` | Interactively pick provider/model and save target role |
 | `acfm agents model get` | Show default model config (global and per-role) |
 | `acfm agents model set --role coder provider/model` | Persist a default model for one role |
 | `acfm agents model clear --role all` | Clear persisted model defaults |
@@ -175,10 +179,17 @@ When driving SynapseGrid from another agent via MCP, prefer asynchronous run too
 - If transcript entries show `Agent failed: spawn opencode ENOENT`, run `acfm agents setup` to install dependencies and then retry.
 - Attach to worker panes with `acfm agents live` (or `acfm agents attach`) to see real-time role discussion.
 - Inspect worker errors quickly with `acfm agents logs --role all --lines 120`.
+- Inspect collaborative discussion with `acfm agents transcript` and `acfm agents summary`.
 - MCP starts can now create tmux workers directly; if your assistant used headless steps before, start a new session and ensure worker spawning is enabled.
-- Configure role models directly at start (for example `--model-planner`, `--model-coder`) or persist defaults via `acfm agents model set`.
-- Default SynapseGrid model fallback is `opencode/minimax-m2.5-free`.
+- Configure role models directly at start (for example `--model-planner`, `--model-coder`) or persist defaults via `acfm agents model choose` / `acfm agents model set`.
+- Default SynapseGrid model fallback is `opencode/mimo-v2-pro-free`.
 - Run `acfm agents doctor` when panes look idle to confirm model/provider preflight health.
+
+Each collaborative session now keeps human-readable artifacts under `~/.acfm/synapsegrid/<sessionId>/`:
+- `transcript.jsonl`: full chronological message stream
+- `turns/*.json`: one file per round/role turn with captured output metadata
+- `meeting-log.md`: incremental meeting notes generated per turn
+- `meeting-summary.md`: final consolidated summary (roles, decisions, open issues, risks, action items)
 
 ### Spec Workflow
 

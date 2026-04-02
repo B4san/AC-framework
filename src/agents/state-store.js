@@ -39,6 +39,22 @@ function getTranscriptPath(sessionId) {
   return join(getSessionDir(sessionId), 'transcript.jsonl');
 }
 
+function getTurnsDir(sessionId) {
+  return join(getSessionDir(sessionId), 'turns');
+}
+
+function getMeetingLogPath(sessionId) {
+  return join(getSessionDir(sessionId), 'meeting-log.md');
+}
+
+function getMeetingLogJsonlPath(sessionId) {
+  return join(getSessionDir(sessionId), 'meeting-log.jsonl');
+}
+
+function getMeetingSummaryPath(sessionId) {
+  return join(getSessionDir(sessionId), 'meeting-summary.md');
+}
+
 function initialState(task, options = {}) {
   const sessionId = randomUUID();
   const createdAt = new Date().toISOString();
@@ -91,6 +107,57 @@ export async function appendTranscript(sessionId, message) {
     return;
   }
   await appendFile(transcriptPath, line, 'utf8');
+}
+
+export async function appendMeetingTurn(sessionId, turnRecord) {
+  const sessionDir = getSessionDir(sessionId);
+  const turnsDir = getTurnsDir(sessionId);
+  await mkdir(sessionDir, { recursive: true });
+  await mkdir(turnsDir, { recursive: true });
+
+  const safeRole = String(turnRecord?.role || 'unknown').replace(/[^a-z0-9_-]/gi, '_');
+  const safeRound = Number.isInteger(turnRecord?.round) ? turnRecord.round : 0;
+  const turnFilePath = join(turnsDir, `${String(safeRound).padStart(3, '0')}-${safeRole}.json`);
+  await writeFile(turnFilePath, JSON.stringify(turnRecord, null, 2) + '\n', 'utf8');
+
+  const mdPath = getMeetingLogPath(sessionId);
+  const jsonlPath = getMeetingLogJsonlPath(sessionId);
+  const snippet = (turnRecord?.snippet || '').trim() || '(empty output)';
+  const keyPoints = Array.isArray(turnRecord?.keyPoints) ? turnRecord.keyPoints : [];
+
+  const mdBlock = [
+    `## Round ${safeRound} - ${safeRole}`,
+    `- timestamp: ${turnRecord?.timestamp || new Date().toISOString()}`,
+    `- model: ${turnRecord?.model || '(default)'}`,
+    `- events: ${turnRecord?.eventCount ?? 0}`,
+    '',
+    '### Output snippet',
+    snippet,
+    '',
+    '### Key points',
+    ...(keyPoints.length > 0 ? keyPoints.map((line) => `- ${line.replace(/^[-*]\s+/, '')}`) : ['- (none)']),
+    '',
+  ].join('\n');
+
+  if (!existsSync(mdPath)) {
+    const header = `# SynapseGrid Meeting Log\n\nSession: ${sessionId}\n\n`;
+    await writeFile(mdPath, header + mdBlock, 'utf8');
+  } else {
+    await appendFile(mdPath, mdBlock, 'utf8');
+  }
+
+  await appendFile(jsonlPath, JSON.stringify(turnRecord) + '\n', 'utf8');
+  return {
+    turnFilePath,
+    meetingLogPath: mdPath,
+    meetingJsonlPath: jsonlPath,
+  };
+}
+
+export async function writeMeetingSummary(sessionId, summaryMarkdown) {
+  const outputPath = getMeetingSummaryPath(sessionId);
+  await writeFile(outputPath, String(summaryMarkdown || '').trimEnd() + '\n', 'utf8');
+  return outputPath;
 }
 
 export async function loadCurrentSessionId() {

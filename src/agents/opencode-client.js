@@ -42,7 +42,24 @@ function parseOpenCodeRunOutput(stdout) {
   return stdout.trim();
 }
 
-export async function runOpenCodePrompt({ prompt, cwd, model, agent, timeoutMs = 180000, binaryPath }) {
+function parseOpenCodeEvents(stdout) {
+  const lines = stdout
+    .split('\n')
+    .map((line) => line.trim())
+    .filter(Boolean);
+
+  const events = [];
+  for (const line of lines) {
+    try {
+      events.push(JSON.parse(line));
+    } catch {
+      // ignore malformed event lines
+    }
+  }
+  return events;
+}
+
+export async function runOpenCodePromptDetailed({ prompt, cwd, model, agent, timeoutMs = 180000, binaryPath }) {
   const binary = binaryPath || process.env.ACFM_OPENCODE_BIN || 'opencode';
   const args = ['run', '--format', 'json'];
   if (model) {
@@ -97,9 +114,88 @@ export async function runOpenCodePrompt({ prompt, cwd, model, agent, timeoutMs =
     });
   });
 
-  const parsed = parseOpenCodeRunOutput(stdout);
-  if (!parsed && stderr?.trim()) {
-    return stderr.trim();
+  const text = parseOpenCodeRunOutput(stdout);
+  const events = parseOpenCodeEvents(stdout);
+
+  return {
+    text: text || (stderr?.trim() || ''),
+    stdout,
+    stderr,
+    events,
+  };
+}
+
+export async function runOpenCodePrompt({ prompt, cwd, model, agent, timeoutMs = 180000, binaryPath }) {
+  const detailed = await runOpenCodePromptDetailed({
+    prompt,
+    cwd,
+    model,
+    agent,
+    timeoutMs,
+    binaryPath,
+  });
+  return detailed.text;
+}
+
+export async function listOpenCodeModels({ provider = null, binaryPath, refresh = false, timeoutMs = 45000 }) {
+  const binary = binaryPath || process.env.ACFM_OPENCODE_BIN || 'opencode';
+  const args = ['models'];
+  if (provider) {
+    args.push(provider);
   }
-  return parsed;
+  if (refresh) {
+    args.push('--refresh');
+  }
+
+  const stdout = await new Promise((resolvePromise, rejectPromise) => {
+    const child = spawn(binary, args, {
+      cwd: process.cwd(),
+      env: process.env,
+      stdio: ['ignore', 'pipe', 'pipe'],
+    });
+
+    let out = '';
+    let err = '';
+    let timedOut = false;
+
+    const timer = setTimeout(() => {
+      timedOut = true;
+      child.kill('SIGTERM');
+      setTimeout(() => child.kill('SIGKILL'), 1500).unref();
+    }, timeoutMs);
+
+    child.stdout.on('data', (chunk) => {
+      out += chunk.toString();
+    });
+    child.stderr.on('data', (chunk) => {
+      err += chunk.toString();
+    });
+
+    child.on('error', (error) => {
+      clearTimeout(timer);
+      rejectPromise(error);
+    });
+
+    child.on('close', (code, signal) => {
+      clearTimeout(timer);
+      if (timedOut) {
+        rejectPromise(new Error(`opencode models timed out after ${timeoutMs}ms`));
+        return;
+      }
+      if (code !== 0) {
+        const details = [err.trim(), out.trim()].filter(Boolean).join(' | ');
+        rejectPromise(new Error(details || `opencode models exited with code ${code}${signal ? ` (${signal})` : ''}`));
+        return;
+      }
+      resolvePromise(out);
+    });
+  });
+
+  const models = stdout
+    .split('\n')
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .filter((line) => line.includes('/'));
+
+  return [...new Set(models)].sort((a, b) => a.localeCompare(b));
 }

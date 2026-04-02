@@ -36,6 +36,13 @@ export function createRunState(policy = {}, maxRounds = DEFAULT_MAX_ROUNDS) {
     round: 1,
     events: [],
     finalSummary: null,
+    sharedContext: {
+      decisions: [],
+      openIssues: [],
+      risks: [],
+      actionItems: [],
+      notes: [],
+    },
     lastError: null,
     policy: normalizeRunPolicy(policy, maxRounds),
   };
@@ -69,20 +76,38 @@ export function incrementRoleRetry(run, role) {
   };
 }
 
-export function extractFinalSummary(messages = []) {
+export function extractFinalSummary(messages = [], run = null) {
   const agentMessages = messages.filter((msg) => msg?.from && msg.from !== 'user');
   if (agentMessages.length === 0) return '';
-  const lastByRole = new Map();
-  for (const msg of agentMessages) {
-    lastByRole.set(msg.from, msg.content || '');
-  }
   const orderedRoles = ['planner', 'critic', 'coder', 'reviewer'];
-  const parts = [];
+  const lastByRole = new Map();
+  for (const msg of agentMessages) lastByRole.set(msg.from, msg.content || '');
+
+  const sections = ['# SynapseGrid Final Summary', ''];
+  sections.push('## Per-role last contributions');
   for (const role of orderedRoles) {
-    const content = lastByRole.get(role);
-    if (typeof content === 'string' && content.trim()) {
-      parts.push(`## ${role}\n${content.trim()}`);
-    }
+    const content = String(lastByRole.get(role) || '').trim();
+    sections.push(`- ${role}: ${content ? content.slice(0, 500) : '(none)'}`);
   }
-  return parts.join('\n\n');
+
+  const shared = run?.sharedContext;
+  if (shared && typeof shared === 'object') {
+    const writeList = (title, items) => {
+      sections.push('');
+      sections.push(`## ${title}`);
+      const list = Array.isArray(items) ? items.slice(-10) : [];
+      if (list.length === 0) {
+        sections.push('- (none)');
+      } else {
+        for (const item of list) sections.push(`- ${item}`);
+      }
+    };
+
+    writeList('Decisions', shared.decisions);
+    writeList('Open issues', shared.openIssues);
+    writeList('Risks', shared.risks);
+    writeList('Action items', shared.actionItems);
+  }
+
+  return sections.join('\n').trim();
 }
