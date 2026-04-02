@@ -1503,7 +1503,15 @@ Examples:
           try {
             await runZellij(['delete-session', muxSessionName], { binaryPath: zellijPath });
           } catch {
-            // ignore if already closed
+            try {
+              await runZellij(['kill-session', muxSessionName], { binaryPath: zellijPath });
+            } catch {
+              try {
+                await runZellij(['delete-session', '--force', muxSessionName], { binaryPath: zellijPath });
+              } catch {
+                // ignore if already closed
+              }
+            }
           }
         }
         if (multiplexer === 'tmux' && muxSessionName && hasCommand('tmux')) {

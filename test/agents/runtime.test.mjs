@@ -19,25 +19,28 @@ test('resolveMultiplexer honors explicit selection', () => {
   assert.equal(resolveMultiplexer('tmux', false, true), null);
 });
 
-test('spawnZellijSession launches detached zellij without --detach flag', async () => {
+test('spawnZellijSession uses attach --create-background without --detach flag', async () => {
   const sessionDir = await mkdtemp(join(tmpdir(), 'acfm-zellij-test-'));
-  let captured = null;
-  let unrefCalled = false;
+  const calls = [];
   let checks = 0;
 
-  const spawnImpl = (command, args, options) => {
-    captured = { command, args, options };
-    return {
-      unref() {
-        unrefCalled = true;
-      },
-    };
-  };
+  const runCommandImpl = async (command, args, options = {}) => {
+    calls.push({ command, args, options });
+    if (args[0] === 'list-sessions') {
+      checks += 1;
+      return {
+        stdout: checks >= 2 ? 'acfm-synapse-test\n' : '',
+        stderr: '',
+      };
+    }
 
-  const runCommandImpl = async () => {
+    if (args[0] === '--layout') {
+      return { stdout: '', stderr: '' };
+    }
+
     checks += 1;
     return {
-      stdout: checks >= 2 ? 'acfm-synapse-test\n' : '',
+      stdout: '',
       stderr: '',
     };
   };
@@ -50,25 +53,24 @@ test('spawnZellijSession launches detached zellij without --detach flag', async 
     waitForSessionMs: 1000,
     pollIntervalMs: 1,
     runCommandImpl,
-    spawnImpl,
   });
 
   assert.ok(result.layoutPath.endsWith('synapsegrid-layout.kdl'));
-  assert.equal(captured.command, '/tmp/fake-zellij');
-  assert.deepEqual(captured.args.slice(0, 2), ['--session', 'acfm-synapse-test']);
-  assert.ok(captured.args.includes('--layout'));
-  assert.equal(captured.args.includes('--detach'), false);
-  assert.equal(captured.options.detached, true);
-  assert.equal(captured.options.stdio, 'ignore');
-  assert.equal(unrefCalled, true);
+  const creationCall = calls.find((call) => call.args[0] === '--layout');
+  assert.ok(creationCall);
+  assert.equal(creationCall.command, '/tmp/fake-zellij');
+  assert.deepEqual(creationCall.args, [
+    '--layout',
+    result.layoutPath,
+    'attach',
+    '--create-background',
+    'acfm-synapse-test',
+  ]);
+  assert.equal(creationCall.args.includes('--detach'), false);
 });
 
 test('spawnZellijSession times out when session never appears', async () => {
   const sessionDir = await mkdtemp(join(tmpdir(), 'acfm-zellij-timeout-'));
-
-  const spawnImpl = () => ({
-    unref() {},
-  });
 
   const runCommandImpl = async () => ({ stdout: '', stderr: '' });
 
@@ -81,15 +83,14 @@ test('spawnZellijSession times out when session never appears', async () => {
       waitForSessionMs: 20,
       pollIntervalMs: 5,
       runCommandImpl,
-      spawnImpl,
     }),
     /Timed out waiting for zellij session/
   );
 });
 
-test('zellijSessionExists parses list-sessions output robustly', async () => {
+test('zellijSessionExists parses list-sessions output robustly with ANSI', async () => {
   const runCommandImpl = async () => ({
-    stdout: 'my-session [Created 1m ago]\nother\n',
+    stdout: '\u001b[32;1mmy-session\u001b[m [Created 1m ago]\nother\n',
     stderr: '',
   });
 

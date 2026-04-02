@@ -47,6 +47,10 @@ function sleep(ms) {
   return new Promise((resolvePromise) => setTimeout(resolvePromise, ms));
 }
 
+function stripAnsi(text) {
+  return String(text || '').replace(/\x1B\[[0-9;]*m/g, '');
+}
+
 function workerCommand(sessionId, role, roleLog) {
   return `bash -lc 'node "${runnerPath}" agents worker --session ${sessionId} --role ${role} 2>&1 | tee -a "${roleLog}"'`;
 }
@@ -95,26 +99,26 @@ export async function tmuxSessionExists(sessionName) {
 }
 
 async function writeZellijLayout({ layoutPath, sessionId, sessionDir }) {
-  const panes = COLLAB_ROLES.map((role) => {
+  const paneNode = (role) => {
     const roleLog = roleLogPath(sessionDir, role);
     const cmd = workerCommand(sessionId, role, roleLog).replace(/"/g, '\\"');
-    return `                    pane name="${role}" command="bash" args { "-lc" "${cmd}" }`;
-  });
+    return [
+      `                    pane name="${role}" command="bash" {`,
+      `                        args "-lc" "${cmd}"`,
+      '                    }',
+    ].join('\n');
+  };
 
   const content = [
     'layout {',
-    '    default_tab_template {',
-    '        tab name="SynapseGrid" {',
-    '            pane split_direction="vertical" {',
-    '                pane split_direction="horizontal" {',
-    panes[0],
-    panes[1],
-    '                }',
-    '                pane split_direction="horizontal" {',
-    panes[2],
-    panes[3],
-    '                }',
-    '            }',
+    '    pane split_direction="vertical" {',
+    '        pane split_direction="horizontal" {',
+    paneNode(COLLAB_ROLES[0]),
+    paneNode(COLLAB_ROLES[1]),
+    '        }',
+    '        pane split_direction="horizontal" {',
+    paneNode(COLLAB_ROLES[2]),
+    paneNode(COLLAB_ROLES[3]),
     '        }',
     '    }',
     '}',
@@ -132,27 +136,25 @@ export async function spawnZellijSession({
   waitForSessionMs = 10000,
   pollIntervalMs = 250,
   runCommandImpl,
-  spawnImpl,
 }) {
   const layoutPath = resolve(sessionDir, 'synapsegrid-layout.kdl');
   await writeZellijLayout({ layoutPath, sessionId, sessionDir });
   const command = binaryPath || process.env.ACFM_ZELLIJ_BIN || 'zellij';
+  const runner = runCommandImpl || runCommand;
 
-  const spawnFn = spawnImpl || spawn;
-  const child = spawnFn(command, ['--session', sessionName, '--layout', layoutPath], {
-    cwd: sessionDir,
-    env: process.env,
-    detached: true,
-    stdio: 'ignore',
-  });
-  if (typeof child.unref === 'function') {
-    child.unref();
+  const existing = await zellijSessionExists(sessionName, binaryPath, { runCommandImpl: runner });
+  if (existing) {
+    return { layoutPath };
   }
+
+  await runner(command, ['--layout', layoutPath, 'attach', '--create-background', sessionName], {
+    cwd: sessionDir,
+  });
 
   const startedAt = Date.now();
   while ((Date.now() - startedAt) < waitForSessionMs) {
     // eslint-disable-next-line no-await-in-loop
-    const exists = await zellijSessionExists(sessionName, binaryPath, { runCommandImpl });
+    const exists = await zellijSessionExists(sessionName, binaryPath, { runCommandImpl: runner });
     if (exists) {
       return { layoutPath };
     }
@@ -171,7 +173,10 @@ export async function zellijSessionExists(sessionName, binaryPath, options = {})
     const runner = options.runCommandImpl || runCommand;
     const command = binaryPath || process.env.ACFM_ZELLIJ_BIN || 'zellij';
     const result = await runner(command, ['list-sessions']);
-    const lines = result.stdout.split('\n').map((line) => line.trim()).filter(Boolean);
+    const lines = stripAnsi(result.stdout)
+      .split('\n')
+      .map((line) => line.trim())
+      .filter(Boolean);
     return lines.some((line) => line === sessionName || line.startsWith(`${sessionName} `));
   } catch {
     return false;
