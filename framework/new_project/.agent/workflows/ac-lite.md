@@ -61,6 +61,57 @@ acfm memory stats
 
 ---
 
+
+## SynapseGrid Collaboration Protocol (Optional but Recommended for Complex Tasks)
+
+Use SynapseGrid when a task benefits from role-based collaboration and explicit review loops.
+
+**Delegate to SynapseGrid when:**
+- Scope spans planning + implementation + review
+- Risk is medium/high (security, migrations, API contract changes)
+- You need auditable outputs (transcript, meeting summary, artifacts)
+- A single-pass implementation is likely to miss edge cases
+
+**Role delegation map:**
+- `planner` -> plan/constraints/acceptance criteria
+- `critic` -> risk analysis and challenge assumptions
+- `coder` -> implementation and concrete edits
+- `reviewer` -> final verification and readiness checks
+
+**Preferred MCP flow:**
+1. `collab_start_session`
+2. `collab_invoke_team`
+3. `collab_wait_run`
+4. `collab_get_result`
+5. Optional: `collab_get_transcript`, `collab_get_meeting_log`, `collab_status`
+
+**CLI fallback:**
+```bash
+acfm agents setup
+acfm agents runtime set auto
+acfm agents doctor --verbose
+acfm agents start --task "..." --mux auto
+acfm agents transcript --role all --limit 80
+acfm agents summary
+acfm agents artifacts --watch --interval 1200
+```
+
+**Model and runtime controls:**
+```bash
+acfm agents model list
+acfm agents model choose
+acfm agents runtime get
+acfm agents runtime install-zellij
+```
+
+**Artifacts to inspect:**
+- `~/.acfm/synapsegrid/<sessionId>/meeting-log.md`
+- `~/.acfm/synapsegrid/<sessionId>/meeting-summary.md`
+- `~/.acfm/synapsegrid/<sessionId>/turns/raw/*.ndjson`
+
+**Lite rule:** delegate only when collaboration adds value; otherwise continue with normal `ac-lite` flow.
+
+
 ## Conditional Skills (Load Only If Gate Triggers)
 
 ### Security Gate
@@ -73,6 +124,8 @@ Load `secure-coding-cybersecurity` if the change touches any of:
 - File paths/uploads
 - Secrets/tokens/credentials
 - Shell/command execution
+
+- Run `vibe-security` as the final security audit before archive (mandatory in Gate B).
 
 ### Testing Gate
 
@@ -140,7 +193,8 @@ If any item fails: stop, resolve, then continue.
 Before `openspec-archive-change`, all must be true:
 
 - `openspec-verify-change` completed
-- No CRITICAL findings remain
+- `vibe-security` executed as final security validation
+- No unresolved CRITICAL/HIGH findings remain
 - Relevant tests pass for changed behavior
 - Tasks are complete or explicitly accepted by user with warning
 - Relevant reusable context from the completed work was saved to memory
@@ -161,8 +215,9 @@ If any item fails: stop, fix, re-verify.
 6. Pass Gate A.
 7. Implement with `openspec-apply-change`.
 8. Verify with `openspec-verify-change`.
-9. Pass Gate B.
-10. Archive with `openspec-archive-change`.
+9. Run `vibe-security` for final security audit and remediate findings.
+10. Pass Gate B.
+11. Archive with `openspec-archive-change`.
 
 ### Existing Change (Default Path)
 
@@ -174,8 +229,9 @@ If any item fails: stop, fix, re-verify.
 6. Pass Gate A.
 7. Implement.
 8. Verify.
-9. Pass Gate B.
-10. Archive.
+9. Run `vibe-security` for final security audit and remediate findings.
+10. Pass Gate B.
+11. Archive.
 
 ---
 

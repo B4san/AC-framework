@@ -43,6 +43,57 @@ acfm memory stats
 
 ---
 
+
+## SynapseGrid Collaboration Protocol (Optional but Recommended for Complex Tasks)
+
+Use SynapseGrid when a task benefits from role-based collaboration and explicit review loops.
+
+**Delegate to SynapseGrid when:**
+- Scope spans planning + implementation + review
+- Risk is medium/high (security, migrations, API contract changes)
+- You need auditable outputs (transcript, meeting summary, artifacts)
+- A single-pass implementation is likely to miss edge cases
+
+**Role delegation map:**
+- `planner` -> plan/constraints/acceptance criteria
+- `critic` -> risk analysis and challenge assumptions
+- `coder` -> implementation and concrete edits
+- `reviewer` -> final verification and readiness checks
+
+**Preferred MCP flow:**
+1. `collab_start_session`
+2. `collab_invoke_team`
+3. `collab_wait_run`
+4. `collab_get_result`
+5. Optional: `collab_get_transcript`, `collab_get_meeting_log`, `collab_status`
+
+**CLI fallback:**
+```bash
+acfm agents setup
+acfm agents runtime set auto
+acfm agents doctor --verbose
+acfm agents start --task "..." --mux auto
+acfm agents transcript --role all --limit 80
+acfm agents summary
+acfm agents artifacts --watch --interval 1200
+```
+
+**Model and runtime controls:**
+```bash
+acfm agents model list
+acfm agents model choose
+acfm agents runtime get
+acfm agents runtime install-zellij
+```
+
+**Artifacts to inspect:**
+- `~/.acfm/synapsegrid/<sessionId>/meeting-log.md`
+- `~/.acfm/synapsegrid/<sessionId>/meeting-summary.md`
+- `~/.acfm/synapsegrid/<sessionId>/turns/raw/*.ndjson`
+
+**Lite rule:** delegate only when collaboration adds value; otherwise continue with normal `ac-lite` flow.
+
+
 ## Conditional Skill Gates
 
 ### Platform/Stack Gate
@@ -56,6 +107,9 @@ Load based on selected implementation stack:
 ### Platform UI Gate
 - `mobile-ios-design` [IF iOS UI changes]
 - `mobile-android-design` [IF Android UI changes]
+
+### Security Gate
+- `vibe-security` [MANDATORY final audit before closure]
 
 ### Clarity/Scale Gate
 - `spec-clarification` [IF requirements ambiguous]
@@ -87,7 +141,8 @@ Before `openspec-apply-change`, all must be true:
 ### Gate B: Ready to Close
 Before `openspec-archive-change`, all must be true:
 - `openspec-verify-change` completed
-- Critical issues resolved (or explicitly accepted with warning)
+- `vibe-security` executed as final security validation
+- No unresolved CRITICAL/HIGH findings remain (or explicitly accepted with warning)
 - Task list reflects final state
 - Reusable context saved to memory
 - `documentation` / `sync-index` / changelog steps executed as required
@@ -105,8 +160,9 @@ Before `openspec-archive-change`, all must be true:
 6. Pass Gate A.
 7. Implement (`openspec-apply-change`).
 8. Verify (`openspec-verify-change`).
-9. Pass Gate B.
-10. Archive/sync and generate closure docs.
+9. Run `vibe-security` for final security audit and remediate findings.
+10. Pass Gate B.
+11. Archive/sync and generate closure docs.
 
 ### Existing Mobile Change
 1. Confirm initialization and target change.
@@ -116,8 +172,9 @@ Before `openspec-archive-change`, all must be true:
 5. Pass Gate A.
 6. Implement and debug as needed.
 7. Verify.
-8. Pass Gate B.
-9. Archive/sync.
+8. Run `vibe-security` for final security audit and remediate findings.
+9. Pass Gate B.
+10. Archive/sync.
 
 ---
 

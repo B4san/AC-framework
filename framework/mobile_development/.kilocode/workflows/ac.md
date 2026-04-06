@@ -67,6 +67,12 @@ If you attempt to proceed without completing a required step, you MUST STOP and 
 | `sync-index` | Keep project index and generated guidance synchronized with implementation. | Documentation sync | `openspec-apply-change` |
 | `changelog-generator` | Create user-facing release notes from implementation changes. | Release communication | `openspec-archive-change` |
 
+### Security Validation Skills
+
+| Skill | Description | Primary Use | Required Before |
+|-------|-------------|-------------|-----------------|
+| `vibe-security` | Final security audit for AI-generated/vibe-coded risks (exposed keys, broken access control, auth/payment/data validation gaps). | Final security validation before closure | `openspec-archive-change` |
+
 ---
 
 ## Persistent Memory Protocol (Mandatory)
@@ -97,81 +103,74 @@ The AC Framework includes a persistent memory system that agents must use proact
 
 If SynapseGrid is enabled in `acfm init`, AC Framework installs the collaborative MCP server automatically for detected assistants.
 
-**Session-start requirement when collaboration is enabled:**
-1. Prefer the available SynapseGrid MCP tools for collaborative session control before falling back to direct CLI.
-2. Use shared session state and transcript as the source of truth for role-by-role collaboration.
-3. If collaborative MCP is unavailable, use CLI fallback commands and keep behavior equivalent.
+**When to delegate to SynapseGrid:**
+- Multi-step features with architecture + implementation + review work
+- Tasks requiring critical analysis before coding (security, API contracts, refactors)
+- Long-running work where transcript, artifacts, and resumability are important
+- Situations where one assistant would benefit from role-based challenge/review
 
-**How to use SynapseGrid collaboration:**
-```text
-Preferred: use SynapseGrid MCP tools (ac-framework-collab) for start/status/step/resume/stop.
-Fallback: use AC Framework agents CLI commands directly.
-```
-```bash
-# Install/update collaborative MCP server integrations
-acfm agents install-mcps
-
-# Start collaborative runtime with visible 4-pane tmux war-room
-acfm agents start --task "design and implement feature X" --attach --model-coder provider/model
-
-# If already running in background, attach to panes and inspect logs
-acfm agents live
-acfm agents logs --role all --lines 120
-
-# Resume/list/export operations
-acfm agents resume
-acfm agents list
-acfm agents export --format md --out synapse-session.md
-
-# Fast diagnostics for OpenCode resolution errors
-acfm agents setup
-```
-
-**Troubleshooting notes:**
-- If transcript shows `Agent failed: spawn opencode ENOENT`, run `acfm agents setup` and restart/resume session.
-- If session exists but panes are not visible, use `acfm agents live` (or `acfm agents attach`) or `tmux attach -t <session-name>`.
-- For MCP-first flows, ensure session start enables worker spawning so tmux panes are created.
-- Per-role models can be set at start (`--model-planner`, `--model-critic`, `--model-coder`, `--model-reviewer`) or persisted via `acfm agents model set`.
-
-## SynapseGrid Collaborative MCP Protocol (Optional)
-
-If SynapseGrid is enabled in `acfm init`, AC Framework installs the collaborative MCP server automatically for detected assistants.
+**Role delegation model (what each agent does best):**
+- `planner`: breaks down scope, constraints, approach, acceptance criteria
+- `critic`: challenges assumptions, finds risks/blind spots, proposes safer alternatives
+- `coder`: implements code and applies concrete changes
+- `reviewer`: validates quality, consistency with spec/tasks, and production readiness
 
 **Session-start requirement when collaboration is enabled:**
-1. Prefer the available SynapseGrid MCP tools for collaborative session control before falling back to direct CLI.
-2. Use shared session state and transcript as the source of truth for role-by-role collaboration.
-3. If collaborative MCP is unavailable, use CLI fallback commands and keep behavior equivalent.
+1. Prefer SynapseGrid MCP tools for start/wait/result/cancel/status flows.
+2. Use transcript + meeting summary + artifacts as source of truth.
+3. If collaborative MCP is unavailable, use equivalent CLI commands.
 
-**How to use SynapseGrid collaboration:**
-```text
-Preferred: use SynapseGrid MCP tools (ac-framework-collab) for start/status/step/resume/stop.
-Fallback: use AC Framework agents CLI commands directly.
-```
+**Preferred MCP flow (recommended):**
+1. `collab_start_session`
+2. `collab_invoke_team`
+3. `collab_wait_run`
+4. `collab_get_result`
+5. Optional diagnostics: `collab_get_transcript`, `collab_get_meeting_log`, `collab_status`
+
+**CLI fallback and operations:**
 ```bash
-# Install/update collaborative MCP server integrations
-acfm agents install-mcps
+# Setup/runtime
+acfm agents setup
+acfm agents runtime install-zellij
+acfm agents runtime set auto
+acfm agents doctor --verbose
 
-# Start collaborative runtime with visible 4-pane tmux war-room
-acfm agents start --task "design and implement feature X" --attach --model-coder provider/model
-
-# If already running in background, attach to panes and inspect logs
+# Start/run
+acfm agents start --task "design and implement feature X" --mux auto
 acfm agents live
-acfm agents logs --role all --lines 120
+acfm agents status
 
-# Resume/list/export operations
-acfm agents resume
-acfm agents list
+# Visibility and artifacts
+acfm agents transcript --role all --limit 80
+acfm agents summary
+acfm agents artifacts --watch --interval 1200
 acfm agents export --format md --out synapse-session.md
 
-# Fast diagnostics for OpenCode resolution errors
-acfm agents setup
+# Model management
+acfm agents model list
+acfm agents model choose
+acfm agents model set --role coder provider/model
+
+# Lifecycle
+acfm agents resume
+acfm agents stop
 ```
 
-**Troubleshooting notes:**
-- If transcript shows `Agent failed: spawn opencode ENOENT`, run `acfm agents setup` and restart/resume session.
-- If session exists but panes are not visible, use `acfm agents live` (or `acfm agents attach`) or `tmux attach -t <session-name>`.
-- For MCP-first flows, ensure session start enables worker spawning so tmux panes are created.
-- Per-role models can be set at start (`--model-planner`, `--model-critic`, `--model-coder`, `--model-reviewer`) or persisted via `acfm agents model set`.
+**Collaboration artifacts (deterministic, not prompt-dependent):**
+- `~/.acfm/synapsegrid/<sessionId>/transcript.jsonl`
+- `~/.acfm/synapsegrid/<sessionId>/meeting-log.md`
+- `~/.acfm/synapsegrid/<sessionId>/meeting-summary.md`
+- `~/.acfm/synapsegrid/<sessionId>/turns/*.json`
+- `~/.acfm/synapsegrid/<sessionId>/turns/raw/*.ndjson`
+- `~/.acfm/synapsegrid/<sessionId>/turns/raw/*.stderr.log`
+- `~/.acfm/synapsegrid/<sessionId>/diagnostics.json`
+
+**Troubleshooting and robust behavior:**
+- Use `acfm agents doctor --verbose` for capability probe diagnostics.
+- In `--mux auto`, runtime prefers zellij and falls back to tmux when zellij startup fails.
+- If model/provider errors appear, validate with `opencode auth list` and `opencode models`.
+- If workers are running but unclear, inspect `logs`, `transcript`, and `artifacts` before restarting.
+
 
 ---
 
@@ -205,7 +204,7 @@ Before proceeding to next phase, verify outputs exist:
 | Phase 2 | exploration notes + platform/stack decision recorded | [ ] |
 | Phase 3 | `proposal.md`, `specs/`, `design.md`, `tasks.md` + `spec-analysis` review | [ ] |
 | Phase 4 | implementation done + tasks updated + issues debugged | [ ] |
-| Phase 5 | verification passed + docs/index synced + archive/sync complete | [ ] |
+| Phase 5 | verification passed + `vibe-security` audit complete + docs/index synced + archive/sync complete | [ ] |
 
 **Rule 4: Pre-Implementation Safety Check**
 Before `openspec-apply-change`, ALL must be TRUE:
@@ -285,11 +284,12 @@ When starting a mobile project **from scratch**, follow this **MANDATORY** workf
     v
   PHASE 5 - VALIDATION AND CLOSURE
     19) openspec-verify-change
-    20) documentation
-    21) sync-index
-    22) openspec-sync-specs [IF syncing specs without archive]
-    23) openspec-archive-change OR openspec-bulk-archive-change
-    24) changelog-generator
+    20) vibe-security (final security audit)
+    21) documentation
+    22) sync-index
+    23) openspec-sync-specs [IF syncing specs without archive]
+    24) openspec-archive-change OR openspec-bulk-archive-change
+    25) changelog-generator
 ```
 
 **Conditional Skill Notes:**
@@ -338,11 +338,12 @@ When working on an **existing mobile codebase** (feature, bugfix, refactor):
 
   PHASE 5 - VALIDATION AND CLOSURE
     16) openspec-verify-change
-    17) documentation
-    18) sync-index
-    19) openspec-sync-specs [if needed]
-    20) openspec-archive-change / openspec-bulk-archive-change
-    21) changelog-generator
+    17) vibe-security (final security audit)
+    18) documentation
+    19) sync-index
+    20) openspec-sync-specs [if needed]
+    21) openspec-archive-change / openspec-bulk-archive-change
+    22) changelog-generator
 ```
 
 ---

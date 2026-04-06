@@ -15,6 +15,7 @@ If you attempt to proceed without completing a required step, you MUST STOP and 
 | Skill | Description | Primary Use | Required Before |
 |-------|-------------|-------------|-----------------|
 | `secure-coding-cybersecurity` | Detects and prevents security vulnerabilities (SQLi, XSS, command injection, hardcoded secrets). Follows OWASP Top 10 standards. | Secure code validation | `code-maintainability` |
+| `vibe-security` | Final security audit focused on AI-generated/vibe-coded risks (exposed keys, broken access control, auth/payment/data validation gaps). | Final security validation before closure | `openspec-archive-change` |
 | `code-maintainability` | Analyzes code maintainability: duplication, documentation, error handling, naming conventions, SOLID architecture, performance. | Refactoring and standards | `project-constitution` |
 | `error-handling-patterns` | Error handling patterns in multiple languages: exceptions, Result types, retry, circuit breaker, graceful degradation. | Application resilience | `secure-coding-cybersecurity` |
 | `performance-optimizer` | Methodologies for measuring, profiling, and optimizing code (caching, algorithm complexity, resource usage). | Performance Engineering | After Implementation |
@@ -99,6 +100,80 @@ acfm memory stats
 **User communication:** "Memory saved: [brief description]" when auto-saving occurs.
 
 
+
+### SynapseGrid Collaborative MCP Protocol (Optional)
+
+If SynapseGrid is enabled in `acfm init`, AC Framework installs the collaborative MCP server automatically for detected assistants.
+
+**When to delegate to SynapseGrid:**
+- Multi-step features with architecture + implementation + review work
+- Tasks requiring critical analysis before coding (security, API contracts, refactors)
+- Long-running work where transcript, artifacts, and resumability are important
+- Situations where one assistant would benefit from role-based challenge/review
+
+**Role delegation model (what each agent does best):**
+- `planner`: breaks down scope, constraints, approach, acceptance criteria
+- `critic`: challenges assumptions, finds risks/blind spots, proposes safer alternatives
+- `coder`: implements code and applies concrete changes
+- `reviewer`: validates quality, consistency with spec/tasks, and production readiness
+
+**Session-start requirement when collaboration is enabled:**
+1. Prefer SynapseGrid MCP tools for start/wait/result/cancel/status flows.
+2. Use transcript + meeting summary + artifacts as source of truth.
+3. If collaborative MCP is unavailable, use equivalent CLI commands.
+
+**Preferred MCP flow (recommended):**
+1. `collab_start_session`
+2. `collab_invoke_team`
+3. `collab_wait_run`
+4. `collab_get_result`
+5. Optional diagnostics: `collab_get_transcript`, `collab_get_meeting_log`, `collab_status`
+
+**CLI fallback and operations:**
+```bash
+# Setup/runtime
+acfm agents setup
+acfm agents runtime install-zellij
+acfm agents runtime set auto
+acfm agents doctor --verbose
+
+# Start/run
+acfm agents start --task "design and implement feature X" --mux auto
+acfm agents live
+acfm agents status
+
+# Visibility and artifacts
+acfm agents transcript --role all --limit 80
+acfm agents summary
+acfm agents artifacts --watch --interval 1200
+acfm agents export --format md --out synapse-session.md
+
+# Model management
+acfm agents model list
+acfm agents model choose
+acfm agents model set --role coder provider/model
+
+# Lifecycle
+acfm agents resume
+acfm agents stop
+```
+
+**Collaboration artifacts (deterministic, not prompt-dependent):**
+- `~/.acfm/synapsegrid/<sessionId>/transcript.jsonl`
+- `~/.acfm/synapsegrid/<sessionId>/meeting-log.md`
+- `~/.acfm/synapsegrid/<sessionId>/meeting-summary.md`
+- `~/.acfm/synapsegrid/<sessionId>/turns/*.json`
+- `~/.acfm/synapsegrid/<sessionId>/turns/raw/*.ndjson`
+- `~/.acfm/synapsegrid/<sessionId>/turns/raw/*.stderr.log`
+- `~/.acfm/synapsegrid/<sessionId>/diagnostics.json`
+
+**Troubleshooting and robust behavior:**
+- Use `acfm agents doctor --verbose` for capability probe diagnostics.
+- In `--mux auto`, runtime prefers zellij and falls back to tmux when zellij startup fails.
+- If model/provider errors appear, validate with `opencode auth list` and `opencode models`.
+- If workers are running but unclear, inspect `logs`, `transcript`, and `artifacts` before restarting.
+
+
 ### OpenSpec Skills (The heart of the framework)
 
 | Skill | Description | Primary Use | Required Before |
@@ -169,7 +244,7 @@ Before proceeding to next phase, verify you have these outputs:
 | Phase 2 | project-index.md exists, exploration notes | [ ] |
 | Phase 3 | proposal.md, specs/, design.md, tasks.md | [ ] |
 | Phase 4 | Tests written, code implemented, tasks marked complete | [ ] |
-| Phase 5 | Verification passed, docs updated, change archived | [ ] |
+| Phase 5 | Verification passed, `vibe-security` audit complete, docs updated, change archived | [ ] |
 
 **Rule 4: Pre-Implementation Safety Check**
 Before `openspec-apply-change`, ALL must be TRUE:
@@ -331,15 +406,17 @@ When starting a project **from scratch**, follow this **MANDATORY** workflow:
     ║      └─ Resolve any issues                   ║
     ║  26. openspec-verify-change                  ║
     ║      └─ Validate against specs               ║
-    ║  27. documentation                           ║
+    ║  27. vibe-security                           ║
+    ║      └─ Final security audit before closure  ║
+    ║  28. documentation                           ║
     ║      └─ Generate technical docs & diagrams   ║
-    ║  28. sync-index                              ║
+    ║  29. sync-index                              ║
     ║      └─ Update project documentation         ║
-    ║  29. changelog-generator                     ║
+    ║  30. changelog-generator                     ║
     ║      └─ Generate release notes               ║
-    ║  30. ci-deploy                               ║
+    ║  31. ci-deploy                               ║
     ║      └─ Deploy and verify solution           ║
-    ║  31. openspec-archive-change                 ║
+    ║  32. openspec-archive-change                 ║
     ║      └─ Archive the change                   ║
     ╚══════════════════════════════════════════════╝
 ```
@@ -457,15 +534,17 @@ When working on an **existing codebase** (adding features, fixing bugs, refactor
     ║      └─ Fix regressions                      ║
     ║  23. openspec-verify-change                  ║
     ║      └─ Final verification                   ║
-    ║  24. documentation                           ║
+    ║  24. vibe-security                           ║
+    ║      └─ Final security audit before closure  ║
+    ║  25. documentation                           ║
     ║      └─ Generate technical docs & diagrams   ║
-    ║  25. sync-index (IMPORTANT)                  ║
+    ║  26. sync-index (IMPORTANT)                  ║
     ║      └─ Update docs with new changes         ║
-    ║  26. changelog-generator                     ║
+    ║  27. changelog-generator                     ║
     ║      └─ Generate release notes               ║
-    ║  27. ci-deploy                               ║
+    ║  28. ci-deploy                               ║
     ║      └─ Deploy and verify solution           ║
-    ║  28. openspec-archive-change                 ║
+    ║  29. openspec-archive-change                 ║
     ║      └─ Archive change                       ║
     ╚══════════════════════════════════════════════╝
 ```
