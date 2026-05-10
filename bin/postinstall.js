@@ -64,10 +64,12 @@ if (isWin) {
 }
 
 // Auto-detect and install MCPs for supported assistants
-try {
-  const { detectAndInstallMCPs } = require('../src/services/mcp-installer');
-  detectAndInstallMCPs();
-} catch (error) {
-  // Silently fail if MCP installer is not available yet
-  // This allows the framework to work without MCP dependencies during early development
-}
+(async () => {
+  try {
+    const { detectAndInstallMCPs } = await import('../src/services/mcp-installer.js');
+    detectAndInstallMCPs();
+  } catch (error) {
+    // Silently fail if MCP installer is not available yet
+    // This allows the framework to work without MCP dependencies during early development
+  }
+})();
