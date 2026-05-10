@@ -4,7 +4,7 @@
  * (the assistant uses a different mechanism, like .clinerules).
  */
 export const IDE_MD_MAP = {
-  '.agent': 'AGENTS.md',
+  '.agents': 'AGENTS.md',
   '.amazonq': 'AGENTS.md',
   '.augment': 'AGENTS.md',
   '.claude': 'CLAUDE.md',

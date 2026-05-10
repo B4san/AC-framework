@@ -7,7 +7,7 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 
 /** Absolute path to the bundled framework/ directory inside this package. */
 export const FRAMEWORK_PATH = resolve(__dirname, '../../framework');
-export const DEFAULT_TEMPLATE = 'new_project';
+export const DEFAULT_TEMPLATE = 'make_your_own';
 export const TEMPLATE_METADATA_FILE = '.acfm-template.json';
 
 function isTemplateDirectory(entry) {
@@ -110,7 +110,7 @@ export async function detectTemplateForModules(modules, frameworkPath = FRAMEWOR
  */
 export async function getSelectableModules(frameworkPath = FRAMEWORK_PATH) {
   const entries = await readdir(frameworkPath, { withFileTypes: true });
-  return entries
+  const physicalModules = entries
     .filter(
       (e) =>
         e.isDirectory() &&
@@ -118,8 +118,18 @@ export async function getSelectableModules(frameworkPath = FRAMEWORK_PATH) {
         !ALWAYS_INSTALL.includes(e.name) &&
         !HIDDEN_FOLDERS.has(e.name),
     )
-    .map((e) => e.name)
-    .sort((a, b) => a.localeCompare(b));
+    .map((e) => e.name);
+
+  // VIRTUAL MODULES:
+  // Add .antigravity to the list if it is not a physical directory,
+  // but only if the template actually contains the bundled target (.agents).
+  const virtualModules = [];
+  const allDirectories = entries.filter((e) => e.isDirectory()).map((e) => e.name);
+  if (!physicalModules.includes('.antigravity') && allDirectories.includes('.agents')) {
+    virtualModules.push('.antigravity');
+  }
+
+  return [...physicalModules, ...virtualModules].sort((a, b) => a.localeCompare(b));
 }
 
 /**
@@ -133,7 +143,13 @@ export function expandWithBundled(selected) {
       bundled.push(...BUNDLED[folder]);
     }
   }
-  return [...selected, ...bundled, ...ALWAYS_INSTALL];
+  const allSet = new Set([...selected, ...bundled, ...ALWAYS_INSTALL]);
+  
+  // Remove pure virtual aliases from installation list.
+  // .antigravity is just an alias for .agents now.
+  allSet.delete('.antigravity');
+  
+  return Array.from(allSet);
 }
 
 /**

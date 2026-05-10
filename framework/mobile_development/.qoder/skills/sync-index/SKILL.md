@@ -1,6 +1,6 @@
 ---
 name: sync-index
-description: Keep project documentation (.agents/project-index.md and sub-skills) in sync with codebase changes.
+description: Keep project documentation (.agentss/project-index.md and sub-skills) in sync with codebase changes.
 ---
 
 # Documentation Sync

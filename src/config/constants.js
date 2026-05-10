@@ -17,16 +17,16 @@ export const ALWAYS_INSTALL = [];
 // When a key module is selected, its bundled companions are auto-installed.
 export const BUNDLED = {
   '.cline': ['.clinerules'],
-  '.antigravity': ['.agent'],  // Antigravity uses .agent/skills/ directory
+  '.antigravity': ['.agents'],  // Antigravity uses .agents/skills/ directory
 };
 
 // Folders that should never appear in the selection list because they are
 // installed automatically as part of a bundled assistant.
-export const HIDDEN_FOLDERS = new Set([...Object.values(BUNDLED).flat(), '.agent']);
+export const HIDDEN_FOLDERS = new Set([...Object.values(BUNDLED).flat(), '.agents']);
 
 // Human-readable descriptions for each module, used in the selection UI.
 export const DESCRIPTIONS = {
-  '.agent': 'Generic Agent Framework',
+  '.agents': 'Generic Agent Framework',
   '.antigravity': 'Google Antigravity IDE (Agent-First)',
   '.amazonq': 'AWS Amazon Q',
   '.augment': 'Augment Code Assistant',
@@ -55,7 +55,7 @@ export const DESCRIPTIONS = {
 
 // Icons for each assistant, used in the selection UI.
 export const ASSISTANT_ICONS = {
-  '.agent': '⊡',
+  '.agents': '⊡',
   '.antigravity': '◉',
   '.amazonq': '◈',
   '.augment': '◇',
@@ -83,6 +83,7 @@ export const ASSISTANT_ICONS = {
 
 export const TEMPLATE_DESCRIPTIONS = {
   new_project: 'Best default for greenfield projects with the full skill catalog.',
+  make_your_own: 'General-purpose base where teams build their own skill repertoire without web-specific specializations.',
   mobile_development: 'Mobile-focused setup with general workflow skills and less web-specific specialization.',
   web_development: 'Web-focused setup with UI, API, testing, performance, and React-oriented guidance.',
 };
@@ -92,6 +93,11 @@ export const TEMPLATE_CAPABILITIES = {
     'Full spec-driven workflow from planning to archive',
     'Broad skill catalog for app, API, quality, and security work',
     'Best starting point when project type is still flexible',
+  ],
+  make_your_own: [
+    'Includes all assistant/CLI and IDE packs from the base template',
+    'Keeps general OpenSpec, quality, security, and documentation skills',
+    'Encourages teams to curate and expand their own reusable skill stack',
   ],
   mobile_development: [
     'Spec-driven workflow plus general execution and documentation skills',
@@ -113,6 +119,14 @@ export const TEMPLATE_SKILL_PREVIEWS = {
     'test-generator',
     'code-review',
     'secure-coding-cybersecurity',
+  ],
+  make_your_own: [
+    'brainstorming',
+    'project-index',
+    'spec-clarification',
+    'skill-writer',
+    'find-skills',
+    'sync-index',
   ],
   mobile_development: [
     'brainstorming',
