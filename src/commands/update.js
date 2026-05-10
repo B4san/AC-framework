@@ -156,7 +156,7 @@ export async function updateCommand(options = {}) {
 
       const { selectedTemplate } = await inquirer.prompt([
         {
-          type: 'list',
+          type: 'select',
           name: 'selectedTemplate',
           message: acGradient('Choose the template to use for this update:'),
           choices: buildTemplateChoices(matches),

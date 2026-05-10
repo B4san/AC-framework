@@ -487,10 +487,11 @@ export async function initCommand(options = {}) {
     const templateChoices = buildTemplateChoices(templates);
     const { template } = await inquirer.prompt([
       {
-        type: 'list',
+        type: 'select',
         name: 'template',
         message: acGradient('Choose a development template:'),
         choices: templateChoices,
+        default: 'make_your_own',
         pageSize: 10,
       },
     ]);

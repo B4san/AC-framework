@@ -876,7 +876,7 @@ Examples:
 
         const { provider } = await inquirer.prompt([
           {
-            type: 'list',
+            type: 'select',
             name: 'provider',
             message: 'Select model provider',
             choices: providerChoices,
@@ -886,7 +886,7 @@ Examples:
         const selectedProviderModels = grouped.get(provider) || [];
         const { modelName } = await inquirer.prompt([
           {
-            type: 'list',
+            type: 'select',
             name: 'modelName',
             message: `Select model from ${provider}`,
             pageSize: 20,
@@ -900,7 +900,7 @@ Examples:
         ];
         const { role } = await inquirer.prompt([
           {
-            type: 'list',
+            type: 'select',
             name: 'role',
             message: 'Apply model to',
             choices: roleChoices,
