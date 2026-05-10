@@ -53,7 +53,7 @@ acfm init
 ```
 
 The CLI now guides you through:
-1. choose a template such as `new_project` or `mobile_development`
+1. choose a template such as `new_project`, `make_your_own`, or `mobile_development`
 2. choose one or more assistants from that template
 3. install the matching root instruction files like `AGENTS.md`, `CLAUDE.md`, `GEMINI.md`, or `copilot-instructions.md`
 4. optionally initialize NexusVault persistent memory and MCP connections
@@ -87,6 +87,7 @@ acfm memory search "auth refresh token"
 Current bundled templates live under `framework/`:
 
 - `new_project` - the full default template for new projects, including the broadest skill set.
+- `make_your_own` - includes all assistant packs with a general baseline so teams can build their own curated skill repertoire.
 - `mobile_development` - starts from the same base but keeps mainly general-purpose skills and spec workflow skills.
 - `web_development` - tuned for web and fullstack product work with UI, API, testing, performance, and React-oriented guidance.
 
