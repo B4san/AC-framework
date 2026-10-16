@@ -1,4 +1,4 @@
-# AC Framework
+# AC Framework  [![](https://data.jsdelivr.com/v1/package/npm/ac-framework/badge)](https://www.jsdelivr.com/package/npm/ac-framework)
 
 AC Framework is a toolkit of workflows, methods, and assistant-ready instructions that help AI generate scalable, correct code by following a spec-driven development methodology from the start.
 
